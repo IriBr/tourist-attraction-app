@@ -1,0 +1,187 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AuthProvider {
+  email
+  google
+  apple
+}
+
+enum AttractionCategory {
+  museum
+  park
+  landmark
+  beach
+  restaurant
+  entertainment
+  shopping
+  nature
+  historical
+  religious
+  other
+}
+
+model User {
+  id            String       @id @default(uuid())
+  email         String       @unique
+  passwordHash  String?
+  name          String
+  avatarUrl     String?
+  authProvider  AuthProvider @default(email)
+  emailVerified Boolean      @default(false)
+  appleUserId   String?      @unique
+
+  refreshTokens RefreshToken[]
+  reviews       Review[]
+  favorites     Favorite[]
+  helpfulVotes  HelpfulVote[]
+
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([email])
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([token])
+}
+
+model Attraction {
+  id               String             @id @default(uuid())
+  name             String
+  description      String
+  shortDescription String
+  category         AttractionCategory
+
+  // Location
+  latitude         Float
+  longitude        Float
+  address          String
+  city             String
+  country          String
+  postalCode       String?
+
+  // Media
+  images           String[]
+  thumbnailUrl     String
+
+  // Contact
+  contactPhone     String?
+  contactEmail     String?
+  website          String?
+
+  // Pricing
+  currency         String?
+  adultPrice       Float?
+  childPrice       Float?
+  seniorPrice      Float?
+  isFree           Boolean            @default(false)
+
+  // Stats (denormalized for performance)
+  averageRating    Float              @default(0)
+  totalReviews     Int                @default(0)
+
+  openingHours     OpeningHours[]
+  reviews          Review[]
+  favorites        Favorite[]
+
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  @@index([category])
+  @@index([city])
+  @@index([country])
+  @@index([averageRating])
+  @@index([latitude, longitude])
+}
+
+model OpeningHours {
+  id           String     @id @default(uuid())
+  attractionId String
+  attraction   Attraction @relation(fields: [attractionId], references: [id], onDelete: Cascade)
+  dayOfWeek    Int        // 0 = Sunday, 6 = Saturday
+  openTime     String     // HH:mm format
+  closeTime    String     // HH:mm format
+  isClosed     Boolean    @default(false)
+
+  @@unique([attractionId, dayOfWeek])
+  @@index([attractionId])
+}
+
+model Review {
+  id           String       @id @default(uuid())
+  attractionId String
+  attraction   Attraction   @relation(fields: [attractionId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  rating       Int          // 1-5
+  title        String
+  content      String
+  images       String[]
+  visitDate    DateTime?
+
+  // Stats (denormalized for performance)
+  helpfulCount Int          @default(0)
+
+  helpfulVotes HelpfulVote[]
+
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@unique([attractionId, userId]) // One review per user per attraction
+  @@index([attractionId])
+  @@index([userId])
+  @@index([rating])
+}
+
+model HelpfulVote {
+  id        String   @id @default(uuid())
+  reviewId  String
+  review    Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([reviewId, userId])
+  @@index([reviewId])
+  @@index([userId])
+}
+
+model Favorite {
+  id           String     @id @default(uuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attractionId String
+  attraction   Attraction @relation(fields: [attractionId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@unique([userId, attractionId])
+  @@index([userId])
+  @@index([attractionId])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  email     String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([token])
+}
