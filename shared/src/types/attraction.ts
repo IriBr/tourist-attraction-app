@@ -53,6 +53,7 @@ export interface Attraction {
   averageRating: number;
   totalReviews: number;
   isFavorited?: boolean; // Populated based on current user
+  isVisited?: boolean; // Populated based on current user
   distance?: number; // Populated when searching by location (in meters)
   createdAt: string;
   updatedAt: string;

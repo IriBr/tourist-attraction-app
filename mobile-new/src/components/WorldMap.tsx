@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -10,9 +10,11 @@ import {
   Modal,
   ActivityIndicator,
 } from 'react-native';
-import MapView, { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps';
+import MapView, { Marker, Region } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
-import { visitsApi, locationsApi, UserStats, LocationStats } from '../api';
+import { useFocusEffect } from '@react-navigation/native';
+import { visitsApi, locationsApi, LocationStats } from '../api';
+import { useStatsStore } from '../store';
 import type { MapContinent, MapCountry, MapCity, MapAttraction } from '../api/locations';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -45,6 +47,8 @@ export function WorldMap({ onContinentSelect, onAttractionPress }: WorldMapProps
   const [mapData, setMapData] = useState<ContinentWithAttractions[]>([]);
   const [isLoadingMap, setIsLoadingMap] = useState(true);
   const [globalStats, setGlobalStats] = useState({ continents: 0, countries: 0, cities: 0, attractions: 0 });
+  const [mapReady, setMapReady] = useState(false);
+  const [hasError, setHasError] = useState(false);
 
   // Navigation state
   const [level, setLevel] = useState<MapLevel>('world');
@@ -63,7 +67,7 @@ export function WorldMap({ onContinentSelect, onAttractionPress }: WorldMapProps
   const [showCityStatsSheet, setShowCityStatsSheet] = useState(false);
 
   // Real stats from API
-  const [userStats, setUserStats] = useState<UserStats | null>(null);
+  const { userStats, fetchStats } = useStatsStore();
   const [continentStats, setContinentStats] = useState<LocationStats | null>(null);
   const [countryStats, setCountryStats] = useState<LocationStats | null>(null);
   const [cityStats, setCityStats] = useState<LocationStats | null>(null);
@@ -71,6 +75,14 @@ export function WorldMap({ onContinentSelect, onAttractionPress }: WorldMapProps
   const [allContinentProgress, setAllContinentProgress] = useState<Record<string, number>>({});
   const [countryProgressMap, setCountryProgressMap] = useState<Record<string, number>>({});
   const [cityProgressMap, setCityProgressMap] = useState<Record<string, number>>({});
+
+  // Delay map mount to prevent crash
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setMapReady(true);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Fetch map data on mount
   useEffect(() => {
@@ -98,6 +110,7 @@ export function WorldMap({ onContinentSelect, onAttractionPress }: WorldMapProps
         setGlobalStats(stats);
       } catch (error) {
         console.error('Failed to fetch map data:', error);
+        setHasError(true);
       } finally {
         setIsLoadingMap(false);
       }
@@ -106,41 +119,36 @@ export function WorldMap({ onContinentSelect, onAttractionPress }: WorldMapProps
     fetchMapData();
   }, []);
 
-  // Fetch user stats and continent progress on mount
-  useEffect(() => {
-    const fetchUserStats = async () => {
-      try {
-        const stats = await visitsApi.getUserStats();
-        setUserStats(stats);
-      } catch (error) {
-        console.log('Failed to fetch user stats:', error);
-      }
-    };
+  // Fetch user stats when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchStats();
+    }, [])
+  );
 
-    fetchUserStats();
-  }, []);
+  // Fetch continent progress when map data is loaded or screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      if (mapData.length === 0) return;
 
-  // Fetch continent progress when map data is loaded
-  useEffect(() => {
-    if (mapData.length === 0) return;
+      const fetchAllContinentProgress = async () => {
+        const progressMap: Record<string, number> = {};
 
-    const fetchAllContinentProgress = async () => {
-      const progressMap: Record<string, number> = {};
+        await Promise.all(mapData.map(async (continent) => {
+          try {
+            const stats = await visitsApi.getContinentStats(continent.name);
+            progressMap[continent.id] = stats.progress;
+          } catch (error) {
+            progressMap[continent.id] = 0;
+          }
+        }));
 
-      await Promise.all(mapData.map(async (continent) => {
-        try {
-          const stats = await visitsApi.getContinentStats(continent.name);
-          progressMap[continent.id] = stats.progress;
-        } catch (error) {
-          progressMap[continent.id] = 0;
-        }
-      }));
+        setAllContinentProgress(progressMap);
+      };
 
-      setAllContinentProgress(progressMap);
-    };
-
-    fetchAllContinentProgress();
-  }, [mapData]);
+      fetchAllContinentProgress();
+    }, [mapData])
+  );
 
   // Fetch continent stats and country progress when continent is selected
   useEffect(() => {
@@ -521,7 +529,6 @@ export function WorldMap({ onContinentSelect, onAttractionPress }: WorldMapProps
       <MapView
         ref={mapRef}
         style={styles.map}
-        provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
         initialRegion={worldRegion}
         mapType="standard"
       >
@@ -1374,7 +1381,7 @@ const styles = StyleSheet.create({
   // World level bottom bar styles
   worldBottomBar: {
     position: 'absolute',
-    bottom: 80,
+    bottom: 16,
     left: 0,
     right: 0,
     flexDirection: 'row',

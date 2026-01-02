@@ -39,6 +39,28 @@ const citiesToSeed: Array<{ name: string; country: string; lat: number; lng: num
   { name: 'Moscow', country: 'Russia', lat: 55.7558, lng: 37.6173 },
   { name: 'Istanbul', country: 'Turkey', lat: 41.0082, lng: 28.9784 },
 
+  // Albania
+  { name: 'Tirana', country: 'Albania', lat: 41.3275, lng: 19.8187 },
+  { name: 'Durrës', country: 'Albania', lat: 41.3246, lng: 19.4565 },
+  { name: 'Vlorë', country: 'Albania', lat: 40.4660, lng: 19.4910 },
+  { name: 'Shkodër', country: 'Albania', lat: 42.0693, lng: 19.5033 },
+  { name: 'Berat', country: 'Albania', lat: 40.7058, lng: 19.9522 },
+  { name: 'Gjirokastër', country: 'Albania', lat: 40.0758, lng: 20.1389 },
+  { name: 'Sarandë', country: 'Albania', lat: 39.8597, lng: 20.0050 },
+  { name: 'Korçë', country: 'Albania', lat: 40.6186, lng: 20.7808 },
+  { name: 'Krujë', country: 'Albania', lat: 41.5111, lng: 19.7928 },
+  { name: 'Ksamil', country: 'Albania', lat: 39.7833, lng: 20.0000 },
+  { name: 'Himarë', country: 'Albania', lat: 40.1019, lng: 19.7456 },
+  { name: 'Pogradec', country: 'Albania', lat: 40.9025, lng: 20.6525 },
+  { name: 'Elbasan', country: 'Albania', lat: 41.1125, lng: 20.0822 },
+  { name: 'Fier', country: 'Albania', lat: 40.7239, lng: 19.5564 },
+  { name: 'Lushnjë', country: 'Albania', lat: 40.9419, lng: 19.7050 },
+  { name: 'Kavajë', country: 'Albania', lat: 41.1833, lng: 19.5667 },
+  { name: 'Lezhë', country: 'Albania', lat: 41.7833, lng: 19.6500 },
+  { name: 'Kukës', country: 'Albania', lat: 42.0769, lng: 20.4219 },
+  { name: 'Peshkopi', country: 'Albania', lat: 41.6850, lng: 20.4289 },
+  { name: 'Burrel', country: 'Albania', lat: 41.6103, lng: 20.0089 },
+
   // Asia
   { name: 'Tokyo', country: 'Japan', lat: 35.6762, lng: 139.6503 },
   { name: 'Kyoto', country: 'Japan', lat: 35.0116, lng: 135.7681 },

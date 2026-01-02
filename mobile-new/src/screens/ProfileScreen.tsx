@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,11 +11,11 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAuthStore } from '../store/authStore';
 import { useSubscriptionStore } from '../store/subscriptionStore';
-import { useBadgeStore } from '../store';
-import { locationsApi, GlobalStats } from '../api';
+import { useBadgeStore, useStatsStore } from '../store';
+import { locationsApi, visitsApi } from '../api';
 import { colors } from '../theme';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList, ProfileStackParamList } from '../navigation/types';
@@ -47,20 +47,23 @@ export function ProfileScreen() {
     cancelSubscription,
   } = useSubscriptionStore();
   const { progress, fetchProgress } = useBadgeStore();
-  const [globalStats, setGlobalStats] = useState<GlobalStats | null>(null);
+  const { userStats, globalStats, fetchStats } = useStatsStore();
 
-  useEffect(() => {
-    fetchStatus();
-    fetchProgress();
-    locationsApi.getStats().then(setGlobalStats).catch(console.error);
-  }, []);
+  // Fetch stats when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchStatus();
+      fetchProgress();
+      fetchStats();
+    }, [])
+  );
 
-  // Calculate visited counts from progress data
+  // Use actual visit stats from API
   const visitedStats = {
-    attractions: progress?.byCity?.reduce((sum, p) => sum + p.visitedAttractions, 0) || 0,
-    cities: progress?.byCity?.filter(p => p.visitedAttractions > 0).length || 0,
-    countries: progress?.byCountry?.filter(p => p.visitedAttractions > 0).length || 0,
-    continents: progress?.byContinent?.filter(p => p.visitedAttractions > 0).length || 0,
+    attractions: userStats?.totalVisits || 0,
+    cities: userStats?.citiesVisited || 0,
+    countries: userStats?.countriesVisited || 0,
+    continents: userStats?.continentsVisited || 0,
   };
 
   const handleLogout = async () => {

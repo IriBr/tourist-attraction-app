@@ -9,12 +9,15 @@ import {
   ActivityIndicator,
   Dimensions,
   Linking,
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { attractionsApi, favoritesApi, visitsApi } from '../api';
+import { attractionsApi, favoritesApi, visitsApi, NewBadgeInfo } from '../api';
+import { useStatsStore } from '../store';
+import { BadgeAwardModal } from '../components/BadgeAwardModal';
 import type { Attraction } from '../types';
 
 const { width } = Dimensions.get('window');
@@ -63,13 +66,44 @@ export function AttractionDetailScreen() {
     }
   };
 
+  const [isMarkingVisited, setIsMarkingVisited] = useState(false);
+  const [showBadgeModal, setShowBadgeModal] = useState(false);
+  const [newBadges, setNewBadges] = useState<NewBadgeInfo[]>([]);
+  const { refreshStats } = useStatsStore();
+
   const handleMarkVisited = async () => {
-    if (!attraction || isVisited) return;
+    if (!attraction || isVisited || isMarkingVisited) return;
     try {
-      await visitsApi.markVisited(attraction.id);
+      setIsMarkingVisited(true);
+      const response = await visitsApi.markVisited({ attractionId: attraction.id });
       setIsVisited(true);
-    } catch (error) {
+      // Refresh global stats immediately
+      refreshStats();
+
+      // Check for newly earned badges
+      const earnedBadges = response.newBadges
+        ?.filter((b) => b.isNew)
+        .map((b) => b.badge) || [];
+
+      if (earnedBadges.length > 0) {
+        // Show badge animation modal
+        setNewBadges(earnedBadges);
+        setShowBadgeModal(true);
+      } else {
+        // Just show simple success alert
+        Alert.alert('Success!', `You've marked ${attraction.name} as visited!`);
+      }
+    } catch (error: any) {
       console.error('Failed to mark visited:', error);
+      if (error?.response?.status === 409) {
+        // Already visited
+        setIsVisited(true);
+        Alert.alert('Already Visited', 'You have already visited this attraction.');
+      } else {
+        Alert.alert('Error', 'Failed to mark as visited. Please try again.');
+      }
+    } finally {
+      setIsMarkingVisited(false);
     }
   };
 
@@ -259,11 +293,18 @@ export function AttractionDetailScreen() {
           <View style={styles.actionButtons}>
             {!isVisited && (
               <TouchableOpacity
-                style={styles.visitButton}
+                style={[styles.visitButton, isMarkingVisited && styles.visitButtonDisabled]}
                 onPress={handleMarkVisited}
+                disabled={isMarkingVisited}
               >
-                <Ionicons name="checkmark-circle-outline" size={22} color="#fff" />
-                <Text style={styles.visitButtonText}>Mark as Visited</Text>
+                {isMarkingVisited ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Ionicons name="checkmark-circle-outline" size={22} color="#fff" />
+                )}
+                <Text style={styles.visitButtonText}>
+                  {isMarkingVisited ? 'Marking...' : 'Mark as Visited'}
+                </Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity style={styles.directionsButton} onPress={handleOpenMaps}>
@@ -275,6 +316,13 @@ export function AttractionDetailScreen() {
           <View style={{ height: 100 }} />
         </View>
       </ScrollView>
+
+      {/* Badge Award Modal */}
+      <BadgeAwardModal
+        visible={showBadgeModal}
+        badges={newBadges}
+        onClose={() => setShowBadgeModal(false)}
+      />
     </LinearGradient>
   );
 }
@@ -478,6 +526,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#e91e63',
     paddingVertical: 16,
     borderRadius: 12,
+  },
+  visitButtonDisabled: {
+    opacity: 0.7,
   },
   visitButtonText: {
     color: '#fff',

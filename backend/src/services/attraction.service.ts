@@ -53,6 +53,7 @@ interface AttractionWithRelations {
     isClosed: boolean;
   }[];
   favorites?: { id: string }[];
+  visits?: { id: string }[];
 }
 
 function mapToAttraction(
@@ -102,6 +103,7 @@ function mapToAttraction(
     averageRating: attr.averageRating,
     totalReviews: attr.totalReviews,
     isFavorited: userId ? (attr.favorites?.length ?? 0) > 0 : undefined,
+    isVisited: userId ? (attr.visits?.length ?? 0) > 0 : undefined,
     createdAt: attr.createdAt.toISOString(),
     updatedAt: attr.updatedAt.toISOString(),
   };
@@ -263,6 +265,7 @@ export async function getAttractionById(
       },
       openingHours: true,
       favorites: userId ? { where: { userId }, select: { id: true } } : false,
+      visits: userId ? { where: { userId }, select: { id: true } } : false,
     },
   });
 

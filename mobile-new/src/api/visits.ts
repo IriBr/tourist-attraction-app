@@ -43,6 +43,20 @@ export interface MarkVisitedRequest {
   visitDate?: string;
 }
 
+export interface NewBadgeInfo {
+  id: string;
+  tier: 'bronze' | 'silver' | 'gold' | 'platinum';
+  locationId: string;
+  locationName: string;
+  locationType: 'city' | 'country' | 'continent';
+  earnedAt: string;
+}
+
+export interface MarkVisitedResponse {
+  visit: Visit;
+  newBadges: { badge: NewBadgeInfo; isNew: boolean }[];
+}
+
 export const visitsApi = {
   async getUserVisits(params?: { page?: number; limit?: number }): Promise<{ items: Visit[]; total: number }> {
     const response = await apiClient.get('/visits', { params });
@@ -74,7 +88,7 @@ export const visitsApi = {
     return response.data.data.isVisited;
   },
 
-  async markVisited(data: MarkVisitedRequest): Promise<Visit> {
+  async markVisited(data: MarkVisitedRequest): Promise<MarkVisitedResponse> {
     const response = await apiClient.post('/visits', data);
     return response.data.data;
   },

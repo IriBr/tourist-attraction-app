@@ -62,3 +62,7 @@ shared/src/**/*.map
 
 # OS
 Thumbs.db
+
+# Build artifacts
+mobile-new/Wandr.app/
+mobile-new/*.tar.gz
