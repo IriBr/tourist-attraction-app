@@ -14,6 +14,7 @@
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
     "db:seed": "tsx src/scripts/seed.ts",
+    "db:seed-data": "tsx src/scripts/seed-data.ts",
     "db:seed-countries": "tsx src/scripts/seed-countries.ts",
     "db:seed-api": "tsx src/scripts/seed-from-api.ts",
     "db:seed-google": "tsx src/scripts/seed-google-places.ts"
