@@ -9,6 +9,7 @@ import adminRoutes from './admin.routes.js';
 import locationRoutes from './location.routes.js';
 import publicLocationRoutes from './public-location.routes.js';
 import badgeRoutes from './badge.routes.js';
+import verificationRoutes from './verification.routes.js';
 
 const router = Router();
 
@@ -18,6 +19,7 @@ router.use('/reviews', reviewRoutes);
 router.use('/favorites', favoriteRoutes);
 router.use('/visits', visitRoutes);
 router.use('/badges', badgeRoutes);
+router.use('/verification', verificationRoutes);
 router.use('/locations', publicLocationRoutes);
 router.use('/subscription', subscriptionRoutes);
 router.use('/admin', adminRoutes);

@@ -7,6 +7,8 @@ export { visitsApi } from './visits';
 export { subscriptionApi } from './subscription';
 export { badgesApi } from './badges';
 export { locationsApi } from './locations';
+export { verificationApi } from './verification';
 export type { UserStats, LocationStats, Visit } from './visits';
 export type { SubscriptionStatus, CanScanResult, FreeTierLimits } from './subscription';
 export type { GlobalStats, MapContinent, MapCountry, MapCity, MapAttraction } from './locations';
+export type { VerifyRequest, VerifyResponse, ConfirmResponse, VerificationStatus, AttractionSummary } from './verification';

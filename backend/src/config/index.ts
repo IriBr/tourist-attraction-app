@@ -21,6 +21,7 @@ const envSchema = z.object({
   AWS_REGION: z.string().default('us-east-1'),
   AWS_S3_BUCKET: z.string().optional(),
   GOOGLE_MAPS_API_KEY: z.string().optional(),
+  ANTHROPIC_API_KEY: z.string().optional(),
   RATE_LIMIT_WINDOW_MS: z.string().default('900000'),
   RATE_LIMIT_MAX_REQUESTS: z.string().default('100'),
 });
@@ -63,6 +64,17 @@ export const config = {
   rateLimit: {
     windowMs: parseInt(parsed.data.RATE_LIMIT_WINDOW_MS, 10),
     maxRequests: parseInt(parsed.data.RATE_LIMIT_MAX_REQUESTS, 10),
+  },
+  anthropic: {
+    apiKey: parsed.data.ANTHROPIC_API_KEY,
+  },
+  vision: {
+    maxAttractions: 20,
+    confidenceThresholds: {
+      autoMatch: 0.85,
+      suggest: 0.60,
+      showHint: 0.30,
+    },
   },
 } as const;
 

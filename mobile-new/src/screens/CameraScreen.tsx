@@ -6,17 +6,18 @@ import {
   TouchableOpacity,
   Image,
   Modal,
-  TextInput,
   Alert,
   ActivityIndicator,
 } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
+import * as Location from 'expo-location';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useSubscriptionStore } from '../store/subscriptionStore';
+import { verificationApi, VerifyResponse, AttractionSummary } from '../api';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
 import { colors } from '../theme';
@@ -29,11 +30,13 @@ export function CameraScreen() {
   const [facing, setFacing] = useState<CameraType>('back');
   const [permission, requestPermission] = useCameraPermissions();
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
-  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [capturedBase64, setCapturedBase64] = useState<string | null>(null);
+  const [capturedLocation, setCapturedLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [showResultModal, setShowResultModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [attractionName, setAttractionName] = useState('');
   const [flash, setFlash] = useState<'off' | 'on'>('off');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [verificationResult, setVerificationResult] = useState<VerifyResponse | null>(null);
   const cameraRef = useRef<CameraView>(null);
 
   // Subscription state
@@ -41,15 +44,28 @@ export function CameraScreen() {
     isPremium,
     canScan,
     scansRemaining,
-    isLoading: subscriptionLoading,
     fetchStatus,
-    recordScan,
   } = useSubscriptionStore();
+
+  // Local scans remaining (updated from verification response)
+  const [localScansRemaining, setLocalScansRemaining] = useState<number | null>(null);
 
   // Fetch subscription status on mount
   useEffect(() => {
     fetchStatus();
+    loadVerificationStatus();
   }, []);
+
+  const loadVerificationStatus = async () => {
+    try {
+      const status = await verificationApi.getStatus();
+      setLocalScansRemaining(status.scansRemaining);
+    } catch (error) {
+      console.log('Failed to load verification status:', error);
+    }
+  };
+
+  const displayScansRemaining = localScansRemaining ?? scansRemaining;
 
   if (!permission) {
     return (
@@ -90,7 +106,7 @@ export function CameraScreen() {
   const checkScanLimit = (): boolean => {
     if (isPremium) return true;
 
-    if (!canScan || scansRemaining <= 0) {
+    if (!canScan || displayScansRemaining <= 0) {
       setShowUpgradeModal(true);
       return false;
     }
@@ -101,16 +117,41 @@ export function CameraScreen() {
     if (!checkScanLimit()) return;
 
     if (cameraRef.current) {
+      setIsProcessing(true);
       try {
+        // Get current location for camera mode
+        let location: { lat: number; lng: number } | null = null;
+        try {
+          const { status } = await Location.requestForegroundPermissionsAsync();
+          if (status === 'granted') {
+            const loc = await Location.getCurrentPositionAsync({
+              accuracy: Location.Accuracy.Balanced,
+            });
+            location = {
+              lat: loc.coords.latitude,
+              lng: loc.coords.longitude,
+            };
+          }
+        } catch (locError) {
+          console.log('Could not get location:', locError);
+        }
+
+        // Capture photo with base64
         const photo = await cameraRef.current.takePictureAsync({
-          quality: 0.8,
+          quality: 0.7,
+          base64: true,
         });
-        if (photo) {
+
+        if (photo && photo.base64) {
           setCapturedImage(photo.uri);
-          setShowSaveModal(true);
+          setCapturedBase64(photo.base64);
+          setCapturedLocation(location);
+          // Verify immediately
+          await verifyImage(photo.base64, location);
         }
       } catch (error) {
         Alert.alert('Error', 'Failed to take picture');
+        setIsProcessing(false);
       }
     }
   };
@@ -122,36 +163,82 @@ export function CameraScreen() {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 0.8,
+      quality: 0.7,
+      base64: true,
     });
 
-    if (!result.canceled && result.assets[0]) {
+    if (!result.canceled && result.assets[0] && result.assets[0].base64) {
       setCapturedImage(result.assets[0].uri);
-      setShowSaveModal(true);
+      setCapturedBase64(result.assets[0].base64);
+      setCapturedLocation(null); // No location for gallery uploads
+      setIsProcessing(true);
+      // Verify immediately - no location triggers global search
+      await verifyImage(result.assets[0].base64, null);
     }
   };
 
-  const savePhoto = async () => {
-    setIsProcessing(true);
+  const verifyImage = async (base64: string, location: { lat: number; lng: number } | null) => {
     try {
-      // Record the scan in the backend
-      await recordScan(capturedImage || undefined, attractionName);
+      const response = await verificationApi.verify({
+        image: base64,
+        latitude: location?.lat,
+        longitude: location?.lng,
+        radiusMeters: 50000, // 50km radius for camera mode
+      });
 
-      Alert.alert(
-        'Photo Saved!',
-        `Your photo of "${attractionName || 'Attraction'}" has been saved.${
-          !isPremium ? `\n\nScans remaining today: ${scansRemaining - 1}` : ''
-        }`,
-        [{ text: 'OK', onPress: () => resetCamera() }]
-      );
+      setVerificationResult(response);
+      setLocalScansRemaining(response.scansRemaining);
+      setShowResultModal(true);
     } catch (error: any) {
-      if (error.message?.includes('limit')) {
+      console.error('Verification error:', error);
+      if (error.response?.status === 429) {
         setShowUpgradeModal(true);
       } else {
-        Alert.alert('Error', error.message || 'Failed to save photo');
+        Alert.alert(
+          'Verification Failed',
+          error.response?.data?.error?.message || 'Could not verify the image. Please try again.'
+        );
       }
+      resetCamera();
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const handleConfirmSuggestion = async () => {
+    if (!verificationResult?.suggestion) return;
+
+    setIsProcessing(true);
+    try {
+      const response = await verificationApi.confirmSuggestion(verificationResult.suggestion.id);
+
+      if (response.alreadyVisited) {
+        Alert.alert(
+          'Already Visited',
+          `You've already visited ${response.attraction.name}!`,
+          [{ text: 'OK', onPress: () => resetCamera() }]
+        );
+      } else {
+        Alert.alert(
+          'Visit Recorded!',
+          `Congratulations! You've collected ${response.attraction.name}!`,
+          [
+            {
+              text: 'View Details',
+              onPress: () => {
+                resetCamera();
+                navigation.navigate('AttractionDetail', { id: response.attraction.id });
+              },
+            },
+            { text: 'OK', onPress: () => resetCamera() },
+          ]
+        );
+      }
+    } catch (error: any) {
+      Alert.alert('Error', error.response?.data?.error?.message || 'Failed to confirm visit');
+    } finally {
+      setIsProcessing(false);
+      setShowResultModal(false);
     }
   };
 
@@ -162,8 +249,118 @@ export function CameraScreen() {
 
   const resetCamera = () => {
     setCapturedImage(null);
-    setShowSaveModal(false);
-    setAttractionName('');
+    setCapturedBase64(null);
+    setCapturedLocation(null);
+    setShowResultModal(false);
+    setVerificationResult(null);
+  };
+
+  const renderResultContent = () => {
+    if (!verificationResult) return null;
+
+    // High confidence match - already created visit
+    if (verificationResult.matched && verificationResult.attraction) {
+      return (
+        <View style={styles.resultContent}>
+          <View style={styles.successIconContainer}>
+            <Ionicons name="checkmark-circle" size={60} color="#4CAF50" />
+          </View>
+          <Text style={styles.resultTitle}>
+            {verificationResult.alreadyVisited ? 'Already Visited!' : 'Match Found!'}
+          </Text>
+          <Text style={styles.resultAttractionName}>{verificationResult.attraction.name}</Text>
+          <Text style={styles.resultLocation}>
+            {verificationResult.attraction.city}, {verificationResult.attraction.country}
+          </Text>
+          {verificationResult.explanation && (
+            <Text style={styles.resultExplanation}>{verificationResult.explanation}</Text>
+          )}
+          <Text style={styles.confidenceText}>
+            Confidence: {Math.round((verificationResult.confidence || 0) * 100)}%
+          </Text>
+
+          <View style={styles.resultActions}>
+            <TouchableOpacity
+              style={styles.primaryButton}
+              onPress={() => {
+                resetCamera();
+                navigation.navigate('AttractionDetail', { id: verificationResult.attraction!.id });
+              }}
+            >
+              <Text style={styles.primaryButtonText}>View Details</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.secondaryButton} onPress={resetCamera}>
+              <Text style={styles.secondaryButtonText}>Scan Another</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      );
+    }
+
+    // Medium confidence - requires confirmation
+    if (verificationResult.requiresConfirmation && verificationResult.suggestion) {
+      return (
+        <View style={styles.resultContent}>
+          <View style={styles.questionIconContainer}>
+            <Ionicons name="help-circle" size={60} color={colors.secondary} />
+          </View>
+          <Text style={styles.resultTitle}>Is this...?</Text>
+          <Text style={styles.resultAttractionName}>{verificationResult.suggestion.name}</Text>
+          <Text style={styles.resultLocation}>
+            {verificationResult.suggestion.city}, {verificationResult.suggestion.country}
+          </Text>
+          {verificationResult.explanation && (
+            <Text style={styles.resultExplanation}>{verificationResult.explanation}</Text>
+          )}
+          <Text style={styles.confidenceText}>
+            Confidence: {Math.round((verificationResult.confidence || 0) * 100)}%
+          </Text>
+
+          <View style={styles.resultActions}>
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              onPress={resetCamera}
+              disabled={isProcessing}
+            >
+              <Text style={styles.secondaryButtonText}>No, Try Again</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.primaryButton}
+              onPress={handleConfirmSuggestion}
+              disabled={isProcessing}
+            >
+              {isProcessing ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.primaryButtonText}>Yes, That's It!</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      );
+    }
+
+    // No match
+    return (
+      <View style={styles.resultContent}>
+        <View style={styles.noMatchIconContainer}>
+          <Ionicons name="close-circle" size={60} color="#FF5252" />
+        </View>
+        <Text style={styles.resultTitle}>No Match Found</Text>
+        <Text style={styles.noMatchText}>
+          {verificationResult.message || "We couldn't identify a known attraction in this image."}
+        </Text>
+        {verificationResult.explanation && (
+          <Text style={styles.resultExplanation}>{verificationResult.explanation}</Text>
+        )}
+
+        <View style={styles.resultActions}>
+          <TouchableOpacity style={styles.primaryButton} onPress={resetCamera}>
+            <Text style={styles.primaryButtonText}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
   };
 
   return (
@@ -184,13 +381,13 @@ export function CameraScreen() {
             />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
-            <Text style={styles.headerTitle}>Capture Attraction</Text>
+            <Text style={styles.headerTitle}>Verify Attraction</Text>
             {/* Scan Counter for Free Users */}
             {!isPremium && (
               <View style={styles.scanCounterContainer}>
                 <Ionicons name="scan" size={14} color={colors.secondary} />
                 <Text style={styles.scanCounterText}>
-                  {scansRemaining} scans left today
+                  {displayScansRemaining} scans left today
                 </Text>
               </View>
             )}
@@ -212,15 +409,29 @@ export function CameraScreen() {
           <View style={[styles.frameCorner, styles.frameTopRight]} />
           <View style={[styles.frameCorner, styles.frameBottomLeft]} />
           <View style={[styles.frameCorner, styles.frameBottomRight]} />
+          {isProcessing && (
+            <View style={styles.processingOverlay}>
+              <ActivityIndicator size="large" color={colors.secondary} />
+              <Text style={styles.processingText}>Analyzing image...</Text>
+            </View>
+          )}
         </View>
 
         {/* Bottom Controls */}
         <View style={[styles.bottomControls, { paddingBottom: insets.bottom + 100 }]}>
-          <TouchableOpacity style={styles.galleryButton} onPress={pickImage}>
+          <TouchableOpacity
+            style={styles.galleryButton}
+            onPress={pickImage}
+            disabled={isProcessing}
+          >
             <Ionicons name="images" size={28} color="#fff" />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.captureButton} onPress={takePicture}>
+          <TouchableOpacity
+            style={[styles.captureButton, isProcessing && styles.captureButtonDisabled]}
+            onPress={takePicture}
+            disabled={isProcessing}
+          >
             <View style={styles.captureButtonInner} />
           </TouchableOpacity>
 
@@ -228,9 +439,9 @@ export function CameraScreen() {
         </View>
       </CameraView>
 
-      {/* Save Modal */}
+      {/* Result Modal */}
       <Modal
-        visible={showSaveModal}
+        visible={showResultModal}
         animationType="slide"
         transparent={true}
         onRequestClose={resetCamera}
@@ -244,32 +455,13 @@ export function CameraScreen() {
               <Image source={{ uri: capturedImage }} style={styles.previewImage} />
             )}
 
-            {/* Attraction Name Input */}
-            <Text style={styles.modalLabel}>Name this attraction</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="e.g., Eiffel Tower"
-              placeholderTextColor="#666"
-              value={attractionName}
-              onChangeText={setAttractionName}
-            />
+            {renderResultContent()}
 
-            {/* Action Buttons */}
-            <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.cancelButton} onPress={resetCamera} disabled={isProcessing}>
-                <Text style={styles.cancelButtonText}>Retake</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.saveButton} onPress={savePhoto} disabled={isProcessing}>
-                {isProcessing ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <>
-                    <Ionicons name="checkmark" size={20} color="#fff" />
-                    <Text style={styles.saveButtonText}>Save Photo</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            </View>
+            {!isPremium && (
+              <Text style={styles.scansRemainingText}>
+                {displayScansRemaining} scans remaining today
+              </Text>
+            )}
           </View>
         </View>
       </Modal>
@@ -288,13 +480,13 @@ export function CameraScreen() {
             </View>
             <Text style={styles.upgradeTitle}>Scan Limit Reached</Text>
             <Text style={styles.upgradeDescription}>
-              You've used all 3 free scans for today. Upgrade to Premium for unlimited scans and access to all attractions!
+              You've used all your free scans for today. Upgrade to Premium for 50 scans per day!
             </Text>
 
             <View style={styles.upgradeFeatures}>
               <View style={styles.upgradeFeatureRow}>
                 <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-                <Text style={styles.upgradeFeatureText}>Unlimited daily scans</Text>
+                <Text style={styles.upgradeFeatureText}>50 daily scans</Text>
               </View>
               <View style={styles.upgradeFeatureRow}>
                 <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
@@ -427,6 +619,18 @@ const styles = StyleSheet.create({
     bottom: 0,
     right: 0,
   },
+  processingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+  },
+  processingText: {
+    color: '#fff',
+    marginTop: 12,
+    fontSize: 16,
+  },
   bottomControls: {
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -450,6 +654,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 4,
     borderColor: '#fff',
+  },
+  captureButtonDisabled: {
+    opacity: 0.5,
   },
   captureButtonInner: {
     width: 60,
@@ -483,56 +690,112 @@ const styles = StyleSheet.create({
   },
   previewImage: {
     width: '100%',
-    height: 250,
+    height: 200,
     borderRadius: 16,
     marginBottom: 20,
   },
-  modalLabel: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 12,
-  },
-  input: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 12,
-    padding: 16,
-    color: '#fff',
-    fontSize: 16,
-    marginBottom: 20,
-  },
-  modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  cancelButton: {
-    flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 12,
-    padding: 16,
-    marginRight: 8,
+  resultContent: {
     alignItems: 'center',
   },
-  cancelButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+  successIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(76, 175, 80, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
   },
-  saveButton: {
+  questionIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  noMatchIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255, 82, 82, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  resultTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 8,
+  },
+  resultAttractionName: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.secondary,
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  resultLocation: {
+    fontSize: 14,
+    color: '#888',
+    marginBottom: 12,
+  },
+  resultExplanation: {
+    fontSize: 14,
+    color: '#aaa',
+    textAlign: 'center',
+    marginBottom: 8,
+    paddingHorizontal: 20,
+  },
+  confidenceText: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 20,
+  },
+  noMatchText: {
+    fontSize: 14,
+    color: '#888',
+    textAlign: 'center',
+    marginBottom: 20,
+    paddingHorizontal: 20,
+    lineHeight: 20,
+  },
+  resultActions: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  primaryButton: {
     flex: 1,
     backgroundColor: colors.secondary,
     borderRadius: 12,
     padding: 16,
-    marginLeft: 8,
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
   },
-  saveButtonText: {
+  primaryButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
-    marginLeft: 8,
+  },
+  secondaryButton: {
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+  },
+  secondaryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  scansRemainingText: {
+    color: '#666',
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 16,
   },
   // Scan counter styles
   scanCounterContainer: {
