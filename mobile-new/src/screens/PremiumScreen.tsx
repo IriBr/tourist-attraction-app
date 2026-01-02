@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useSubscriptionStore } from '../store/subscriptionStore';
+import { colors } from '../theme';
 
 const PREMIUM_FEATURES = [
   {
@@ -116,7 +117,7 @@ export function PremiumScreen() {
   if (isPremium) {
     return (
       <LinearGradient
-        colors={['#1a1a2e', '#16213e', '#0f0f23']}
+        colors={colors.gradientDark}
         style={styles.container}
       >
         <View style={[styles.content, { paddingTop: insets.top + 16 }]}>
@@ -157,7 +158,7 @@ export function PremiumScreen() {
 
   return (
     <LinearGradient
-      colors={['#1a1a2e', '#16213e', '#0f0f23']}
+      colors={colors.gradientDark}
       style={styles.container}
     >
       <ScrollView
@@ -180,7 +181,7 @@ export function PremiumScreen() {
         {/* Hero Section */}
         <View style={styles.heroSection}>
           <LinearGradient
-            colors={['rgba(233, 30, 99, 0.3)', 'rgba(255, 215, 0, 0.2)']}
+            colors={['rgba(245, 158, 11, 0.3)', 'rgba(255, 215, 0, 0.2)']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.heroGradient}
@@ -247,7 +248,7 @@ export function PremiumScreen() {
           {PREMIUM_FEATURES.map((feature, index) => (
             <View key={index} style={styles.featureRow}>
               <View style={styles.featureIconContainer}>
-                <Ionicons name={feature.icon as any} size={24} color="#e91e63" />
+                <Ionicons name={feature.icon as any} size={24} color={colors.secondary} />
               </View>
               <View style={styles.featureContent}>
                 <Text style={styles.featureTitle}>{feature.title}</Text>
@@ -291,7 +292,7 @@ export function PremiumScreen() {
           activeOpacity={0.8}
         >
           <LinearGradient
-            colors={['#e91e63', '#c2185b']}
+            colors={colors.gradientSecondary}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.ctaGradient}
@@ -400,8 +401,8 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   planCardSelected: {
-    borderColor: '#e91e63',
-    backgroundColor: 'rgba(233, 30, 99, 0.1)',
+    borderColor: colors.secondary,
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
   },
   planCardPopular: {
     position: 'relative',
@@ -433,13 +434,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   planRadioOuterSelected: {
-    borderColor: '#e91e63',
+    borderColor: colors.secondary,
   },
   planRadioInner: {
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#e91e63',
+    backgroundColor: colors.secondary,
   },
   planInfo: {
     flex: 1,
@@ -491,7 +492,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(233, 30, 99, 0.15)',
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 16,

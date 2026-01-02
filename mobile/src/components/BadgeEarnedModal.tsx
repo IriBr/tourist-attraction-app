@@ -11,6 +11,7 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { BadgeTier, LocationType, NewBadgeResult } from '@tourist-app/shared';
+import { colors } from '../theme';
 
 const { width } = Dimensions.get('window');
 
@@ -135,7 +136,7 @@ export function BadgeEarnedModal({ visible, badges, onClose }: BadgeEarnedModalP
           ]}
         >
           <LinearGradient
-            colors={['#1a1a2e', '#16213e']}
+            colors={[colors.primaryDark, colors.primary]}
             style={styles.modalContent}
           >
             {/* Confetti effect (simple dots) */}
@@ -146,7 +147,7 @@ export function BadgeEarnedModal({ visible, badges, onClose }: BadgeEarnedModalP
                   style={[
                     styles.confettiDot,
                     {
-                      backgroundColor: i % 3 === 0 ? tierColors.primary : i % 3 === 1 ? '#e91e63' : '#fff',
+                      backgroundColor: i % 3 === 0 ? tierColors.primary : i % 3 === 1 ? colors.secondary : '#fff',
                       left: `${10 + (i * 7)}%`,
                       top: `${5 + ((i * 13) % 20)}%`,
                     },
@@ -195,7 +196,7 @@ export function BadgeEarnedModal({ visible, badges, onClose }: BadgeEarnedModalP
             {/* Close Button */}
             <TouchableOpacity style={styles.closeButton} onPress={onClose}>
               <LinearGradient
-                colors={['#e91e63', '#c2185b']}
+                colors={[colors.secondary, colors.secondaryDark]}
                 style={styles.closeButtonGradient}
               >
                 <Text style={styles.closeButtonText}>Awesome!</Text>
@@ -321,7 +322,7 @@ const styles = StyleSheet.create({
   },
   moreBadgesText: {
     fontSize: 14,
-    color: '#e91e63',
+    color: colors.secondary,
     marginTop: 8,
   },
   closeButton: {

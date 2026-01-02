@@ -1,46 +1,32 @@
-import { prisma } from '../config/database.js';
+import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
+const prisma = new PrismaClient();
+
 async function createAdmin() {
-  const email = process.argv[2] || 'admin@tourist.app';
-  const password = process.argv[3] || 'admin123';
-  const name = process.argv[4] || 'Admin User';
+  const email = 'admin@tourist-app.com';
+  const password = 'Admin@123';
+  const passwordHash = await bcrypt.hash(password, 12);
 
-  try {
-    // Check if user exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    });
+  const admin = await prisma.user.upsert({
+    where: { email },
+    update: { role: 'admin' },
+    create: {
+      email,
+      name: 'Admin User',
+      passwordHash,
+      emailVerified: true,
+      authProvider: 'email',
+      role: 'admin',
+    },
+  });
 
-    if (existingUser) {
-      // Update to admin
-      await prisma.user.update({
-        where: { email },
-        data: { role: 'admin' },
-      });
-      console.log(`User ${email} has been promoted to admin.`);
-    } else {
-      // Create new admin user
-      const passwordHash = await bcrypt.hash(password, 10);
-      await prisma.user.create({
-        data: {
-          email,
-          name,
-          passwordHash,
-          role: 'admin',
-          emailVerified: true,
-        },
-      });
-      console.log(`Admin user created: ${email}`);
-      console.log(`Password: ${password}`);
-    }
+  console.log(`Admin user created/updated:`);
+  console.log(`  Email: ${email}`);
+  console.log(`  Password: ${password}`);
+  console.log(`  Role: ${admin.role}`);
 
-    console.log('Done!');
-  } catch (error) {
-    console.error('Error:', error);
-  } finally {
-    await prisma.$disconnect();
-  }
+  await prisma.$disconnect();
 }
 
-createAdmin();
+createAdmin().catch(console.error);

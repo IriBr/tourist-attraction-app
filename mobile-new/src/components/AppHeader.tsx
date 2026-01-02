@@ -5,12 +5,14 @@ import {
   StyleSheet,
   TouchableOpacity,
   Platform,
+  Image,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { colors, BRAND } from '../theme';
 
 interface AppHeaderProps {
   showBack?: boolean;
@@ -26,14 +28,13 @@ interface AppHeaderProps {
 function Logo() {
   return (
     <View style={styles.logoContainer}>
-      <LinearGradient
-        colors={['#e91e63', '#c2185b']}
-        style={styles.logoIconWrapper}
-      >
-        <Ionicons name="compass" size={24} color="#fff" />
-      </LinearGradient>
+      <Image
+        source={require('../../assets/icon.png')}
+        style={styles.logoIcon}
+        resizeMode="contain"
+      />
       <View style={styles.logoTextContainer}>
-        <Text style={styles.logoText}>Wanderlust</Text>
+        <Text style={styles.logoText}>{BRAND.name}</Text>
         <View style={styles.logoBadge}>
           <Text style={styles.logoBadgeText}>EXPLORE</Text>
         </View>
@@ -83,7 +84,7 @@ export function AppHeader({
             style={styles.actionButton}
             activeOpacity={0.7}
           >
-            <Ionicons name={rightAction.icon as any} size={22} color="#e91e63" />
+            <Ionicons name={rightAction.icon as any} size={22} color={colors.secondary} />
           </TouchableOpacity>
         ) : (
           <View style={styles.placeholder} />
@@ -126,7 +127,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
   },
   headerOverlay: {
-    backgroundColor: 'rgba(26, 26, 46, 0.7)',
+    backgroundColor: 'rgba(13, 148, 136, 0.85)',
   },
   transparentHeader: {
     position: 'absolute',
@@ -162,7 +163,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -170,7 +171,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(233, 30, 99, 0.15)',
+    backgroundColor: 'rgba(245, 158, 11, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -179,29 +180,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
-  logoIconWrapper: {
+  logoIcon: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#e91e63',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
   },
   logoTextContainer: {
     flexDirection: 'column',
   },
   logoText: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '700',
     color: '#fff',
     letterSpacing: 0.5,
   },
   logoBadge: {
-    backgroundColor: 'rgba(233, 30, 99, 0.2)',
+    backgroundColor: 'rgba(245, 158, 11, 0.25)',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
@@ -211,7 +205,7 @@ const styles = StyleSheet.create({
   logoBadgeText: {
     fontSize: 8,
     fontWeight: '700',
-    color: '#e91e63',
+    color: colors.secondary,
     letterSpacing: 1.5,
   },
   titleText: {

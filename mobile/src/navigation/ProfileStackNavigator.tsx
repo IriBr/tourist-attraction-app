@@ -16,6 +16,7 @@ import { ProfileStackParamList } from './types';
 import { BadgesScreen, ProgressScreen } from '../screens';
 import { AppHeader } from '../components';
 import { useAuthStore, useBadgeStore } from '../store';
+import { colors, BRAND } from '../theme';
 
 const Stack = createNativeStackNavigator<ProfileStackParamList>();
 
@@ -28,7 +29,7 @@ interface MenuItemProps {
   badge?: number;
 }
 
-function MenuItem({ icon, label, sublabel, onPress, accentColor = '#e91e63', badge }: MenuItemProps) {
+function MenuItem({ icon, label, sublabel, onPress, accentColor = colors.primary, badge }: MenuItemProps) {
   return (
     <TouchableOpacity
       style={styles.menuItem}
@@ -83,7 +84,7 @@ function ProfileScreen() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#1a1a2e', '#16213e', '#0f0f23']}
+        colors={[colors.primaryDark, colors.primary, colors.primaryDark]}
         style={StyleSheet.absoluteFill}
       />
 
@@ -100,28 +101,28 @@ function ProfileScreen() {
         {/* Profile Card */}
         <View style={styles.profileCard}>
           <LinearGradient
-            colors={['rgba(233, 30, 99, 0.15)', 'rgba(233, 30, 99, 0.05)']}
+            colors={['rgba(245, 158, 11, 0.15)', 'rgba(245, 158, 11, 0.05)']}
             style={styles.profileCardGradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
           />
           <View style={styles.avatarContainer}>
             <LinearGradient
-              colors={['#e91e63', '#c2185b']}
+              colors={[colors.secondary, colors.secondaryDark]}
               style={styles.avatarGradient}
             >
               <Text style={styles.avatarText}>
-                {(user?.name || 'T').charAt(0).toUpperCase()}
+                {(user?.name || 'W').charAt(0).toUpperCase()}
               </Text>
             </LinearGradient>
             <View style={styles.onlineIndicator} />
           </View>
           <View style={styles.profileInfo}>
-            <Text style={styles.userName}>{user?.name || 'Traveler'}</Text>
-            <Text style={styles.userEmail}>{user?.email || 'email@example.com'}</Text>
+            <Text style={styles.userName}>{user?.name || 'Wanderer'}</Text>
+            <Text style={styles.userEmail}>{user?.email || 'explorer@wandr.app'}</Text>
             <View style={styles.memberBadge}>
-              <Ionicons name="diamond" size={12} color="#FFD700" />
-              <Text style={styles.memberBadgeText}>Explorer Member</Text>
+              <Ionicons name="compass" size={12} color={colors.secondary} />
+              <Text style={styles.memberBadgeText}>Explorer</Text>
             </View>
           </View>
         </View>
@@ -132,25 +133,25 @@ function ProfileScreen() {
             icon="medal"
             value={summary?.totalBadges || 0}
             label="Badges"
-            color="#FFD700"
+            color={colors.secondary}
           />
           <StatCard
             icon="location"
             value={summary?.badgesByType?.city || 0}
             label="Cities"
-            color="#e91e63"
+            color={colors.accent}
           />
           <StatCard
             icon="flag"
             value={summary?.badgesByType?.country || 0}
             label="Countries"
-            color="#00BCD4"
+            color={colors.primaryLight}
           />
           <StatCard
             icon="globe"
             value={summary?.badgesByType?.continent || 0}
             label="Continents"
-            color="#4CAF50"
+            color={colors.success}
           />
         </View>
 
@@ -170,7 +171,7 @@ function ProfileScreen() {
             label="My Badges"
             sublabel="Track your earned achievements"
             onPress={() => (navigation as any).navigate('BadgesScreen')}
-            accentColor="#FFD700"
+            accentColor={colors.secondary}
             badge={summary?.totalBadges}
           />
           <MenuItem
@@ -178,7 +179,7 @@ function ProfileScreen() {
             label="My Progress"
             sublabel="See how close you are to new badges"
             onPress={() => (navigation as any).navigate('ProgressScreen')}
-            accentColor="#4CAF50"
+            accentColor={colors.success}
           />
         </View>
 
@@ -193,21 +194,21 @@ function ProfileScreen() {
             label="My Visits"
             sublabel="Places you've explored"
             onPress={() => {}}
-            accentColor="#e91e63"
+            accentColor={colors.primary}
           />
           <MenuItem
             icon="heart-outline"
             label="Favorites"
             sublabel="Saved attractions"
             onPress={() => {}}
-            accentColor="#FF5722"
+            accentColor={colors.accent}
           />
           <MenuItem
             icon="chatbubble-outline"
             label="My Reviews"
             sublabel="Your shared experiences"
             onPress={() => {}}
-            accentColor="#9C27B0"
+            accentColor={colors.info}
           />
         </View>
 
@@ -221,19 +222,19 @@ function ProfileScreen() {
             icon="person-outline"
             label="Edit Profile"
             onPress={() => {}}
-            accentColor="#2196F3"
+            accentColor={colors.primaryLight}
           />
           <MenuItem
             icon="notifications-outline"
             label="Notifications"
             onPress={() => {}}
-            accentColor="#FF9800"
+            accentColor={colors.secondary}
           />
           <MenuItem
             icon="settings-outline"
             label="Preferences"
             onPress={() => {}}
-            accentColor="#607D8B"
+            accentColor={colors.textSecondary}
           />
         </View>
 
@@ -243,12 +244,12 @@ function ProfileScreen() {
           onPress={logout}
           activeOpacity={0.8}
         >
-          <Ionicons name="log-out-outline" size={20} color="#e91e63" />
+          <Ionicons name="log-out-outline" size={20} color={colors.error} />
           <Text style={styles.logoutText}>Log Out</Text>
         </TouchableOpacity>
 
         {/* App Version */}
-        <Text style={styles.versionText}>Wanderlust v1.0.0</Text>
+        <Text style={styles.versionText}>{BRAND.name} v1.0.0</Text>
       </ScrollView>
     </View>
   );
@@ -301,7 +302,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#e91e63',
+    shadowColor: colors.secondary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -319,9 +320,9 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: '#4CAF50',
+    backgroundColor: colors.success,
     borderWidth: 3,
-    borderColor: '#1a1a2e',
+    borderColor: colors.primaryDark,
   },
   profileInfo: {
     marginLeft: 16,
@@ -342,7 +343,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(255, 215, 0, 0.15)',
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
@@ -351,7 +352,7 @@ const styles = StyleSheet.create({
   memberBadgeText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#FFD700',
+    color: colors.secondary,
   },
   statsContainer: {
     flexDirection: 'row',
@@ -399,7 +400,7 @@ const styles = StyleSheet.create({
   },
   sectionAction: {
     fontSize: 14,
-    color: '#e91e63',
+    color: colors.secondary,
     fontWeight: '500',
   },
   menuSection: {
@@ -459,16 +460,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingVertical: 16,
-    backgroundColor: 'rgba(233, 30, 99, 0.1)',
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
     borderRadius: 16,
     marginTop: 8,
     borderWidth: 1,
-    borderColor: 'rgba(233, 30, 99, 0.2)',
+    borderColor: 'rgba(239, 68, 68, 0.2)',
   },
   logoutText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#e91e63',
+    color: colors.error,
   },
   versionText: {
     textAlign: 'center',

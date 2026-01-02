@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,6 +9,7 @@ import { useAuthStore } from '../store/authStore';
 import { attractionsApi } from '../api';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from './types';
+import { colors, BRAND } from '../theme';
 
 export function HomeScreen() {
   const { user } = useAuthStore();
@@ -50,7 +51,7 @@ export function HomeScreen() {
 
   return (
     <LinearGradient
-      colors={['#1a1a2e', '#16213e', '#0f0f23']}
+      colors={colors.gradientDark}
       style={styles.container}
     >
       {/* Header */}
@@ -109,7 +110,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#e91e63',
+    backgroundColor: colors.secondary,
   },
   mapContainer: {
     flex: 1,

@@ -1,11 +1,12 @@
 import React, { useEffect } from 'react';
-import { StatusBar, View, ActivityIndicator, StyleSheet } from 'react-native';
+import { StatusBar, View, ActivityIndicator, StyleSheet, Text, Image } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import LinearGradient from 'react-native-linear-gradient';
 import { useAuthStore } from './src/store';
 import { ProfileStackNavigator } from './src/navigation';
+import { colors, BRAND } from './src/theme';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -21,10 +22,17 @@ const queryClient = new QueryClient({
 function SplashScreen() {
   return (
     <LinearGradient
-      colors={['#1a1a2e', '#16213e', '#0f0f23']}
+      colors={colors.gradientHero}
       style={styles.splashContainer}
     >
-      <ActivityIndicator size="large" color="#e91e63" />
+      <Image
+        source={require('./assets/images/icon.png')}
+        style={styles.splashLogo}
+        resizeMode="contain"
+      />
+      <Text style={styles.splashTitle}>{BRAND.name}</Text>
+      <Text style={styles.splashTagline}>{BRAND.tagline}</Text>
+      <ActivityIndicator size="large" color={colors.secondary} style={styles.splashLoader} />
     </LinearGradient>
   );
 }
@@ -63,5 +71,24 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  splashLogo: {
+    width: 120,
+    height: 120,
+    marginBottom: 16,
+  },
+  splashTitle: {
+    fontSize: 36,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  splashTagline: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginBottom: 32,
+  },
+  splashLoader: {
+    marginTop: 24,
   },
 });

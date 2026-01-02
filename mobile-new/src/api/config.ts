@@ -8,7 +8,7 @@ import { ApiErrorResponse } from '../types';
 const getApiUrl = () => {
   if (__DEV__) {
     // Use local IP for both iOS and Android simulators
-    const LOCAL_IP = '172.20.10.12';
+    const LOCAL_IP = '192.168.8.73';
     return `http://${LOCAL_IP}:3000/api/v1`;
   }
   return 'https://api.yourdomain.com/api/v1';

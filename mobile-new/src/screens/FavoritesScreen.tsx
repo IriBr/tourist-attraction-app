@@ -9,6 +9,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { colors } from '../theme';
 
 const favoriteAttractions = [
   {
@@ -53,7 +54,7 @@ export function FavoritesScreen() {
 
   return (
     <LinearGradient
-      colors={['#1a1a2e', '#16213e', '#0f0f23']}
+      colors={colors.gradientDark}
       style={styles.container}
     >
       <View style={[styles.content, { paddingTop: insets.top + 16 }]}>
@@ -64,7 +65,7 @@ export function FavoritesScreen() {
         {/* Stats */}
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
-            <Ionicons name="heart" size={24} color="#e91e63" />
+            <Ionicons name="heart" size={24} color={colors.secondary} />
             <Text style={styles.statValue}>{favoriteAttractions.length}</Text>
             <Text style={styles.statLabel}>Saved</Text>
           </View>
@@ -99,7 +100,7 @@ export function FavoritesScreen() {
                 <View style={styles.cardHeader}>
                   <Text style={styles.cardName}>{item.name}</Text>
                   <TouchableOpacity>
-                    <Ionicons name="heart" size={22} color="#e91e63" />
+                    <Ionicons name="heart" size={22} color={colors.secondary} />
                   </TouchableOpacity>
                 </View>
                 <Text style={styles.cardLocation}>{item.location}</Text>

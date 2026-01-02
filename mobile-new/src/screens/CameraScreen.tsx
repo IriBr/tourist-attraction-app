@@ -19,6 +19,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useSubscriptionStore } from '../store/subscriptionStore';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
+import { colors } from '../theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -61,11 +62,11 @@ export function CameraScreen() {
   if (!permission.granted) {
     return (
       <LinearGradient
-        colors={['#1a1a2e', '#16213e', '#0f0f23']}
+        colors={colors.gradientDark}
         style={styles.container}
       >
         <View style={styles.permissionContainer}>
-          <Ionicons name="camera-outline" size={80} color="#e91e63" />
+          <Ionicons name="camera-outline" size={80} color={colors.secondary} />
           <Text style={styles.permissionTitle}>Camera Access Required</Text>
           <Text style={styles.permissionText}>
             We need camera access to let you capture your travel memories
@@ -187,7 +188,7 @@ export function CameraScreen() {
             {/* Scan Counter for Free Users */}
             {!isPremium && (
               <View style={styles.scanCounterContainer}>
-                <Ionicons name="scan" size={14} color="#e91e63" />
+                <Ionicons name="scan" size={14} color={colors.secondary} />
                 <Text style={styles.scanCounterText}>
                   {scansRemaining} scans left today
                 </Text>
@@ -355,7 +356,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   permissionButton: {
-    backgroundColor: '#e91e63',
+    backgroundColor: colors.secondary,
     paddingHorizontal: 32,
     paddingVertical: 14,
     borderRadius: 12,
@@ -398,7 +399,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 40,
     height: 40,
-    borderColor: '#e91e63',
+    borderColor: colors.secondary,
     borderTopWidth: 3,
     borderLeftWidth: 3,
     top: 0,
@@ -454,7 +455,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#e91e63',
+    backgroundColor: colors.secondary,
   },
   placeholderButton: {
     width: 50,
@@ -519,7 +520,7 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     flex: 1,
-    backgroundColor: '#e91e63',
+    backgroundColor: colors.secondary,
     borderRadius: 12,
     padding: 16,
     marginLeft: 8,
@@ -537,14 +538,14 @@ const styles = StyleSheet.create({
   scanCounterContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(233, 30, 99, 0.2)',
+    backgroundColor: 'rgba(245, 158, 11, 0.2)',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
     marginTop: 4,
   },
   scanCounterText: {
-    color: '#e91e63',
+    color: colors.secondary,
     fontSize: 12,
     fontWeight: '600',
     marginLeft: 4,
@@ -618,7 +619,7 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   upgradeButton: {
-    backgroundColor: '#e91e63',
+    backgroundColor: colors.secondary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

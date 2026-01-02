@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "Wanderlust",
+    "name": "Wandr",
     "slug": "tourist-attraction-app",
     "version": "1.0.0",
-    "scheme": "touristapp",
+    "scheme": "wandr",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -11,23 +11,23 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#1a1a2e"
+      "backgroundColor": "#0D9488"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.wanderlust.app",
+      "bundleIdentifier": "com.wandr.app",
       "buildNumber": "1",
       "infoPlist": {
-        "NSCameraUsageDescription": "Wanderlust needs camera access to scan and identify tourist attractions",
-        "NSLocationWhenInUseUsageDescription": "Wanderlust needs your location to find nearby attractions",
+        "NSCameraUsageDescription": "Wandr needs camera access to scan and identify tourist attractions",
+        "NSLocationWhenInUseUsageDescription": "Wandr needs your location to find nearby attractions",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
-      "package": "com.touristapp.mobile",
+      "package": "com.wandr.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#0D9488"
       }
     },
     "web": {

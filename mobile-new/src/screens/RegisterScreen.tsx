@@ -10,10 +10,13 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Image,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
 import type { AuthStackScreenProps } from '../navigation/types';
+import { colors, BRAND } from '../theme';
 
 type Props = AuthStackScreenProps<'Register'>;
 
@@ -58,7 +61,7 @@ export function RegisterScreen({ navigation }: Props) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <LinearGradient colors={colors.gradientPrimary} style={styles.container}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
@@ -66,10 +69,28 @@ export function RegisterScreen({ navigation }: Props) {
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
+          {/* Back Button */}
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="arrow-back" size={24} color="#fff" />
+          </TouchableOpacity>
+
+          {/* Logo */}
+          <View style={styles.logoContainer}>
+            <Image
+              source={require('../../assets/icon.png')}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+          </View>
+
           <View style={styles.header}>
-            <Text style={styles.title}>Create Account</Text>
-            <Text style={styles.subtitle}>Start your journey with us</Text>
+            <Text style={styles.title}>Join {BRAND.name}</Text>
+            <Text style={styles.subtitle}>Start your exploration journey</Text>
           </View>
 
           <View style={styles.form}>
@@ -128,15 +149,25 @@ export function RegisterScreen({ navigation }: Props) {
             </View>
 
             <TouchableOpacity
-              style={[styles.button, styles.primaryButton]}
               onPress={handleRegister}
               disabled={loading}
+              activeOpacity={0.8}
             >
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.primaryButtonText}>Create Account</Text>
-              )}
+              <LinearGradient
+                colors={colors.gradientSecondary}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.primaryButton}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <>
+                    <Text style={styles.primaryButtonText}>Create Account</Text>
+                    <Ionicons name="arrow-forward" size={20} color="#fff" />
+                  </>
+                )}
+              </LinearGradient>
             </TouchableOpacity>
           </View>
 
@@ -148,7 +179,7 @@ export function RegisterScreen({ navigation }: Props) {
 
           <View style={styles.socialButtons}>
             <TouchableOpacity
-              style={[styles.button, styles.socialButton]}
+              style={styles.socialButton}
               onPress={handleGoogleLogin}
               disabled={loading}
             >
@@ -158,7 +189,7 @@ export function RegisterScreen({ navigation }: Props) {
 
             {Platform.OS === 'ios' && (
               <TouchableOpacity
-                style={[styles.button, styles.socialButton, styles.appleButton]}
+                style={[styles.socialButton, styles.appleButton]}
                 onPress={handleAppleLogin}
                 disabled={loading}
               >
@@ -183,14 +214,13 @@ export function RegisterScreen({ navigation }: Props) {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   keyboardView: {
     flex: 1,
@@ -198,20 +228,39 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     padding: 24,
+    paddingTop: 60,
+  },
+  backButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  logo: {
+    width: 80,
+    height: 80,
+    borderRadius: 20,
   },
   header: {
     marginBottom: 24,
-    marginTop: 16,
+    alignItems: 'center',
   },
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#1a1a1a',
+    color: '#fff',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
+    color: 'rgba(255,255,255,0.7)',
   },
   form: {
     marginBottom: 24,
@@ -222,28 +271,26 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#333',
+    color: 'rgba(255,255,255,0.9)',
     marginBottom: 8,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: 'rgba(255,255,255,0.2)',
     borderRadius: 12,
     padding: 16,
     fontSize: 16,
-    backgroundColor: '#f9f9f9',
-    color: '#1a1a1a',
-  },
-  button: {
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    marginTop: 8,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    color: '#fff',
   },
   primaryButton: {
-    backgroundColor: '#2196F3',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 52,
+    borderRadius: 12,
+    gap: 8,
+    marginTop: 8,
   },
   primaryButtonText: {
     color: '#fff',
@@ -258,11 +305,11 @@ const styles = StyleSheet.create({
   divider: {
     flex: 1,
     height: 1,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: 'rgba(255,255,255,0.2)',
   },
   dividerText: {
     marginHorizontal: 16,
-    color: '#999',
+    color: 'rgba(255,255,255,0.6)',
     fontSize: 14,
   },
   socialButtons: {
@@ -272,13 +319,15 @@ const styles = StyleSheet.create({
   },
   socialButton: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
   },
   appleButton: {
     backgroundColor: '#000',
-    borderColor: '#000',
   },
   socialButtonText: {
     fontSize: 18,
@@ -301,11 +350,11 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 14,
-    color: '#666',
+    color: 'rgba(255,255,255,0.7)',
   },
   footerLink: {
     fontSize: 14,
-    color: '#2196F3',
+    color: colors.secondary,
     fontWeight: '600',
   },
 });

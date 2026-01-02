@@ -1,3 +1,51 @@
+// Brand Configuration
+export const BRAND = {
+  NAME: 'Wandr',
+  TAGLINE: 'Explore. Collect. Discover.',
+  DESCRIPTION: 'Your personal guide to the world\'s most amazing places',
+  WEBSITE: 'https://wandr.app',
+  SUPPORT_EMAIL: 'support@wandr.app',
+} as const;
+
+// Brand Colors
+export const COLORS = {
+  // Primary - Deep Teal (exploration, trust, adventure)
+  PRIMARY: '#0D9488',
+  PRIMARY_LIGHT: '#14B8A6',
+  PRIMARY_DARK: '#0F766E',
+
+  // Secondary - Warm Amber (discovery, energy, achievement)
+  SECONDARY: '#F59E0B',
+  SECONDARY_LIGHT: '#FBBF24',
+  SECONDARY_DARK: '#D97706',
+
+  // Accent - Coral (badges, highlights)
+  ACCENT: '#F97316',
+  ACCENT_LIGHT: '#FB923C',
+  ACCENT_DARK: '#EA580C',
+
+  // Neutrals
+  BACKGROUND: '#FFFFFF',
+  BACKGROUND_SECONDARY: '#F8FAFC',
+  SURFACE: '#FFFFFF',
+  TEXT_PRIMARY: '#0F172A',
+  TEXT_SECONDARY: '#64748B',
+  TEXT_MUTED: '#94A3B8',
+  BORDER: '#E2E8F0',
+
+  // Status Colors
+  SUCCESS: '#10B981',
+  WARNING: '#F59E0B',
+  ERROR: '#EF4444',
+  INFO: '#3B82F6',
+
+  // Badge Tiers
+  BADGE_BRONZE: '#CD7F32',
+  BADGE_SILVER: '#C0C0C0',
+  BADGE_GOLD: '#FFD700',
+  BADGE_PLATINUM: '#E5E4E2',
+} as const;
+
 // API Configuration
 export const API_VERSION = 'v1';
 export const DEFAULT_PAGE_SIZE = 20;

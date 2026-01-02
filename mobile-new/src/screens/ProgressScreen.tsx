@@ -15,6 +15,7 @@ import { useBadgeStore } from '../store';
 import { AppHeader } from '../components';
 import { BadgeProgress, BadgeTier, LocationType, BADGE_THRESHOLDS } from '../types';
 import { locationsApi, GlobalStats } from '../api';
+import { colors } from '../theme';
 
 const TIER_COLORS: Record<BadgeTier, string> = {
   bronze: '#CD7F32',
@@ -26,7 +27,7 @@ const TIER_COLORS: Record<BadgeTier, string> = {
 const TAB_CONFIG = {
   continents: { icon: 'globe' as const, color: '#4CAF50', label: 'Continents' },
   countries: { icon: 'flag' as const, color: '#00BCD4', label: 'Countries' },
-  cities: { icon: 'business' as const, color: '#e91e63', label: 'Cities' },
+  cities: { icon: 'business' as const, color: colors.secondary, label: 'Cities' },
 };
 
 type TabType = 'continents' | 'countries' | 'cities';
@@ -38,7 +39,7 @@ const LOCATION_TO_TAB: Record<LocationType, TabType> = {
 };
 
 function ProgressBar({ percent, currentTier }: { percent: number; currentTier: BadgeTier | null }) {
-  const tierColor = currentTier ? TIER_COLORS[currentTier] : '#e91e63';
+  const tierColor = currentTier ? TIER_COLORS[currentTier] : colors.secondary;
 
   return (
     <View style={styles.progressBarContainer}>
@@ -190,14 +191,14 @@ function OverallStats({
       visited: visitedStats.attractions,
       total: globalStats.attractions,
       icon: 'camera' as const,
-      color: '#e91e63'
+      color: colors.secondary
     },
     {
       label: 'Cities',
       visited: visitedStats.cities,
       total: globalStats.cities,
       icon: 'business' as const,
-      color: '#9c27b0'
+      color: colors.primary
     },
     {
       label: 'Countries',
@@ -277,7 +278,7 @@ export function ProgressScreen() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#1a1a2e', '#16213e', '#0f0f23']}
+        colors={colors.gradientDark}
         style={StyleSheet.absoluteFill}
       />
 
@@ -330,19 +331,19 @@ export function ProgressScreen() {
 
         {isLoading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#e91e63" />
+            <ActivityIndicator size="large" color={colors.secondary} />
             <Text style={styles.loadingText}>Loading your progress...</Text>
           </View>
         ) : error ? (
           <View style={styles.errorContainer}>
             <View style={styles.errorIconBg}>
-              <Ionicons name="alert-circle" size={32} color="#e91e63" />
+              <Ionicons name="alert-circle" size={32} color={colors.secondary} />
             </View>
             <Text style={styles.errorTitle}>Oops!</Text>
             <Text style={styles.errorText}>{error}</Text>
             <TouchableOpacity style={styles.retryButton} onPress={fetchProgress}>
               <LinearGradient
-                colors={['#e91e63', '#c2185b']}
+                colors={colors.gradientSecondary}
                 style={styles.retryGradient}
               >
                 <Ionicons name="refresh" size={18} color="#fff" />
@@ -509,7 +510,7 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: 'rgba(233, 30, 99, 0.15)',
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,

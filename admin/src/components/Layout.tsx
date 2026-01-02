@@ -8,6 +8,7 @@ import {
   Menu,
   X,
   Globe,
+  Compass,
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 
@@ -41,19 +42,19 @@ export function Layout() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-64 bg-gray-900 transform transition-transform duration-200 ease-in-out lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 w-64 bg-gradient-to-b from-teal-700 to-teal-800 transform transition-transform duration-200 ease-in-out lg:translate-x-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="flex items-center gap-3 px-6 py-6 border-b border-gray-800">
-            <div className="w-10 h-10 bg-pink-500 rounded-lg flex items-center justify-center">
-              <MapPin className="w-6 h-6 text-white" />
+          <div className="flex items-center gap-3 px-6 py-6 border-b border-teal-600/50">
+            <div className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center">
+              <img src="/logo.png" alt="Wandr" className="w-7 h-7" />
             </div>
             <div>
-              <h1 className="text-white font-bold text-lg">Tourist App</h1>
-              <p className="text-gray-400 text-xs">Admin Panel</p>
+              <h1 className="text-white font-bold text-lg">Wandr</h1>
+              <p className="text-teal-200 text-xs">Admin Dashboard</p>
             </div>
           </div>
 
@@ -68,8 +69,8 @@ export function Layout() {
                   onClick={() => setSidebarOpen(false)}
                   className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                     isActive
-                      ? 'bg-pink-500 text-white'
-                      : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                      ? 'bg-amber-500 text-white shadow-lg'
+                      : 'text-teal-100 hover:bg-white/10 hover:text-white'
                   }`}
                 >
                   <item.icon size={20} />
@@ -80,9 +81,9 @@ export function Layout() {
           </nav>
 
           {/* User info & logout */}
-          <div className="px-4 py-6 border-t border-gray-800">
+          <div className="px-4 py-6 border-t border-teal-600/50">
             <div className="flex items-center gap-3 px-4 py-2 mb-4">
-              <div className="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center">
+              <div className="w-10 h-10 bg-amber-500 rounded-full flex items-center justify-center">
                 <span className="text-white font-medium">
                   {user?.name?.charAt(0).toUpperCase() || 'A'}
                 </span>
@@ -91,12 +92,12 @@ export function Layout() {
                 <p className="text-white text-sm font-medium truncate">
                   {user?.name || 'Admin'}
                 </p>
-                <p className="text-gray-400 text-xs truncate">{user?.email}</p>
+                <p className="text-teal-200 text-xs truncate">{user?.email}</p>
               </div>
             </div>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-3 w-full px-4 py-3 text-gray-400 hover:bg-gray-800 hover:text-white rounded-lg transition-colors"
+              className="flex items-center gap-3 w-full px-4 py-3 text-teal-100 hover:bg-white/10 hover:text-white rounded-lg transition-colors"
             >
               <LogOut size={20} />
               <span>Logout</span>

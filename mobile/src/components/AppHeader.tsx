@@ -5,11 +5,13 @@ import {
   StyleSheet,
   TouchableOpacity,
   Platform,
+  Image,
 } from 'react-native';
 import { BlurView } from '@react-native-community/blur';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { colors, BRAND } from '../theme';
 
 interface AppHeaderProps {
   showBack?: boolean;
@@ -26,10 +28,14 @@ function Logo() {
   return (
     <View style={styles.logoContainer}>
       <View style={styles.logoIconWrapper}>
-        <Ionicons name="compass" size={24} color="#fff" />
+        <Image
+          source={require('../../assets/images/icon.png')}
+          style={styles.logoIcon}
+          resizeMode="contain"
+        />
       </View>
       <View style={styles.logoTextContainer}>
-        <Text style={styles.logoText}>Wanderlust</Text>
+        <Text style={styles.logoText}>{BRAND.name}</Text>
         <View style={styles.logoBadge}>
           <Text style={styles.logoBadgeText}>EXPLORE</Text>
         </View>
@@ -79,7 +85,7 @@ export function AppHeader({
             style={styles.actionButton}
             activeOpacity={0.7}
           >
-            <Ionicons name={rightAction.icon} size={22} color="#e91e63" />
+            <Ionicons name={rightAction.icon} size={22} color={colors.secondary} />
           </TouchableOpacity>
         ) : (
           <View style={styles.placeholder} />
@@ -104,7 +110,7 @@ export function AppHeader({
           style={styles.blurContainer}
           blurType="dark"
           blurAmount={20}
-          reducedTransparencyFallbackColor="#1a1a2e"
+          reducedTransparencyFallbackColor={colors.primaryDark}
         />
         <View style={styles.headerOverlay}>
           <HeaderContent />
@@ -133,10 +139,10 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
   },
   headerOverlay: {
-    backgroundColor: 'rgba(26, 26, 46, 0.7)',
+    backgroundColor: 'rgba(15, 118, 110, 0.85)',
   },
   androidHeader: {
-    backgroundColor: 'rgba(26, 26, 46, 0.95)',
+    backgroundColor: 'rgba(15, 118, 110, 0.95)',
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.1)',
   },
@@ -182,7 +188,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(233, 30, 99, 0.15)',
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -195,26 +201,26 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#e91e63',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#e91e63',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    overflow: 'hidden',
+  },
+  logoIcon: {
+    width: 32,
+    height: 32,
   },
   logoTextContainer: {
     flexDirection: 'column',
   },
   logoText: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '700',
     color: '#fff',
     letterSpacing: 0.5,
   },
   logoBadge: {
-    backgroundColor: 'rgba(233, 30, 99, 0.2)',
+    backgroundColor: 'rgba(245, 158, 11, 0.25)',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
@@ -224,7 +230,7 @@ const styles = StyleSheet.create({
   logoBadgeText: {
     fontSize: 8,
     fontWeight: '700',
-    color: '#e91e63',
+    color: colors.secondary,
     letterSpacing: 1.5,
   },
   titleText: {

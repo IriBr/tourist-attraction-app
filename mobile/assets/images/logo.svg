@@ -1,0 +1,16 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background Circle -->
+  <circle cx="256" cy="256" r="240" fill="#0D9488"/>
+  
+  <!-- Stylized W as a path/trail -->
+  <path d="M128 160 L192 352 L256 220 L320 352 L384 160" 
+        stroke="white" 
+        stroke-width="32" 
+        stroke-linecap="round" 
+        stroke-linejoin="round"
+        fill="none"/>
+  
+  <!-- Location pin on the peak -->
+  <circle cx="256" cy="180" r="24" fill="#F59E0B"/>
+  <circle cx="256" cy="180" r="10" fill="white"/>
+</svg>

@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { attractionsApi, locationsApi } from '../api';
 import type { AttractionSummary } from '../types';
+import { colors } from '../theme';
 
 interface SearchResult {
   id: string;
@@ -127,7 +128,7 @@ export function SearchScreen() {
 
   return (
     <LinearGradient
-      colors={['#1a1a2e', '#16213e', '#0f0f23']}
+      colors={colors.gradientDark}
       style={styles.container}
     >
       <View style={[styles.content, { paddingTop: insets.top + 16 }]}>
@@ -145,7 +146,7 @@ export function SearchScreen() {
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
-          {isSearching && <ActivityIndicator size="small" color="#e91e63" />}
+          {isSearching && <ActivityIndicator size="small" color={colors.secondary} />}
           {searchQuery.length > 0 && !isSearching && (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
               <Ionicons name="close-circle" size={20} color="#888" />
@@ -167,7 +168,7 @@ export function SearchScreen() {
                   <Ionicons
                     name={getIconForType(item.type)}
                     size={20}
-                    color="#e91e63"
+                    color={colors.secondary}
                   />
                   <View style={styles.searchResultText}>
                     <Text style={styles.searchResultName}>{item.name}</Text>
@@ -186,7 +187,7 @@ export function SearchScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Popular Attractions</Text>
             {isLoading ? (
-              <ActivityIndicator size="large" color="#e91e63" style={{ marginTop: 40 }} />
+              <ActivityIndicator size="large" color={colors.secondary} style={{ marginTop: 40 }} />
             ) : (
               <FlatList
                 data={popularAttractions}

@@ -10,11 +10,13 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
 import type { AuthStackScreenProps } from '../navigation/types';
+import { colors, BRAND } from '../theme';
 
 type Props = AuthStackScreenProps<'Login'>;
 
@@ -51,7 +53,7 @@ export function LoginScreen({ navigation }: Props) {
 
   return (
     <LinearGradient
-      colors={['#1a1a2e', '#16213e', '#0f0f23']}
+      colors={colors.gradientPrimary}
       style={styles.container}
     >
       <KeyboardAvoidingView
@@ -63,21 +65,20 @@ export function LoginScreen({ navigation }: Props) {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* NEW Badge */}
-          <View style={styles.badgeContainer}>
-            <View style={styles.badge}>
-              <Ionicons name="star" size={12} color="#fff" />
-              <Text style={styles.badgeText}>NEW</Text>
-            </View>
+          {/* Logo */}
+          <View style={styles.logoContainer}>
+            <Image
+              source={require('../../assets/icon.png')}
+              style={styles.logo}
+              resizeMode="contain"
+            />
           </View>
 
           {/* Header */}
           <View style={styles.header}>
             <Text style={styles.welcomeText}>Welcome to</Text>
-            <Text style={styles.title}>Attraction Tracker</Text>
-            <Text style={styles.subtitle}>
-              Track your visited attractions and{'\n'}complete your travel map.
-            </Text>
+            <Text style={styles.title}>{BRAND.name}</Text>
+            <Text style={styles.subtitle}>{BRAND.tagline}</Text>
           </View>
 
           {/* Form */}
@@ -138,7 +139,7 @@ export function LoginScreen({ navigation }: Props) {
               activeOpacity={0.8}
             >
               <LinearGradient
-                colors={['#e91e63', '#c2185b']}
+                colors={colors.gradientSecondary}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.signInButton}
@@ -194,7 +195,7 @@ export function LoginScreen({ navigation }: Props) {
               onPress={handlePhoneLogin}
               disabled={isLoading}
             >
-              <Ionicons name="call-outline" size={20} color="#e91e63" />
+              <Ionicons name="call-outline" size={20} color={colors.secondary} />
               <Text style={[styles.socialButtonText, styles.phoneButtonText]}>
                 Continue with Phone Number
               </Text>
@@ -211,6 +212,9 @@ export function LoginScreen({ navigation }: Props) {
               <Text style={styles.footerLink}>Register now</Text>
             </TouchableOpacity>
           </View>
+
+          {/* Version */}
+          <Text style={styles.versionText}>{BRAND.name} v1.0.0</Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </LinearGradient>
@@ -230,43 +234,35 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingBottom: 40,
   },
-  badgeContainer: {
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
-  badge: {
-    flexDirection: 'row',
+  logoContainer: {
     alignItems: 'center',
-    backgroundColor: 'rgba(233, 30, 99, 0.2)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    gap: 4,
+    marginBottom: 16,
   },
-  badgeText: {
-    color: '#e91e63',
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.5,
+  logo: {
+    width: 100,
+    height: 100,
+    borderRadius: 24,
   },
   header: {
     marginBottom: 32,
+    alignItems: 'center',
   },
   welcomeText: {
-    fontSize: 28,
-    color: '#fff',
+    fontSize: 20,
+    color: 'rgba(255,255,255,0.8)',
     fontWeight: '300',
   },
   title: {
-    fontSize: 32,
+    fontSize: 42,
     fontWeight: 'bold',
     color: '#fff',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#888',
-    lineHeight: 20,
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.7)',
+    lineHeight: 22,
+    textAlign: 'center',
   },
   form: {
     marginBottom: 24,
@@ -300,7 +296,7 @@ const styles = StyleSheet.create({
   },
   forgotPassword: {
     fontSize: 14,
-    color: '#e91e63',
+    color: colors.secondary,
     fontWeight: '500',
   },
   signInButton: {
@@ -373,7 +369,7 @@ const styles = StyleSheet.create({
   phoneButton: {
     backgroundColor: '#fff',
     borderWidth: 2,
-    borderColor: '#e91e63',
+    borderColor: colors.secondary,
   },
   phoneButtonText: {
     color: '#1a1a1a',
@@ -385,11 +381,17 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 14,
-    color: '#888',
+    color: 'rgba(255,255,255,0.7)',
   },
   footerLink: {
     fontSize: 14,
-    color: '#e91e63',
+    color: colors.secondary,
     fontWeight: '600',
+  },
+  versionText: {
+    textAlign: 'center',
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.4)',
+    marginTop: 24,
   },
 });

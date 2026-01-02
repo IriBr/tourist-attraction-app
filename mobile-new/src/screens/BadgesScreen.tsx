@@ -14,6 +14,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useBadgeStore } from '../store';
 import { AppHeader } from '../components';
 import { BadgeTier, LocationType, UserBadge } from '../types';
+import { colors } from '../theme';
 
 const TIER_CONFIG: Record<BadgeTier, { gradient: [string, string]; text: string; glow: string }> = {
   bronze: {
@@ -102,7 +103,7 @@ function SummaryCard({ summary }: { summary: any }) {
   return (
     <View style={styles.summaryCard}>
       <LinearGradient
-        colors={['rgba(233, 30, 99, 0.15)', 'rgba(233, 30, 99, 0.05)']}
+        colors={['rgba(245, 158, 11, 0.15)', 'rgba(245, 158, 11, 0.05)']}
         style={styles.summaryGradient}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -112,7 +113,7 @@ function SummaryCard({ summary }: { summary: any }) {
       <View style={styles.summaryMainRow}>
         <View style={styles.summaryMainItem}>
           <LinearGradient
-            colors={['#e91e63', '#c2185b']}
+            colors={colors.gradientSecondary}
             style={styles.summaryMainIcon}
           >
             <Ionicons name="trophy" size={24} color="#fff" />
@@ -155,10 +156,10 @@ function SummaryCard({ summary }: { summary: any }) {
       <View style={styles.summaryTypesRow}>
         <View style={styles.summaryTypeItem}>
           <LinearGradient
-            colors={['rgba(233, 30, 99, 0.2)', 'rgba(233, 30, 99, 0.1)']}
+            colors={['rgba(245, 158, 11, 0.2)', 'rgba(245, 158, 11, 0.1)']}
             style={styles.typeIconBg}
           >
-            <Ionicons name="business" size={18} color="#e91e63" />
+            <Ionicons name="business" size={18} color={colors.secondary} />
           </LinearGradient>
           <Text style={styles.typeValue}>{summary?.badgesByType?.city || 0}</Text>
           <Text style={styles.typeLabel}>Cities</Text>
@@ -214,7 +215,7 @@ export function BadgesScreen() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#1a1a2e', '#16213e', '#0f0f23']}
+        colors={colors.gradientDark}
         style={StyleSheet.absoluteFill}
       />
 
@@ -236,19 +237,19 @@ export function BadgesScreen() {
       >
         {isLoading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#e91e63" />
+            <ActivityIndicator size="large" color={colors.secondary} />
             <Text style={styles.loadingText}>Loading your badges...</Text>
           </View>
         ) : error ? (
           <View style={styles.errorContainer}>
             <View style={styles.errorIconBg}>
-              <Ionicons name="alert-circle" size={32} color="#e91e63" />
+              <Ionicons name="alert-circle" size={32} color={colors.secondary} />
             </View>
             <Text style={styles.errorTitle}>Oops!</Text>
             <Text style={styles.errorText}>{error}</Text>
             <TouchableOpacity style={styles.retryButton} onPress={fetchBadges}>
               <LinearGradient
-                colors={['#e91e63', '#c2185b']}
+                colors={colors.gradientSecondary}
                 style={styles.retryGradient}
               >
                 <Ionicons name="refresh" size={18} color="#fff" />
@@ -265,10 +266,10 @@ export function BadgesScreen() {
             {badges.length === 0 ? (
               <View style={styles.emptyContainer}>
                 <LinearGradient
-                  colors={['rgba(233, 30, 99, 0.15)', 'rgba(233, 30, 99, 0.05)']}
+                  colors={['rgba(245, 158, 11, 0.15)', 'rgba(245, 158, 11, 0.05)']}
                   style={styles.emptyIconBg}
                 >
-                  <Ionicons name="medal-outline" size={48} color="#e91e63" />
+                  <Ionicons name="medal-outline" size={48} color={colors.secondary} />
                 </LinearGradient>
                 <Text style={styles.emptyTitle}>No Badges Yet</Text>
                 <Text style={styles.emptyText}>
@@ -335,7 +336,7 @@ export function BadgesScreen() {
                 {groupedBadges.city.length > 0 && (
                   <View style={styles.section}>
                     <View style={styles.sectionHeader}>
-                      <Ionicons name="business" size={18} color="#e91e63" />
+                      <Ionicons name="business" size={18} color={colors.secondary} />
                       <Text style={styles.sectionTitle}>City Badges</Text>
                       <View style={styles.sectionCount}>
                         <Text style={styles.sectionCountText}>
@@ -384,7 +385,7 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: 'rgba(233, 30, 99, 0.15)',
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -445,7 +446,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
-    shadowColor: '#e91e63',
+    shadowColor: colors.secondary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

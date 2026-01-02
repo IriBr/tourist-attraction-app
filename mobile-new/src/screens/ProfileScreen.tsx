@@ -16,6 +16,7 @@ import { useAuthStore } from '../store/authStore';
 import { useSubscriptionStore } from '../store/subscriptionStore';
 import { useBadgeStore } from '../store';
 import { locationsApi, GlobalStats } from '../api';
+import { colors } from '../theme';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList, ProfileStackParamList } from '../navigation/types';
 import type { CompositeNavigationProp } from '@react-navigation/native';
@@ -92,7 +93,7 @@ export function ProfileScreen() {
 
   return (
     <LinearGradient
-      colors={['#1a1a2e', '#16213e', '#0f0f23']}
+      colors={colors.gradientDark}
       style={styles.container}
     >
       <ScrollView
@@ -147,13 +148,13 @@ export function ProfileScreen() {
                 <Ionicons
                   name={isPremium ? 'star' : 'flash-outline'}
                   size={20}
-                  color={isPremium ? '#FFD700' : '#e91e63'}
+                  color={isPremium ? '#FFD700' : colors.secondary}
                 />
                 <Text style={[styles.subscriptionTier, isPremium && styles.subscriptionTierPremium]}>
                   {isPremium ? 'Premium' : 'Free Tier'}
                 </Text>
               </View>
-              {isLoading && <ActivityIndicator size="small" color="#e91e63" />}
+              {isLoading && <ActivityIndicator size="small" color={colors.secondary} />}
             </View>
 
             {!isPremium && (
@@ -229,8 +230,8 @@ export function ProfileScreen() {
               onPress={() => navigation.navigate('ProgressScreen')}
               activeOpacity={0.8}
             >
-              <View style={[styles.badgeNavIcon, { backgroundColor: 'rgba(233, 30, 99, 0.2)' }]}>
-                <Ionicons name="trending-up" size={28} color="#e91e63" />
+              <View style={[styles.badgeNavIcon, { backgroundColor: 'rgba(245, 158, 11, 0.2)' }]}>
+                <Ionicons name="trending-up" size={28} color={colors.secondary} />
               </View>
               <View style={styles.badgeNavContent}>
                 <Text style={styles.badgeNavTitle}>Progress</Text>
@@ -246,7 +247,7 @@ export function ProfileScreen() {
           {menuItems.map((item) => (
             <TouchableOpacity key={item.id} style={styles.menuItem}>
               <View style={styles.menuIconContainer}>
-                <Ionicons name={item.icon as any} size={22} color="#e91e63" />
+                <Ionicons name={item.icon as any} size={22} color={colors.secondary} />
               </View>
               <Text style={styles.menuLabel}>{item.label}</Text>
               <Ionicons name="chevron-forward" size={20} color="#888" />
@@ -288,11 +289,11 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: 'rgba(233, 30, 99, 0.3)',
+    backgroundColor: 'rgba(245, 158, 11, 0.3)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3,
-    borderColor: '#e91e63',
+    borderColor: colors.secondary,
   },
   editAvatarButton: {
     position: 'absolute',
@@ -301,11 +302,11 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#e91e63',
+    backgroundColor: colors.secondary,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3,
-    borderColor: '#1a1a2e',
+    borderColor: '#0F172A',
   },
   userName: {
     fontSize: 24,
@@ -401,7 +402,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(233, 30, 99, 0.15)',
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -434,7 +435,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: 'rgba(233, 30, 99, 0.3)',
+    borderColor: 'rgba(245, 158, 11, 0.3)',
   },
   subscriptionCardPremium: {
     borderColor: 'rgba(255, 215, 0, 0.5)',
@@ -453,7 +454,7 @@ const styles = StyleSheet.create({
   subscriptionTier: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#e91e63',
+    color: colors.secondary,
     marginLeft: 8,
   },
   subscriptionTierPremium: {
@@ -476,7 +477,7 @@ const styles = StyleSheet.create({
   },
   scanLimitFill: {
     height: '100%',
-    backgroundColor: '#e91e63',
+    backgroundColor: colors.secondary,
     borderRadius: 4,
   },
   scanLimitText: {
@@ -503,7 +504,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   subscriptionButton: {
-    backgroundColor: '#e91e63',
+    backgroundColor: colors.secondary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
