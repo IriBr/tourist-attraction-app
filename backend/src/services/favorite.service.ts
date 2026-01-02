@@ -20,8 +20,14 @@ interface FavoriteWithAttractionData {
     shortDescription: string;
     category: string;
     thumbnailUrl: string;
-    city: string;
-    country: string;
+    city: {
+      id: string;
+      name: string;
+      country: {
+        id: string;
+        name: string;
+      };
+    };
     averageRating: number;
     totalReviews: number;
   };
@@ -37,8 +43,8 @@ function mapToFavoriteWithAttraction(
     category: fav.attraction.category as AttractionCategory,
     thumbnailUrl: fav.attraction.thumbnailUrl,
     location: {
-      city: fav.attraction.city,
-      country: fav.attraction.country,
+      city: fav.attraction.city.name,
+      country: fav.attraction.city.country.name,
     },
     averageRating: fav.attraction.averageRating,
     totalReviews: fav.attraction.totalReviews,
@@ -136,10 +142,20 @@ export async function getUserFavorites(
             shortDescription: true,
             category: true,
             thumbnailUrl: true,
-            city: true,
-            country: true,
             averageRating: true,
             totalReviews: true,
+            city: {
+              select: {
+                id: true,
+                name: true,
+                country: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
+                },
+              },
+            },
           },
         },
       },

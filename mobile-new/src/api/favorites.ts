@@ -5,7 +5,7 @@ import {
   Favorite,
   FavoriteWithAttraction,
   FavoritesListParams,
-} from '@tourist-app/shared';
+} from '../types';
 
 export const favoritesApi = {
   async getAll(

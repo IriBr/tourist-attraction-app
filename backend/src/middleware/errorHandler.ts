@@ -10,9 +10,10 @@ export const errorHandler: ErrorRequestHandler = (
   res: Response,
   _next: NextFunction
 ): void => {
-  // Log error in development
+  // Log error in development (safely)
   if (config.env === 'development') {
-    console.error('Error:', error);
+    console.error('Error:', error.message);
+    console.error('Stack:', error.stack);
   }
 
   // Handle Zod validation errors

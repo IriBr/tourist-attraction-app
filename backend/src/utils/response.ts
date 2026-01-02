@@ -22,10 +22,11 @@ export function sendPaginated<T>(
   items: T[],
   page: number,
   limit: number,
-  totalItems: number
+  totalItems: number,
+  meta?: Record<string, unknown>
 ): void {
   const totalPages = Math.ceil(totalItems / limit);
-  const response: ApiResponse<PaginatedResponse<T>> = {
+  const response: ApiResponse<PaginatedResponse<T> & { meta?: Record<string, unknown> }> = {
     success: true,
     data: {
       items,
@@ -37,6 +38,7 @@ export function sendPaginated<T>(
         hasNextPage: page < totalPages,
         hasPrevPage: page > 1,
       },
+      ...(meta && { meta }),
     },
   };
   res.status(200).json(response);

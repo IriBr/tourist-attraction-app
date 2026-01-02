@@ -7,7 +7,7 @@ import {
   RegisterRequest,
   UpdateProfileRequest,
   ChangePasswordRequest,
-} from '@tourist-app/shared';
+} from '../types';
 
 export interface GoogleLoginRequest {
   idToken: string;

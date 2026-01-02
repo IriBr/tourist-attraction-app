@@ -17,6 +17,7 @@ declare global {
       user?: {
         id: string;
         email: string;
+        role: string;
       };
     }
   }
@@ -41,14 +42,14 @@ export const authenticate = async (
     // Verify user still exists
     const user = await prisma.user.findUnique({
       where: { id: payload.userId },
-      select: { id: true, email: true },
+      select: { id: true, email: true, role: true },
     });
 
     if (!user) {
       throw new UnauthorizedError('User not found');
     }
 
-    req.user = user;
+    req.user = { id: user.id, email: user.email, role: user.role };
     next();
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
@@ -82,11 +83,11 @@ export const optionalAuth = async (
 
     const user = await prisma.user.findUnique({
       where: { id: payload.userId },
-      select: { id: true, email: true },
+      select: { id: true, email: true, role: true },
     });
 
     if (user) {
-      req.user = user;
+      req.user = { id: user.id, email: user.email, role: user.role };
     }
 
     next();
@@ -94,4 +95,22 @@ export const optionalAuth = async (
     // Token is invalid, but that's okay for optional auth
     next();
   }
+};
+
+export const requireAdmin = async (
+  req: Request,
+  _res: Response,
+  next: NextFunction
+): Promise<void> => {
+  if (!req.user) {
+    next(new UnauthorizedError('Authentication required'));
+    return;
+  }
+
+  if (req.user.role !== 'admin') {
+    next(new UnauthorizedError('Admin access required'));
+    return;
+  }
+
+  next();
 };

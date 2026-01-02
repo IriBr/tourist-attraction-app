@@ -6,7 +6,7 @@ import {
   AttractionSummary,
   AttractionSearchParams,
   AttractionCategory,
-} from '@tourist-app/shared';
+} from '../types';
 
 export const attractionsApi = {
   async search(

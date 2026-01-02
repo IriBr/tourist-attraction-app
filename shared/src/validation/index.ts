@@ -1,4 +1,4 @@
-import { VALIDATION } from '../constants';
+import { VALIDATION } from '../constants/index.js';
 
 // Email validation regex
 export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

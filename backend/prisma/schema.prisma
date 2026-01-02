@@ -27,6 +27,100 @@ enum AttractionCategory {
   other
 }
 
+enum SubscriptionTier {
+  free
+  premium
+}
+
+enum SubscriptionStatus {
+  active
+  cancelled
+  expired
+}
+
+enum UserRole {
+  user
+  admin
+}
+
+// ============ GAMIFICATION ============
+
+enum BadgeTier {
+  bronze    // 25% progress
+  silver    // 50% progress
+  gold      // 75% progress
+  platinum  // 100% progress
+}
+
+enum LocationType {
+  city
+  country
+  continent
+}
+
+// ============ LOCATION HIERARCHY ============
+
+model Continent {
+  id             String    @id @default(uuid())
+  name           String    @unique
+  code           String    @unique // e.g., "EU", "NA", "AS"
+  imageUrl       String?
+  color          String?   // Hex color for map display
+  latitude       Float?    // Center latitude
+  longitude      Float?    // Center longitude
+  latitudeDelta  Float?    // Map zoom level
+  longitudeDelta Float?    // Map zoom level
+
+  countries   Country[]
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Country {
+  id             String    @id @default(uuid())
+  name           String
+  code           String    @unique // ISO 3166-1 alpha-2, e.g., "US", "FR"
+  imageUrl       String?
+  flagUrl        String?
+  latitude       Float?    // Center latitude
+  longitude      Float?    // Center longitude
+  latitudeDelta  Float?    // Map zoom level
+  longitudeDelta Float?    // Map zoom level
+
+  continentId String
+  continent   Continent @relation(fields: [continentId], references: [id], onDelete: Cascade)
+
+  cities      City[]
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([continentId, name])
+  @@index([continentId])
+}
+
+model City {
+  id          String       @id @default(uuid())
+  name        String
+  imageUrl    String?
+  latitude    Float?
+  longitude   Float?
+
+  countryId   String
+  country     Country      @relation(fields: [countryId], references: [id], onDelete: Cascade)
+
+  attractions Attraction[]
+
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@unique([countryId, name])
+  @@index([countryId])
+}
+
+// ============ USERS ============
+
 model User {
   id            String       @id @default(uuid())
   email         String       @unique
@@ -36,16 +130,30 @@ model User {
   authProvider  AuthProvider @default(email)
   emailVerified Boolean      @default(false)
   appleUserId   String?      @unique
+  role          UserRole     @default(user)
+
+  // Subscription
+  subscriptionTier      SubscriptionTier   @default(free)
+  subscriptionStatus    SubscriptionStatus @default(active)
+  subscriptionStartDate DateTime?
+  subscriptionEndDate   DateTime?
+  stripeCustomerId      String?            @unique
+  stripeSubscriptionId  String?            @unique
 
   refreshTokens RefreshToken[]
   reviews       Review[]
   favorites     Favorite[]
   helpfulVotes  HelpfulVote[]
+  visits        Visit[]
+  dailyScans    DailyScan[]
+  badges        UserBadge[]
 
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 
   @@index([email])
+  @@index([subscriptionTier])
+  @@index([role])
 }
 
 model RefreshToken {
@@ -67,12 +175,14 @@ model Attraction {
   shortDescription String
   category         AttractionCategory
 
-  // Location
+  // Location (new hierarchy)
+  cityId           String
+  city             City               @relation(fields: [cityId], references: [id], onDelete: Cascade)
+
+  // Detailed location
   latitude         Float
   longitude        Float
   address          String
-  city             String
-  country          String
   postalCode       String?
 
   // Media
@@ -91,6 +201,22 @@ model Attraction {
   seniorPrice      Float?
   isFree           Boolean            @default(false)
 
+  // Rich content
+  highlights       String[]           // Key things to see/do
+  tips             String[]           // Visitor tips
+  bestTimeToVisit  String?            // e.g., "Early morning", "Spring", "Sunset"
+  averageDuration  Int?               // Average visit duration in minutes
+  historicalInfo   String?            // Historical background
+  famousFor        String?            // What it's famous for
+
+  // Visitor info
+  accessibility    String?            // Wheelchair access info
+  audioGuide       Boolean            @default(false)
+  guidedTours      Boolean            @default(false)
+  photography      Boolean            @default(true)
+  petFriendly      Boolean            @default(false)
+  familyFriendly   Boolean            @default(true)
+
   // Stats (denormalized for performance)
   averageRating    Float              @default(0)
   totalReviews     Int                @default(0)
@@ -98,13 +224,13 @@ model Attraction {
   openingHours     OpeningHours[]
   reviews          Review[]
   favorites        Favorite[]
+  visits           Visit[]
 
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
 
   @@index([category])
-  @@index([city])
-  @@index([country])
+  @@index([cityId])
   @@index([averageRating])
   @@index([latitude, longitude])
 }
@@ -175,6 +301,22 @@ model Favorite {
   @@index([attractionId])
 }
 
+model Visit {
+  id           String     @id @default(uuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attractionId String
+  attraction   Attraction @relation(fields: [attractionId], references: [id], onDelete: Cascade)
+  visitDate    DateTime   @default(now())
+  photoUrl     String?
+  notes        String?
+  createdAt    DateTime   @default(now())
+
+  @@unique([userId, attractionId])
+  @@index([userId])
+  @@index([attractionId])
+}
+
 model PasswordResetToken {
   id        String   @id @default(uuid())
   email     String
@@ -184,4 +326,59 @@ model PasswordResetToken {
 
   @@index([email])
   @@index([token])
+}
+
+model DailyScan {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scanDate  DateTime @default(now())
+  photoUrl  String?
+  result    String?  // JSON string with scan result
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([userId, scanDate])
+}
+
+// ============ BADGES ============
+
+model Badge {
+  id           String       @id @default(uuid())
+  locationId   String       // References City.id, Country.id, or Continent.id
+  locationType LocationType
+  locationName String       // Denormalized for display (e.g., "Paris", "France", "Europe")
+  tier         BadgeTier
+  iconUrl      String?      // Optional custom badge icon
+
+  userBadges   UserBadge[]
+
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@unique([locationId, tier])
+  @@index([locationType])
+  @@index([locationName])
+}
+
+model UserBadge {
+  id                 String   @id @default(uuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badgeId            String
+  badge              Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  earnedAt           DateTime @default(now())
+
+  // Snapshot of progress when badge was earned
+  attractionsVisited Int
+  totalAttractions   Int
+  progressPercent    Int
+
+  createdAt          DateTime @default(now())
+
+  @@unique([userId, badgeId])
+  @@index([userId])
+  @@index([badgeId])
+  @@index([earnedAt])
 }

@@ -1,3 +1,11 @@
+export { SearchScreen } from './SearchScreen';
+export { CameraScreen } from './CameraScreen';
+export { FavoritesScreen } from './FavoritesScreen';
+export { ProfileScreen } from './ProfileScreen';
 export { LoginScreen } from './LoginScreen';
 export { RegisterScreen } from './RegisterScreen';
 export { ForgotPasswordScreen } from './ForgotPasswordScreen';
+export { BadgesScreen } from './BadgesScreen';
+export { ProgressScreen } from './ProgressScreen';
+export { AttractionDetailScreen } from './AttractionDetailScreen';
+export { PremiumScreen } from './PremiumScreen';

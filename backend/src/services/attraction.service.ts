@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../config/database.js';
 import { NotFoundError } from '../utils/errors.js';
+import { subscriptionService } from './subscription.service.js';
 import {
   Attraction,
   AttractionSummary,
@@ -17,11 +18,19 @@ interface AttractionWithRelations {
   description: string;
   shortDescription: string;
   category: string;
+  cityId: string;
+  city: {
+    name: string;
+    country: {
+      name: string;
+      continent: {
+        name: string;
+      };
+    };
+  };
   latitude: number;
   longitude: number;
   address: string;
-  city: string;
-  country: string;
   postalCode: string | null;
   images: string[];
   thumbnailUrl: string;
@@ -54,8 +63,8 @@ function mapToAttraction(
     latitude: attr.latitude,
     longitude: attr.longitude,
     address: attr.address,
-    city: attr.city,
-    country: attr.country,
+    city: attr.city.name,
+    country: attr.city.country.name,
     postalCode: attr.postalCode ?? undefined,
   };
 
@@ -109,7 +118,7 @@ function mapToSummary(
     shortDescription: attr.shortDescription,
     category: attr.category as AttractionCategory,
     thumbnailUrl: attr.thumbnailUrl,
-    location: { city: attr.city, country: attr.country },
+    location: { city: attr.city.name, country: attr.city.country.name },
     averageRating: attr.averageRating,
     totalReviews: attr.totalReviews,
     isFavorited: userId ? (attr.favorites?.length ?? 0) > 0 : undefined,
@@ -161,7 +170,8 @@ export async function searchAttractions(
     where.OR = [
       { name: { contains: query, mode: 'insensitive' } },
       { description: { contains: query, mode: 'insensitive' } },
-      { city: { contains: query, mode: 'insensitive' } },
+      { city: { name: { contains: query, mode: 'insensitive' } } },
+      { city: { country: { name: { contains: query, mode: 'insensitive' } } } },
     ];
   }
 
@@ -194,6 +204,15 @@ export async function searchAttractions(
       skip,
       take: limit,
       include: {
+        city: {
+          include: {
+            country: {
+              include: {
+                continent: true,
+              },
+            },
+          },
+        },
         openingHours: true,
         favorites: userId ? { where: { userId }, select: { id: true } } : false,
       },
@@ -233,6 +252,15 @@ export async function getAttractionById(
   const attraction = await prisma.attraction.findUnique({
     where: { id },
     include: {
+      city: {
+        include: {
+          country: {
+            include: {
+              continent: true,
+            },
+          },
+        },
+      },
       openingHours: true,
       favorites: userId ? { where: { userId }, select: { id: true } } : false,
     },
@@ -262,6 +290,15 @@ export async function getNearbyAttractions(
   const attractions = await prisma.attraction.findMany({
     where,
     include: {
+      city: {
+        include: {
+          country: {
+            include: {
+              continent: true,
+            },
+          },
+        },
+      },
       openingHours: true,
       favorites: userId ? { where: { userId }, select: { id: true } } : false,
     },
@@ -296,6 +333,15 @@ export async function getAttractionsByCategory(
       skip,
       take: limit,
       include: {
+        city: {
+          include: {
+            country: {
+              include: {
+                continent: true,
+              },
+            },
+          },
+        },
         openingHours: true,
         favorites: userId ? { where: { userId }, select: { id: true } } : false,
       },
@@ -319,6 +365,15 @@ export async function getPopularAttractions(
     orderBy: [{ averageRating: 'desc' }, { totalReviews: 'desc' }],
     take: limit,
     include: {
+      city: {
+        include: {
+          country: {
+            include: {
+              continent: true,
+            },
+          },
+        },
+      },
       openingHours: true,
       favorites: userId ? { where: { userId }, select: { id: true } } : false,
     },
@@ -327,4 +382,48 @@ export async function getPopularAttractions(
   return attractions.map((attr) =>
     mapToSummary(attr as AttractionWithRelations, userId)
   );
+}
+
+/**
+ * Apply subscription-based limits to attraction results
+ * Free users see limited attractions, premium users see all
+ */
+export async function applySubscriptionLimit<T>(
+  items: T[],
+  total: number,
+  userId?: string
+): Promise<{ items: T[]; total: number; isLimited: boolean; limit: number | null }> {
+  if (!userId) {
+    // Not logged in - apply free tier limit
+    const limits = subscriptionService.getFreeTierLimits();
+    return {
+      items: items.slice(0, limits.attractionsLimit),
+      total: Math.min(total, limits.attractionsLimit),
+      isLimited: items.length > limits.attractionsLimit,
+      limit: limits.attractionsLimit,
+    };
+  }
+
+  const attractionLimit = await subscriptionService.getAttractionLimit(userId);
+
+  if (attractionLimit === null) {
+    // Premium user - no limit
+    return { items, total, isLimited: false, limit: null };
+  }
+
+  // Free user - apply limit
+  return {
+    items: items.slice(0, attractionLimit),
+    total: Math.min(total, attractionLimit),
+    isLimited: items.length > attractionLimit,
+    limit: attractionLimit,
+  };
+}
+
+/**
+ * Check if user can view full attraction details (premium feature check)
+ */
+export async function canViewFullDetails(userId?: string): Promise<boolean> {
+  if (!userId) return false;
+  return subscriptionService.isPremiumUser(userId);
 }

@@ -54,5 +54,11 @@ mobile-new/android/
 # Prisma
 backend/prisma/*.db
 
+# Shared build artifacts
+shared/dist/
+shared/src/**/*.js
+shared/src/**/*.d.ts
+shared/src/**/*.map
+
 # OS
 Thumbs.db

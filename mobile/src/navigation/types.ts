@@ -43,6 +43,8 @@ export type ProfileStackParamList = {
   ChangePassword: undefined;
   MyReviews: undefined;
   Settings: undefined;
+  BadgesScreen: undefined;
+  ProgressScreen: undefined;
 };
 
 // Root Navigator

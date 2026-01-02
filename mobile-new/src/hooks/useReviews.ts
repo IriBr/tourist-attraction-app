@@ -5,7 +5,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { reviewsApi } from '../api';
-import { CreateReviewRequest, UpdateReviewRequest } from '@tourist-app/shared';
+import { CreateReviewRequest, UpdateReviewRequest } from '../types';
 import { attractionKeys } from './useAttractions';
 
 export const reviewKeys = {

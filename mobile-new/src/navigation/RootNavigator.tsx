@@ -4,7 +4,8 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuthStore } from '../store/authStore';
 import { AuthNavigator } from './AuthNavigator';
-import { HomeScreen } from './HomeScreen';
+import { MainTabNavigator } from './MainTabNavigator';
+import { PremiumScreen, AttractionDetailScreen } from '../screens';
 import type { RootStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -28,7 +29,24 @@ export function RootNavigator() {
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {isAuthenticated ? (
-          <Stack.Screen name="Main" component={HomeScreen} />
+          <>
+            <Stack.Screen name="Main" component={MainTabNavigator} />
+            <Stack.Screen
+              name="Premium"
+              component={PremiumScreen}
+              options={{
+                presentation: 'modal',
+                animation: 'slide_from_bottom',
+              }}
+            />
+            <Stack.Screen
+              name="AttractionDetail"
+              component={AttractionDetailScreen}
+              options={{
+                animation: 'slide_from_right',
+              }}
+            />
+          </>
         ) : (
           <Stack.Screen name="Auth" component={AuthNavigator} />
         )}

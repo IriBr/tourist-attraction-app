@@ -1,4 +1,4 @@
-import { AttractionSummary } from './attraction';
+import { AttractionSummary } from './attraction.js';
 
 export interface Favorite {
   id: string;

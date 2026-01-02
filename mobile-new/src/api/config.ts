@@ -1,9 +1,20 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ApiErrorResponse } from '@tourist-app/shared';
+import { Platform } from 'react-native';
+import { ApiErrorResponse } from '../types';
 
-// Use environment variable or default
-const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:3000/api/v1';
+// Use appropriate URL based on platform
+// Use machine's local IP for reliable connections from simulators
+const getApiUrl = () => {
+  if (__DEV__) {
+    // Use local IP for both iOS and Android simulators
+    const LOCAL_IP = '172.20.10.12';
+    return `http://${LOCAL_IP}:3000/api/v1`;
+  }
+  return 'https://api.yourdomain.com/api/v1';
+};
+
+const API_BASE_URL = getApiUrl();
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -94,7 +105,11 @@ apiClient.interceptors.response.use(
       try {
         const refreshToken = await tokenStorage.getRefreshToken();
         if (!refreshToken) {
-          throw new Error('No refresh token');
+          // No refresh token - clear everything and reject silently
+          await tokenStorage.clearTokens();
+          processQueue(new Error('No refresh token'), null);
+          isRefreshing = false;
+          return Promise.reject(error);
         }
 
         const response = await axios.post(`${API_BASE_URL}/auth/refresh-token`, {
@@ -111,7 +126,6 @@ apiClient.interceptors.response.use(
       } catch (refreshError) {
         processQueue(refreshError as Error, null);
         await tokenStorage.clearTokens();
-        // TODO: Navigate to login screen
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

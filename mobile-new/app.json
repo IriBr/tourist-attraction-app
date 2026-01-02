@@ -1,38 +1,46 @@
 {
   "expo": {
-    "name": "Tourist Attraction App",
+    "name": "Wanderlust",
     "slug": "tourist-attraction-app",
     "version": "1.0.0",
     "scheme": "touristapp",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#1a1a2e"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.touristapp.mobile"
+      "bundleIdentifier": "com.wanderlust.app",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Wanderlust needs camera access to scan and identify tourist attractions",
+        "NSLocationWhenInUseUsageDescription": "Wanderlust needs your location to find nearby attractions",
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.touristapp.mobile",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      },
-      "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-web-browser",
-      "@react-native-google-signin/google-signin",
-      "expo-apple-authentication"
-    ]
+      "expo-web-browser"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "9b30d187-8bd6-4466-a484-b20607a66e33"
+      }
+    },
+    "owner": "kaurri"
   }
 }

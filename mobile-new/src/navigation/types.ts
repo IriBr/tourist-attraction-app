@@ -1,7 +1,7 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { CompositeScreenProps, NavigatorScreenParams } from '@react-navigation/native';
-import { AttractionCategory } from '@tourist-app/shared';
+import { AttractionCategory } from '../types';
 
 // Auth Stack
 export type AuthStackParamList = {
@@ -43,12 +43,16 @@ export type ProfileStackParamList = {
   ChangePassword: undefined;
   MyReviews: undefined;
   Settings: undefined;
+  BadgesScreen: undefined;
+  ProgressScreen: undefined;
 };
 
 // Root Navigator
 export type RootStackParamList = {
   Auth: NavigatorScreenParams<AuthStackParamList>;
   Main: NavigatorScreenParams<MainTabParamList>;
+  Premium: undefined;
+  AttractionDetail: { id: string };
 };
 
 // Screen Props Types

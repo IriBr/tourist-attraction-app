@@ -7,7 +7,7 @@ import {
   CreateReviewRequest,
   UpdateReviewRequest,
   ReviewSearchParams,
-} from '@tourist-app/shared';
+} from '../types';
 
 export const reviewsApi = {
   async getForAttraction(

@@ -1,6 +1,19 @@
 import { create } from 'zustand';
-import { User } from '@tourist-app/shared';
+import { User, AuthProvider } from '../types';
 import { authApi, tokenStorage } from '../api';
+
+// Dev mode - set to true to bypass authentication
+const DEV_MODE = false;
+const DEV_USER: User = {
+  id: 'dev-user-1',
+  email: 'explorer@world.com',
+  name: 'World Explorer',
+  avatarUrl: null,
+  authProvider: AuthProvider.EMAIL,
+  emailVerified: false,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+};
 
 interface AuthState {
   user: User | null;
@@ -97,7 +110,29 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   checkAuth: async () => {
     set({ isLoading: true });
+
+    // Dev mode bypass
+    if (DEV_MODE) {
+      set({
+        user: DEV_USER,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+      return;
+    }
+
     try {
+      // First check if we have any tokens at all
+      const hasToken = await tokenStorage.getAccessToken();
+      if (!hasToken) {
+        set({
+          user: null,
+          isAuthenticated: false,
+          isLoading: false,
+        });
+        return;
+      }
+
       const user = await authApi.checkAuthStatus();
       set({
         user,

@@ -32,9 +32,10 @@ function mapUserToResponse(user: {
   avatarUrl: string | null;
   authProvider: string;
   emailVerified: boolean;
+  role: string;
   createdAt: Date;
   updatedAt: Date;
-}): User {
+}): User & { role: string } {
   return {
     id: user.id,
     email: user.email,
@@ -42,22 +43,25 @@ function mapUserToResponse(user: {
     avatarUrl: user.avatarUrl,
     authProvider: user.authProvider as AuthProvider,
     emailVerified: user.emailVerified,
+    role: user.role,
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
   };
 }
 
 function generateTokens(userId: string, email: string): AuthTokens {
+  // Parse expiry time (e.g., "7d" -> 7 days in seconds)
+  const expiresInSeconds = parseExpirySeconds(config.jwt.expiresIn);
+
   const accessToken = jwt.sign(
     { userId, email } as Omit<JwtPayload, 'iat' | 'exp'>,
     config.jwt.secret,
-    { expiresIn: config.jwt.expiresIn }
+    { expiresIn: expiresInSeconds }
   );
 
   const refreshToken = uuidv4();
 
-  // Parse expiry time (e.g., "7d" -> 7 days in ms)
-  const expiresInMs = parseExpiry(config.jwt.expiresIn);
+  const expiresInMs = expiresInSeconds * 1000;
 
   return {
     accessToken,
@@ -66,25 +70,29 @@ function generateTokens(userId: string, email: string): AuthTokens {
   };
 }
 
-function parseExpiry(expiry: string): number {
+function parseExpirySeconds(expiry: string): number {
   const match = expiry.match(/^(\d+)([smhd])$/);
-  if (!match) return 7 * 24 * 60 * 60 * 1000; // Default 7 days
+  if (!match) return 7 * 24 * 60 * 60; // Default 7 days in seconds
 
   const value = parseInt(match[1], 10);
   const unit = match[2];
 
   switch (unit) {
     case 's':
-      return value * 1000;
+      return value;
     case 'm':
-      return value * 60 * 1000;
+      return value * 60;
     case 'h':
-      return value * 60 * 60 * 1000;
+      return value * 60 * 60;
     case 'd':
-      return value * 24 * 60 * 60 * 1000;
+      return value * 24 * 60 * 60;
     default:
-      return 7 * 24 * 60 * 60 * 1000;
+      return 7 * 24 * 60 * 60;
   }
+}
+
+function parseExpiry(expiry: string): number {
+  return parseExpirySeconds(expiry) * 1000; // Return milliseconds
 }
 
 export async function register(

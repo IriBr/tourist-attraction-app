@@ -1,6 +1,6 @@
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import { attractionsApi } from '../api';
-import { AttractionSearchParams, AttractionCategory } from '@tourist-app/shared';
+import { AttractionSearchParams, AttractionCategory } from '../types';
 
 export const attractionKeys = {
   all: ['attractions'] as const,

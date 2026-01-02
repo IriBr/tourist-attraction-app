@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
-import { attractionService } from '../services/index.js';
+import * as attractionService from '../services/attraction.service.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { sendSuccess, sendPaginated } from '../utils/response.js';
 import { calculatePagination } from '../utils/response.js';
@@ -49,7 +49,17 @@ export const searchAttractions = asyncHandler(
       req.user?.id
     );
 
-    sendPaginated(res, items, page, limit, total);
+    // Apply subscription-based limits
+    const limitedResults = await attractionService.applySubscriptionLimit(
+      items,
+      total,
+      req.user?.id
+    );
+
+    sendPaginated(res, limitedResults.items, page, limit, limitedResults.total, {
+      isLimited: limitedResults.isLimited,
+      subscriptionLimit: limitedResults.limit,
+    });
   }
 );
 
@@ -74,7 +84,18 @@ export const getNearbyAttractions = asyncHandler(
       req.user?.id
     );
 
-    sendSuccess(res, attractions);
+    // Apply subscription-based limits
+    const limitedResults = await attractionService.applySubscriptionLimit(
+      attractions,
+      attractions.length,
+      req.user?.id
+    );
+
+    sendSuccess(res, {
+      items: limitedResults.items,
+      isLimited: limitedResults.isLimited,
+      subscriptionLimit: limitedResults.limit,
+    });
   }
 );
 
@@ -93,7 +114,17 @@ export const getAttractionsByCategory = asyncHandler(
       req.user?.id
     );
 
-    sendPaginated(res, items, page, limit, total);
+    // Apply subscription-based limits
+    const limitedResults = await attractionService.applySubscriptionLimit(
+      items,
+      total,
+      req.user?.id
+    );
+
+    sendPaginated(res, limitedResults.items, page, limit, limitedResults.total, {
+      isLimited: limitedResults.isLimited,
+      subscriptionLimit: limitedResults.limit,
+    });
   }
 );
 
@@ -104,6 +135,18 @@ export const getPopularAttractions = asyncHandler(
       limit,
       req.user?.id
     );
-    sendSuccess(res, attractions);
+
+    // Apply subscription-based limits
+    const limitedResults = await attractionService.applySubscriptionLimit(
+      attractions,
+      attractions.length,
+      req.user?.id
+    );
+
+    sendSuccess(res, {
+      items: limitedResults.items,
+      isLimited: limitedResults.isLimited,
+      subscriptionLimit: limitedResults.limit,
+    });
   }
 );

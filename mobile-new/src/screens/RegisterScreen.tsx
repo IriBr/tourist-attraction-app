@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '../store/authStore';
-import { useGoogleAuth, useAppleAuth } from '../hooks';
 import type { AuthStackScreenProps } from '../navigation/types';
 
 type Props = AuthStackScreenProps<'Register'>;
@@ -24,22 +23,8 @@ export function RegisterScreen({ navigation }: Props) {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const { register, isLoading } = useAuthStore();
-  const { signInWithGoogle, isLoading: googleLoading, error: googleError } = useGoogleAuth();
-  const { signInWithApple, isLoading: appleLoading, error: appleError, isAvailable: appleAvailable } = useAppleAuth();
 
-  const loading = isLoading || googleLoading || appleLoading;
-
-  useEffect(() => {
-    if (googleError) {
-      Alert.alert('Google Sign-In Failed', googleError);
-    }
-  }, [googleError]);
-
-  useEffect(() => {
-    if (appleError) {
-      Alert.alert('Apple Sign-In Failed', appleError);
-    }
-  }, [appleError]);
+  const loading = isLoading;
 
   const handleRegister = async () => {
     if (!name || !email || !password || !confirmPassword) {
@@ -65,11 +50,11 @@ export function RegisterScreen({ navigation }: Props) {
   };
 
   const handleGoogleLogin = async () => {
-    await signInWithGoogle();
+    Alert.alert('Coming Soon', 'Google Sign-In will be available in a future update');
   };
 
   const handleAppleLogin = async () => {
-    await signInWithApple();
+    Alert.alert('Coming Soon', 'Apple Sign-In will be available in a future update');
   };
 
   return (
@@ -167,34 +152,22 @@ export function RegisterScreen({ navigation }: Props) {
               onPress={handleGoogleLogin}
               disabled={loading}
             >
-              {googleLoading ? (
-                <ActivityIndicator color="#333" />
-              ) : (
-                <>
-                  <Text style={styles.socialButtonText}>G</Text>
-                  <Text style={styles.socialButtonLabel}>Google</Text>
-                </>
-              )}
+              <Text style={styles.socialButtonText}>G</Text>
+              <Text style={styles.socialButtonLabel}>Google</Text>
             </TouchableOpacity>
 
-            {appleAvailable && (
+            {Platform.OS === 'ios' && (
               <TouchableOpacity
                 style={[styles.button, styles.socialButton, styles.appleButton]}
                 onPress={handleAppleLogin}
                 disabled={loading}
               >
-                {appleLoading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <>
-                    <Text style={[styles.socialButtonText, styles.appleButtonText]}>
+                <Text style={[styles.socialButtonText, styles.appleButtonText]}>
 
-                    </Text>
-                    <Text style={[styles.socialButtonLabel, styles.appleButtonText]}>
-                      Apple
-                    </Text>
-                  </>
-                )}
+                </Text>
+                <Text style={[styles.socialButtonLabel, styles.appleButtonText]}>
+                  Apple
+                </Text>
               </TouchableOpacity>
             )}
           </View>
