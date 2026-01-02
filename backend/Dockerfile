@@ -2,7 +2,7 @@
 FROM node:20-slim
 
 # Install OpenSSL and other dependencies
-RUN apt-get update && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y openssl libssl3 ca-certificates && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -36,5 +36,5 @@ WORKDIR /app/backend
 ENV PORT=3000
 EXPOSE 3000
 
-# Start command
-CMD ["sh", "-c", "npx prisma migrate deploy && npm run start"]
+# Start command - skip migrations for now
+CMD ["npm", "run", "start"]
