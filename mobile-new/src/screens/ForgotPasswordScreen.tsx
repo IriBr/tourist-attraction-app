@@ -43,7 +43,7 @@ export function ForgotPasswordScreen({ navigation }: Props) {
 
   if (sent) {
     return (
-      <LinearGradient colors={colors.gradientPrimary} style={styles.container}>
+      <LinearGradient colors={colors.gradientDark} style={styles.container}>
         <SafeAreaView style={styles.safeArea}>
           <View style={styles.content}>
             <View style={styles.successIcon}>
@@ -73,7 +73,7 @@ export function ForgotPasswordScreen({ navigation }: Props) {
   }
 
   return (
-    <LinearGradient colors={colors.gradientPrimary} style={styles.container}>
+    <LinearGradient colors={colors.gradientDark} style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}

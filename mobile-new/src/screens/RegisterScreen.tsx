@@ -61,7 +61,7 @@ export function RegisterScreen({ navigation }: Props) {
   };
 
   return (
-    <LinearGradient colors={colors.gradientPrimary} style={styles.container}>
+    <LinearGradient colors={colors.gradientDark} style={styles.container}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
