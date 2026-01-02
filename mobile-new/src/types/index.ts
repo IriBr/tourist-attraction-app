@@ -28,7 +28,7 @@ export interface User {
   updatedAt: string;
 }
 
-// API types
+// API types - aligned with @tourist-app/shared
 export interface ApiResponse<T> {
   success: boolean;
   data: T;
@@ -40,12 +40,19 @@ export interface ApiErrorResponse {
   error: { code: string; message: string };
 }
 
-export interface PaginatedResponse<T> {
-  items: T[];
-  total: number;
+export interface Pagination {
   page: number;
   limit: number;
+  totalItems: number;
   totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
+
+export interface PaginatedResponse<T> {
+  items: T[];
+  pagination: Pagination;
+  meta?: Record<string, unknown>;
 }
 
 // Auth request/response types

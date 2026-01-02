@@ -13,21 +13,10 @@ import {
 import { adminApi } from '../api/admin';
 import { locationsApi } from '../api/locations';
 import type { City } from '../api/locations';
-import type { Attraction, Pagination } from '../types';
+import { AttractionCategory, type Attraction, type Pagination } from '../types';
 
-const CATEGORIES = [
-  'museum',
-  'park',
-  'landmark',
-  'beach',
-  'restaurant',
-  'entertainment',
-  'shopping',
-  'nature',
-  'historical',
-  'religious',
-  'other',
-];
+// Use enum values for type-safety
+const CATEGORIES = Object.values(AttractionCategory);
 
 export function AttractionsPage() {
   const [attractions, setAttractions] = useState<Attraction[]>([]);

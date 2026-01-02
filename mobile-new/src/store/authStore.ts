@@ -30,81 +30,58 @@ interface AuthState {
   updateUser: (user: User) => void;
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
+/**
+ * Helper to wrap async actions with loading state management.
+ * Reduces boilerplate in store actions.
+ */
+const withLoading = <TArgs extends unknown[]>(
+  set: (partial: Partial<AuthState>) => void,
+  action: (...args: TArgs) => Promise<Partial<AuthState> | void>,
+  options?: { rethrow?: boolean }
+) => {
+  return async (...args: TArgs): Promise<void> => {
+    set({ isLoading: true });
+    try {
+      const result = await action(...args);
+      set({ ...(result || {}), isLoading: false });
+    } catch (error) {
+      set({ isLoading: false });
+      if (options?.rethrow !== false) throw error;
+    }
+  };
+};
+
+export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isLoading: true,
   isAuthenticated: false,
 
-  login: async (email: string, password: string) => {
-    set({ isLoading: true });
-    try {
-      const response = await authApi.login({ email, password });
-      set({
-        user: response.user,
-        isAuthenticated: true,
-        isLoading: false,
-      });
-    } catch (error) {
-      set({ isLoading: false });
-      throw error;
-    }
-  },
+  login: withLoading(set, async (email: string, password: string) => {
+    const response = await authApi.login({ email, password });
+    return { user: response.user, isAuthenticated: true };
+  }),
 
-  register: async (email: string, password: string, name: string) => {
-    set({ isLoading: true });
-    try {
-      const response = await authApi.register({ email, password, name });
-      set({
-        user: response.user,
-        isAuthenticated: true,
-        isLoading: false,
-      });
-    } catch (error) {
-      set({ isLoading: false });
-      throw error;
-    }
-  },
+  register: withLoading(set, async (email: string, password: string, name: string) => {
+    const response = await authApi.register({ email, password, name });
+    return { user: response.user, isAuthenticated: true };
+  }),
 
-  googleLogin: async (idToken: string) => {
-    set({ isLoading: true });
-    try {
-      const response = await authApi.googleLogin({ idToken });
-      set({
-        user: response.user,
-        isAuthenticated: true,
-        isLoading: false,
-      });
-    } catch (error) {
-      set({ isLoading: false });
-      throw error;
-    }
-  },
+  googleLogin: withLoading(set, async (idToken: string) => {
+    const response = await authApi.googleLogin({ idToken });
+    return { user: response.user, isAuthenticated: true };
+  }),
 
-  appleLogin: async (idToken: string, name?: string, email?: string) => {
-    set({ isLoading: true });
-    try {
-      const response = await authApi.appleLogin({ idToken, name, email });
-      set({
-        user: response.user,
-        isAuthenticated: true,
-        isLoading: false,
-      });
-    } catch (error) {
-      set({ isLoading: false });
-      throw error;
-    }
-  },
+  appleLogin: withLoading(set, async (idToken: string, name?: string, email?: string) => {
+    const response = await authApi.appleLogin({ idToken, name, email });
+    return { user: response.user, isAuthenticated: true };
+  }),
 
   logout: async () => {
     set({ isLoading: true });
     try {
       await authApi.logout();
     } finally {
-      set({
-        user: null,
-        isAuthenticated: false,
-        isLoading: false,
-      });
+      set({ user: null, isAuthenticated: false, isLoading: false });
     }
   },
 
@@ -113,43 +90,24 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     // Dev mode bypass
     if (DEV_MODE) {
-      set({
-        user: DEV_USER,
-        isAuthenticated: true,
-        isLoading: false,
-      });
+      set({ user: DEV_USER, isAuthenticated: true, isLoading: false });
       return;
     }
 
     try {
-      // First check if we have any tokens at all
       const hasToken = await tokenStorage.getAccessToken();
       if (!hasToken) {
-        set({
-          user: null,
-          isAuthenticated: false,
-          isLoading: false,
-        });
+        set({ user: null, isAuthenticated: false, isLoading: false });
         return;
       }
 
       const user = await authApi.checkAuthStatus();
-      set({
-        user,
-        isAuthenticated: !!user,
-        isLoading: false,
-      });
+      set({ user, isAuthenticated: !!user, isLoading: false });
     } catch {
       await tokenStorage.clearTokens();
-      set({
-        user: null,
-        isAuthenticated: false,
-        isLoading: false,
-      });
+      set({ user: null, isAuthenticated: false, isLoading: false });
     }
   },
 
-  updateUser: (user: User) => {
-    set({ user });
-  },
+  updateUser: (user: User) => set({ user }),
 }));

@@ -1,3 +1,6 @@
+// Re-export shared types for consistency
+export { AttractionCategory } from '@tourist-app/shared';
+
 export interface User {
   id: string;
   email: string;
