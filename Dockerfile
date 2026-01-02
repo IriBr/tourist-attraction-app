@@ -1,0 +1,40 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install build dependencies
+RUN apk add --no-cache python3 make g++
+
+# Copy root package files for workspace
+COPY package*.json ./
+COPY backend/package*.json ./backend/
+COPY shared/package*.json ./shared/
+
+# Copy shared source for building
+COPY shared/src ./shared/src/
+COPY shared/tsconfig.json ./shared/
+
+# Copy backend files
+COPY backend/prisma ./backend/prisma/
+COPY backend/src ./backend/src/
+COPY backend/tsconfig.json ./backend/
+
+# Install all dependencies
+RUN npm install --workspaces --include-workspace-root
+
+# Build shared package first
+RUN npm run build --workspace=shared
+
+# Generate Prisma client
+RUN cd backend && npx prisma generate
+
+# Build backend
+RUN npm run build --workspace=backend
+
+WORKDIR /app/backend
+
+# Expose port
+EXPOSE 3000
+
+# Start command
+CMD ["sh", "-c", "npx prisma migrate deploy && npm run start"]
