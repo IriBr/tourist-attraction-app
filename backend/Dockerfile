@@ -1,8 +1,5 @@
-# Use Debian-based Node image for better Prisma compatibility
-FROM node:20-slim
-
-# Install OpenSSL and other dependencies
-RUN apt-get update && apt-get install -y openssl libssl3 ca-certificates && rm -rf /var/lib/apt/lists/*
+# Build stage
+FROM node:20-bookworm AS builder
 
 WORKDIR /app
 
@@ -30,11 +27,29 @@ RUN cd backend && npx prisma generate
 # Build backend
 RUN npm run build --workspace=backend
 
+# Production stage
+FROM node:20-bookworm-slim
+
+# Install runtime dependencies for Prisma
+RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy built files
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/backend/dist ./backend/dist
+COPY --from=builder /app/backend/package*.json ./backend/
+COPY --from=builder /app/backend/prisma ./backend/prisma
+COPY --from=builder /app/backend/node_modules ./backend/node_modules
+COPY --from=builder /app/shared/dist ./shared/dist
+COPY --from=builder /app/shared/package*.json ./shared/
+
 WORKDIR /app/backend
 
 # Expose port
 ENV PORT=3000
 EXPOSE 3000
 
-# Start command - skip migrations for now
-CMD ["npm", "run", "start"]
+# Start command
+CMD ["node", "dist/index.js"]
