@@ -34,9 +34,6 @@ services:
     instance_size_slug: apps-s-1vcpu-0.5gb
     health_check:
       http_path: /health
-    routes:
-      - path: /api
-      - path: /health
   - name: admin
     github:
       repo: IriBr/tourist-attraction-app
@@ -51,5 +48,23 @@ services:
     http_port: 8080
     instance_count: 1
     instance_size_slug: apps-s-1vcpu-0.5gb
-    routes:
-      - path: /
+
+ingress:
+  rules:
+    - match:
+        path:
+          prefix: /api
+      component:
+        name: backend
+        preserve_path_prefix: true
+    - match:
+        path:
+          prefix: /health
+      component:
+        name: backend
+        preserve_path_prefix: true
+    - match:
+        path:
+          prefix: /
+      component:
+        name: admin
