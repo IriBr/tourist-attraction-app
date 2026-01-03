@@ -37,8 +37,6 @@ services:
     routes:
       - path: /api
       - path: /health
-
-services:
   - name: admin
     github:
       repo: IriBr/tourist-attraction-app
