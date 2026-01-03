@@ -38,18 +38,20 @@ services:
       - path: /api
       - path: /health
 
-static_sites:
+services:
   - name: admin
     github:
       repo: IriBr/tourist-attraction-app
       branch: main
       deploy_on_push: true
-    source_dir: /admin
-    build_command: npm install && npm run build
-    output_dir: dist
+    dockerfile_path: admin/Dockerfile
+    source_dir: /
     envs:
       - key: VITE_API_URL
         scope: BUILD_TIME
         value: https://wandr-backend-k87hq.ondigitalocean.app/api/v1
+    http_port: 8080
+    instance_count: 1
+    instance_size_slug: apps-s-1vcpu-0.5gb
     routes:
       - path: /
