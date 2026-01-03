@@ -1,5 +1,5 @@
 import { prisma } from '../config/database.js';
-import { AttractionCategory, UserRole, SubscriptionTier } from '@prisma/client';
+import { AttractionCategory } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 // Continent data
@@ -130,10 +130,10 @@ export async function seedDatabase(): Promise<{ success: boolean; message: strin
       await prisma.user.create({
         data: {
           email: 'admin@wandr.app',
-          password: hashedPassword,
+          passwordHash: hashedPassword,
           name: 'Admin',
-          role: UserRole.ADMIN,
-          subscriptionTier: SubscriptionTier.PREMIUM,
+          role: 'admin',
+          subscriptionTier: 'premium',
           isEmailVerified: true,
         }
       });
