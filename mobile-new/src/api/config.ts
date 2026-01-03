@@ -4,14 +4,14 @@ import { Platform } from 'react-native';
 import { ApiErrorResponse } from '../types';
 
 // Use appropriate URL based on platform
-// Use machine's local IP for reliable connections from simulators
 const getApiUrl = () => {
   if (__DEV__) {
-    // Use local IP for both iOS and Android simulators
+    // Use local IP for simulators during development
     const LOCAL_IP = '192.168.8.206';
     return `http://${LOCAL_IP}:3001/api/v1`;
   }
-  return 'https://api.yourdomain.com/api/v1';
+  // Production API on Digital Ocean
+  return 'https://wandr-backend-k87hq.ondigitalocean.app/api/v1';
 };
 
 const API_BASE_URL = getApiUrl();
