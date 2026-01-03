@@ -3,13 +3,14 @@ region: nyc
 databases:
   - name: db
     engine: PG
-    production: true
-    cluster_name: wandr-db
-    db_name: defaultdb
-    db_user: doadmin
+    production: false
 
 services:
   - name: backend
+    github:
+      repo: IriBr/tourist-attraction-app
+      branch: main
+      deploy_on_push: true
     dockerfile_path: Dockerfile
     source_dir: /
     envs:
