@@ -34,3 +34,22 @@ services:
     instance_size_slug: apps-s-1vcpu-0.5gb
     health_check:
       http_path: /health
+    routes:
+      - path: /api
+      - path: /health
+
+static_sites:
+  - name: admin
+    github:
+      repo: IriBr/tourist-attraction-app
+      branch: main
+      deploy_on_push: true
+    source_dir: /admin
+    build_command: npm install && npm run build
+    output_dir: dist
+    envs:
+      - key: VITE_API_URL
+        scope: BUILD_TIME
+        value: https://wandr-backend-k87hq.ondigitalocean.app/api/v1
+    routes:
+      - path: /
