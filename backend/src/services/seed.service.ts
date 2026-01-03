@@ -126,7 +126,7 @@ export async function seedDatabase(): Promise<{ success: boolean; message: strin
     // Create admin user
     const existingAdmin = await prisma.user.findUnique({ where: { email: 'admin@wandr.app' } });
     if (!existingAdmin) {
-      const hashedPassword = await bcrypt.hash('WandrAdmin2024!', 10);
+      const hashedPassword = await bcrypt.hash('WandrAdmin2024', 10);
       await prisma.user.create({
         data: {
           email: 'admin@wandr.app',
