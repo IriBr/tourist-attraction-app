@@ -2,28 +2,30 @@ FROM node:18-slim AS builder
 
 WORKDIR /app
 
-# Copy workspace files
-COPY package*.json ./
-COPY admin/package*.json ./admin/
+# Copy shared package and build it first
 COPY shared/package*.json ./shared/
-
-# Copy shared source
 COPY shared/src ./shared/src/
 COPY shared/tsconfig.json ./shared/
+WORKDIR /app/shared
+RUN npm install && npm run build
 
-# Copy admin source
-COPY admin/ ./admin/
+# Copy admin and install with link to shared
+WORKDIR /app/admin
+COPY admin/package*.json ./
+
+# Update package.json to use file reference instead of workspace
+RUN sed -i 's/"@tourist-app\/shared": "workspace:\*"/"@tourist-app\/shared": "file:..\/shared"/' package.json
 
 # Install dependencies
-RUN npm install --workspaces --include-workspace-root
+RUN npm install
 
-# Build shared first
-RUN npm run build --workspace=shared
+# Copy admin source
+COPY admin/ ./
 
 # Build admin with API URL
 ARG VITE_API_URL
 ENV VITE_API_URL=$VITE_API_URL
-RUN npm run build --workspace=admin
+RUN npm run build
 
 # Production stage - use nginx to serve static files
 FROM nginx:alpine
