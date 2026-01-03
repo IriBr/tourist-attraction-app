@@ -10,9 +10,9 @@ export const errorHandler: ErrorRequestHandler = (
   res: Response,
   _next: NextFunction
 ): void => {
-  // Log error in development (safely)
+  // Log all errors for debugging
+  console.error('Error:', error.message);
   if (config.env === 'development') {
-    console.error('Error:', error.message);
     console.error('Stack:', error.stack);
   }
 
