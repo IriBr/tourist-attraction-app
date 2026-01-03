@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { adminService } from '../services/admin.service.js';
+import { seedDatabase } from '../services/seed.service.js';
 import { SubscriptionTier, UserRole } from '@prisma/client';
 import { BadRequestError } from '../utils/errors.js';
 
@@ -142,6 +143,17 @@ export class AdminController {
     try {
       const stats = await adminService.getDashboardStats();
       res.json(stats);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // ============ DATABASE SEED ============
+
+  async seedDatabase(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await seedDatabase();
+      res.json(result);
     } catch (error) {
       next(error);
     }

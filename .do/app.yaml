@@ -3,10 +3,7 @@ region: nyc
 databases:
   - name: db
     engine: PG
-    cluster_name: wandr-db
-    db_name: defaultdb
-    db_user: doadmin
-    production: true
+    production: false
 
 services:
   - name: backend

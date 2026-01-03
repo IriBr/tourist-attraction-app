@@ -25,4 +25,7 @@ router.post('/attractions', adminController.createAttraction.bind(adminControlle
 router.put('/attractions/:attractionId', adminController.updateAttraction.bind(adminController));
 router.delete('/attractions/:attractionId', adminController.deleteAttraction.bind(adminController));
 
+// ============ DATABASE SEED ============
+router.post('/seed', adminController.seedDatabase.bind(adminController));
+
 export default router;
