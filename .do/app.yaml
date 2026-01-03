@@ -1,7 +1,7 @@
 name: wandr-backend
 region: nyc
 databases:
-  - name: wandr-db
+  - name: db
     engine: PG
     production: true
     cluster_name: wandr-db
@@ -10,17 +10,12 @@ databases:
 
 services:
   - name: backend
-    github:
-      repo: IriBr/tourist-attraction-app
-      branch: main
-      deploy_on_push: true
-    source_dir: /backend
-    build_command: npm install && npx prisma generate && npm run build
-    run_command: npx prisma db push --accept-data-loss && node dist/index.js
+    dockerfile_path: Dockerfile
+    source_dir: /
     envs:
       - key: DATABASE_URL
         scope: RUN_AND_BUILD_TIME
-        value: ${wandr-db.DATABASE_URL}
+        value: ${db.DATABASE_URL}
       - key: JWT_SECRET
         scope: RUN_TIME
         value: super-secret-jwt-key-change-in-production-2024

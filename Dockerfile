@@ -1,9 +1,9 @@
-FROM node:20-alpine
+FROM node:18-slim
 
 WORKDIR /app
 
-# Install build dependencies
-RUN apk add --no-cache python3 make g++
+# Install OpenSSL for Prisma
+RUN apt-get update && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*
 
 # Copy root package files for workspace
 COPY package*.json ./
@@ -37,4 +37,4 @@ WORKDIR /app/backend
 EXPOSE 3000
 
 # Start command
-CMD ["sh", "-c", "npx prisma migrate deploy && npm run start"]
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss && node dist/index.js"]
