@@ -13,16 +13,12 @@ services:
       deploy_on_push: true
     dockerfile_path: Dockerfile
     source_dir: /
+    # Note: Sensitive environment variables (JWT_SECRET, ANTHROPIC_API_KEY, etc.)
+    # should be configured via Digital Ocean App Platform UI, not in this file.
     envs:
       - key: DATABASE_URL
         scope: RUN_AND_BUILD_TIME
         value: ${db.DATABASE_URL}
-      - key: JWT_SECRET
-        scope: RUN_TIME
-        value: super-secret-jwt-key-change-in-production-2024
-      - key: JWT_REFRESH_SECRET
-        scope: RUN_TIME
-        value: super-secret-refresh-key-change-in-production-2024
       - key: NODE_ENV
         scope: RUN_TIME
         value: production
