@@ -15,7 +15,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.wandr.app",
+      "bundleIdentifier": "app.wandr.explore",
       "buildNumber": "1",
       "infoPlist": {
         "NSCameraUsageDescription": "Wandr needs camera access to scan and identify tourist attractions",
@@ -24,7 +24,7 @@
       }
     },
     "android": {
-      "package": "com.wandr.app",
+      "package": "app.wandr.explore",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0D9488"
