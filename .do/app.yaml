@@ -1,0 +1,40 @@
+name: wandr-backend
+region: nyc
+databases:
+  - name: wandr-db
+    engine: PG
+    production: true
+    cluster_name: wandr-db
+    db_name: defaultdb
+    db_user: doadmin
+
+services:
+  - name: backend
+    github:
+      repo: IriBr/tourist-attraction-app
+      branch: main
+      deploy_on_push: true
+    source_dir: /backend
+    build_command: npm install && npx prisma generate && npm run build
+    run_command: npx prisma db push --accept-data-loss && node dist/index.js
+    envs:
+      - key: DATABASE_URL
+        scope: RUN_AND_BUILD_TIME
+        value: ${wandr-db.DATABASE_URL}
+      - key: JWT_SECRET
+        scope: RUN_TIME
+        value: super-secret-jwt-key-change-in-production-2024
+      - key: JWT_REFRESH_SECRET
+        scope: RUN_TIME
+        value: super-secret-refresh-key-change-in-production-2024
+      - key: NODE_ENV
+        scope: RUN_TIME
+        value: production
+      - key: PORT
+        scope: RUN_TIME
+        value: "3000"
+    http_port: 3000
+    instance_count: 1
+    instance_size_slug: apps-s-1vcpu-0.5gb
+    health_check:
+      http_path: /health
