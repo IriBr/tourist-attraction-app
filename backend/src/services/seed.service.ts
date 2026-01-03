@@ -113,12 +113,29 @@ const attractions = [
   { city: 'Cusco', name: 'Machu Picchu', category: 'historical' as AttractionCategory, lat: -13.1631, lng: -72.5450, address: 'Cusco Region, Peru', description: '15th-century Inca citadel set high in the Andes Mountains.', shortDescription: 'Ancient Inca citadel', famousFor: 'Best-known icon of Inca civilization', thumbnailUrl: 'https://images.unsplash.com/photo-1526392060635-9d6019884377?w=400' },
 ];
 
+export async function resetAdminPassword(): Promise<{ success: boolean; message: string }> {
+  try {
+    const hashedPassword = await bcrypt.hash('WandrAdmin2024', 10);
+    const admin = await prisma.user.update({
+      where: { email: 'admin@wandr.app' },
+      data: { passwordHash: hashedPassword }
+    });
+    console.log('Admin password reset for:', admin.email);
+    return { success: true, message: 'Admin password reset successfully' };
+  } catch (error) {
+    console.error('Password reset error:', error);
+    return { success: false, message: `Failed: ${error}` };
+  }
+}
+
 export async function seedDatabase(): Promise<{ success: boolean; message: string; stats?: any }> {
   try {
     // Check if already seeded
     const existingContinents = await prisma.continent.count();
     if (existingContinents > 0) {
-      return { success: true, message: 'Database already seeded', stats: { continents: existingContinents } };
+      // Still update admin password if database already seeded
+      await resetAdminPassword();
+      return { success: true, message: 'Database already seeded, admin password updated', stats: { continents: existingContinents } };
     }
 
     console.log('Starting database seed...');
