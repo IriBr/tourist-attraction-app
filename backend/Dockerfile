@@ -1,5 +1,5 @@
-# Build stage
-FROM node:20-bookworm AS builder
+# Single stage build with full Debian image
+FROM node:20-bookworm
 
 WORKDIR /app
 
@@ -26,24 +26,6 @@ RUN cd backend && npx prisma generate
 
 # Build backend
 RUN npm run build --workspace=backend
-
-# Production stage
-FROM node:20-bookworm-slim
-
-# Install runtime dependencies for Prisma
-RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
-
-WORKDIR /app
-
-# Copy built files
-COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/backend/dist ./backend/dist
-COPY --from=builder /app/backend/package*.json ./backend/
-COPY --from=builder /app/backend/prisma ./backend/prisma
-COPY --from=builder /app/backend/node_modules ./backend/node_modules
-COPY --from=builder /app/shared/dist ./shared/dist
-COPY --from=builder /app/shared/package*.json ./shared/
 
 WORKDIR /app/backend
 
