@@ -8,7 +8,6 @@ import {
   Menu,
   X,
   Globe,
-  Compass,
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 

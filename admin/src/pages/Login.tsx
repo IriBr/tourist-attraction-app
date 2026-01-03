@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Compass, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 
 export function LoginPage() {
