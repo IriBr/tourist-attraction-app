@@ -15,6 +15,9 @@
       "distribution": "internal",
       "ios": {
         "simulator": false
+      },
+      "android": {
+        "buildType": "apk"
       }
     },
     "production": {
@@ -30,6 +33,10 @@
         "appleId": "brahimajzamir@gmail.com",
         "ascAppId": "6757339449",
         "appleTeamId": "TDG5JD88QQ"
+      },
+      "android": {
+        "serviceAccountKeyPath": "./google-service-account.json",
+        "track": "internal"
       }
     }
   }

@@ -337,6 +337,78 @@ export class AdminService {
     return { success: true, message: 'Attraction deleted successfully' };
   }
 
+  // ============ LOCATION MANAGEMENT ============
+
+  async getAllCountries() {
+    return prisma.country.findMany({
+      orderBy: { name: 'asc' },
+      include: {
+        continent: { select: { id: true, name: true } },
+        _count: { select: { cities: true } },
+      },
+    });
+  }
+
+  async createCountry(data: {
+    name: string;
+    continentId: string;
+    code?: string;
+    latitude?: number;
+    longitude?: number;
+    latitudeDelta?: number;
+    longitudeDelta?: number;
+    flagUrl?: string;
+    imageUrl?: string;
+  }) {
+    return prisma.country.create({
+      data: {
+        name: data.name,
+        continentId: data.continentId,
+        code: data.code || data.name.substring(0, 2).toUpperCase(),
+        latitude: data.latitude,
+        longitude: data.longitude,
+        latitudeDelta: data.latitudeDelta || 5,
+        longitudeDelta: data.longitudeDelta || 5,
+        flagUrl: data.flagUrl,
+        imageUrl: data.imageUrl,
+      },
+      include: {
+        continent: { select: { id: true, name: true } },
+      },
+    });
+  }
+
+  async getAllCities() {
+    return prisma.city.findMany({
+      orderBy: { name: 'asc' },
+      include: {
+        country: { select: { id: true, name: true } },
+        _count: { select: { attractions: true } },
+      },
+    });
+  }
+
+  async createCity(data: {
+    name: string;
+    countryId: string;
+    latitude?: number;
+    longitude?: number;
+    imageUrl?: string;
+  }) {
+    return prisma.city.create({
+      data: {
+        name: data.name,
+        countryId: data.countryId,
+        latitude: data.latitude,
+        longitude: data.longitude,
+        imageUrl: data.imageUrl,
+      },
+      include: {
+        country: { select: { id: true, name: true } },
+      },
+    });
+  }
+
   // ============ LOCATION STATS ============
 
   async getLocationStats() {

@@ -2,8 +2,8 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ApiErrorResponse } from '@tourist-app/shared';
 
-// Use environment variable or default
-const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:3000/api/v1';
+// Production API URL
+const API_BASE_URL = 'https://wandr-backend-k87hq.ondigitalocean.app/api/v1';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,

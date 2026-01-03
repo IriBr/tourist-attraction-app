@@ -25,6 +25,12 @@ router.post('/attractions', adminController.createAttraction.bind(adminControlle
 router.put('/attractions/:attractionId', adminController.updateAttraction.bind(adminController));
 router.delete('/attractions/:attractionId', adminController.deleteAttraction.bind(adminController));
 
+// ============ LOCATION MANAGEMENT ============
+router.get('/locations/countries', adminController.getAllCountries.bind(adminController));
+router.post('/locations/countries', adminController.createCountry.bind(adminController));
+router.get('/locations/cities', adminController.getAllCities.bind(adminController));
+router.post('/locations/cities', adminController.createCity.bind(adminController));
+
 // ============ DATABASE SEED ============
 router.post('/seed', adminController.seedDatabase.bind(adminController));
 

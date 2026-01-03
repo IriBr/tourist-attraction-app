@@ -128,6 +128,44 @@ export class AdminController {
     }
   }
 
+  // ============ LOCATION MANAGEMENT ============
+
+  async getAllCountries(req: Request, res: Response, next: NextFunction) {
+    try {
+      const countries = await adminService.getAllCountries();
+      res.json({ success: true, data: countries });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async createCountry(req: Request, res: Response, next: NextFunction) {
+    try {
+      const country = await adminService.createCountry(req.body);
+      res.status(201).json({ success: true, data: country });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getAllCities(req: Request, res: Response, next: NextFunction) {
+    try {
+      const cities = await adminService.getAllCities();
+      res.json({ success: true, data: cities });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async createCity(req: Request, res: Response, next: NextFunction) {
+    try {
+      const city = await adminService.createCity(req.body);
+      res.status(201).json({ success: true, data: city });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   // ============ STATS ============
 
   async getLocationStats(req: Request, res: Response, next: NextFunction) {
