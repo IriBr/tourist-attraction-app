@@ -1,9 +1,15 @@
-FROM node:18-bookworm
+FROM --platform=linux/amd64 node:18-bookworm
 
 WORKDIR /app
 
-# Install OpenSSL - Ubuntu/Debian already has it, but ensure it's there
-RUN apt-get update && apt-get install -y openssl libssl3 ca-certificates && rm -rf /var/lib/apt/lists/*
+# Install OpenSSL development libraries
+RUN apt-get update && \
+    apt-get install -y openssl libssl3 libssl-dev ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
+# Set OpenSSL library path explicitly
+ENV LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH
+ENV PRISMA_CLI_BINARY_TARGETS=debian-openssl-3.0.x
 
 # Copy package files
 COPY package*.json ./
@@ -12,7 +18,7 @@ COPY prisma ./prisma/
 # Install dependencies
 RUN npm ci
 
-# Generate Prisma client AFTER installing dependencies
+# Generate Prisma client
 RUN npx prisma generate
 
 # Copy source and build
@@ -24,5 +30,5 @@ RUN npm run build
 # Expose port
 EXPOSE 3000
 
-# Start command - migrations handled separately
+# Start command
 CMD ["node", "dist/index.js"]
