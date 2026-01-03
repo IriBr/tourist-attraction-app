@@ -1,5 +1,6 @@
 import { prisma } from '../config/database.js';
-import { AttractionCategory } from '@prisma/client';
+import { AttractionCategory, UserRole, SubscriptionTier } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
 // Continent data
 const continents = [
@@ -121,6 +122,23 @@ export async function seedDatabase(): Promise<{ success: boolean; message: strin
     }
 
     console.log('Starting database seed...');
+
+    // Create admin user
+    const existingAdmin = await prisma.user.findUnique({ where: { email: 'admin@wandr.app' } });
+    if (!existingAdmin) {
+      const hashedPassword = await bcrypt.hash('WandrAdmin2024!', 10);
+      await prisma.user.create({
+        data: {
+          email: 'admin@wandr.app',
+          password: hashedPassword,
+          name: 'Admin',
+          role: UserRole.ADMIN,
+          subscriptionTier: SubscriptionTier.PREMIUM,
+          isEmailVerified: true,
+        }
+      });
+      console.log('Created admin user: admin@wandr.app');
+    }
 
     // Create continents
     const createdContinents: Record<string, string> = {};
