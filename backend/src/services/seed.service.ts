@@ -134,7 +134,7 @@ export async function seedDatabase(): Promise<{ success: boolean; message: strin
           name: 'Admin',
           role: 'admin',
           subscriptionTier: 'premium',
-          isEmailVerified: true,
+          emailVerified: true,
         }
       });
       console.log('Created admin user: admin@wandr.app');
