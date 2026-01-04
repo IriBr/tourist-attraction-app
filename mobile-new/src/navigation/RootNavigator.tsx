@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -6,23 +6,39 @@ import { useAuthStore } from '../store/authStore';
 import { AuthNavigator } from './AuthNavigator';
 import { MainTabNavigator } from './MainTabNavigator';
 import { PremiumScreen, AttractionDetailScreen } from '../screens';
+import { OnboardingScreen, isOnboardingComplete } from '../screens/OnboardingScreen';
 import type { RootStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export function RootNavigator() {
   const { isAuthenticated, isLoading, checkAuth } = useAuthStore();
+  const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
 
   useEffect(() => {
     checkAuth();
+    checkOnboarding();
   }, []);
 
-  if (isLoading) {
+  const checkOnboarding = async () => {
+    const complete = await isOnboardingComplete();
+    setShowOnboarding(!complete);
+  };
+
+  const handleOnboardingComplete = () => {
+    setShowOnboarding(false);
+  };
+
+  if (isLoading || showOnboarding === null) {
     return (
       <View style={styles.loading}>
         <ActivityIndicator size="large" color="#2196F3" />
       </View>
     );
+  }
+
+  if (showOnboarding) {
+    return <OnboardingScreen onComplete={handleOnboardingComplete} />;
   }
 
   return (
