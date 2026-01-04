@@ -193,7 +193,7 @@ export function FavoritesScreen() {
                       </TouchableOpacity>
                     </View>
                     <Text style={styles.cardLocation} numberOfLines={1}>
-                      {attraction.city?.name}{attraction.city?.country?.name ? `, ${attraction.city.country.name}` : ''}
+                      {attraction.location?.city}{attraction.location?.country ? `, ${attraction.location.country}` : ''}
                     </Text>
                     <View style={styles.cardFooter}>
                       <View style={styles.ratingContainer}>

@@ -101,25 +101,39 @@ export enum AttractionCategory {
   OTHER = 'other',
 }
 
+export interface AttractionLocation {
+  latitude: number;
+  longitude: number;
+  address: string;
+  city: string;
+  country: string;
+  postalCode?: string;
+}
+
 export interface Attraction {
   id: string;
   name: string;
   description: string;
   shortDescription: string;
   category: AttractionCategory;
-  latitude: number;
-  longitude: number;
-  address: string;
-  city: string;
-  country: string;
+  location: AttractionLocation;
   images: string[];
   thumbnailUrl: string;
   averageRating: number;
   totalReviews: number;
-  isFree: boolean;
+  isFree?: boolean;
   adultPrice?: number;
   childPrice?: number;
+  currency?: string;
   website?: string;
+  contactPhone?: string;
+  isFavorited?: boolean;
+  isVisited?: boolean;
+}
+
+export interface AttractionSummaryLocation {
+  city: string;
+  country: string;
 }
 
 export interface AttractionSummary {
@@ -127,11 +141,11 @@ export interface AttractionSummary {
   name: string;
   shortDescription: string;
   category: AttractionCategory;
-  city: string;
-  country: string;
+  location: AttractionSummaryLocation;
   thumbnailUrl: string;
   averageRating: number;
   totalReviews: number;
+  isFavorited?: boolean;
 }
 
 export interface AttractionSearchParams {

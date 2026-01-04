@@ -114,8 +114,8 @@ export function AttractionDetailScreen() {
   };
 
   const handleOpenMaps = () => {
-    if (attraction) {
-      const url = `https://maps.google.com/?q=${attraction.latitude},${attraction.longitude}`;
+    if (attraction?.location) {
+      const url = `https://maps.google.com/?q=${attraction.location.latitude},${attraction.location.longitude}`;
       Linking.openURL(url);
     }
   };
@@ -209,7 +209,7 @@ export function AttractionDetailScreen() {
             <View style={styles.locationRow}>
               <Ionicons name="location-outline" size={16} color="#888" />
               <Text style={styles.location}>
-                {attraction.city?.name}, {attraction.city?.country?.name}
+                {attraction.location?.city}, {attraction.location?.country}
               </Text>
             </View>
           </View>
@@ -244,7 +244,7 @@ export function AttractionDetailScreen() {
             <Text style={styles.sectionTitle}>Location</Text>
             <View style={styles.addressCard}>
               <Ionicons name="map-outline" size={24} color="#e91e63" />
-              <Text style={styles.addressText}>{attraction.address}</Text>
+              <Text style={styles.addressText}>{attraction.location?.address}</Text>
             </View>
           </View>
 
