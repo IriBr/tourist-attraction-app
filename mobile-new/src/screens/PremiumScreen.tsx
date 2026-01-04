@@ -7,12 +7,14 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Linking,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useSubscriptionStore } from '../store/subscriptionStore';
+import { subscriptionApi } from '../api';
 import { colors } from '../theme';
 
 const PREMIUM_FEATURES = [
@@ -62,20 +64,21 @@ const PREMIUM_FEATURES = [
 
 const PRICING_PLANS = [
   {
-    id: 'monthly',
+    id: 'monthly' as const,
     name: 'Monthly',
-    price: '$9.99',
+    price: '$4.99',
     period: '/month',
     savings: null,
-    durationDays: 30,
+    stripePlan: 'monthly' as const,
   },
   {
-    id: 'yearly',
-    name: 'Yearly',
-    price: '$79.99',
+    id: 'annual' as const,
+    name: 'Annual',
+    price: '$47.90',
     period: '/year',
-    savings: 'Save 33%',
-    durationDays: 365,
+    savings: 'Save 20%',
+    monthlyEquivalent: '$3.99/month',
+    stripePlan: 'annual' as const,
     popular: true,
   },
 ];
@@ -83,10 +86,10 @@ const PRICING_PLANS = [
 export function PremiumScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
-  const [selectedPlan, setSelectedPlan] = useState('yearly');
+  const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'annual'>('annual');
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const { isPremium, upgradeToPremium, status } = useSubscriptionStore();
+  const { isPremium, status, fetchStatus } = useSubscriptionStore();
 
   const handleUpgrade = async () => {
     const plan = PRICING_PLANS.find(p => p.id === selectedPlan);
@@ -94,21 +97,55 @@ export function PremiumScreen() {
 
     setIsProcessing(true);
     try {
-      const success = await upgradeToPremium();
-      if (success) {
-        Alert.alert(
-          'Welcome to Premium! 🎉',
-          'You now have access to all premium features. Enjoy unlimited scans and full access to attractions!',
-          [
-            {
-              text: 'Start Exploring',
-              onPress: () => navigation.goBack(),
-            },
-          ]
-        );
+      // Create Stripe checkout session
+      // For mobile, we use a web URL that will redirect back to the app
+      const successUrl = 'https://wandr-backend-k87hq.ondigitalocean.app/payment-success';
+      const cancelUrl = 'https://wandr-backend-k87hq.ondigitalocean.app/payment-cancel';
+
+      const { url } = await subscriptionApi.createCheckoutSession(
+        plan.stripePlan,
+        successUrl,
+        cancelUrl
+      );
+
+      if (url) {
+        // Open Stripe checkout in browser
+        const supported = await Linking.canOpenURL(url);
+        if (supported) {
+          await Linking.openURL(url);
+          // Refresh status when user comes back
+          setTimeout(() => {
+            fetchStatus();
+          }, 2000);
+        } else {
+          Alert.alert('Error', 'Unable to open payment page. Please try again.');
+        }
       }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to process upgrade. Please try again.');
+    } catch (error: any) {
+      console.error('Checkout error:', error);
+      Alert.alert(
+        'Payment Setup Error',
+        error.message || 'Failed to setup payment. Please try again.'
+      );
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    setIsProcessing(true);
+    try {
+      const returnUrl = 'https://wandr-backend-k87hq.ondigitalocean.app/billing-return';
+      const { url } = await subscriptionApi.createBillingPortal(returnUrl);
+
+      if (url) {
+        const supported = await Linking.canOpenURL(url);
+        if (supported) {
+          await Linking.openURL(url);
+        }
+      }
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to open billing portal.');
     } finally {
       setIsProcessing(false);
     }
@@ -150,6 +187,22 @@ export function PremiumScreen() {
                 </Text>
               </View>
             )}
+
+            {/* Manage Subscription Button */}
+            <TouchableOpacity
+              style={styles.manageButton}
+              onPress={handleManageSubscription}
+              disabled={isProcessing}
+            >
+              {isProcessing ? (
+                <ActivityIndicator size="small" color="#FFD700" />
+              ) : (
+                <>
+                  <Ionicons name="settings-outline" size={20} color="#FFD700" />
+                  <Text style={styles.manageButtonText}>Manage Subscription</Text>
+                </>
+              )}
+            </TouchableOpacity>
           </View>
         </View>
       </LinearGradient>
@@ -628,6 +681,24 @@ const styles = StyleSheet.create({
   renewalText: {
     color: '#888',
     fontSize: 14,
+    marginLeft: 8,
+  },
+  manageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 215, 0, 0.15)',
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginTop: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 215, 0, 0.3)',
+  },
+  manageButtonText: {
+    color: '#FFD700',
+    fontSize: 16,
+    fontWeight: '600',
     marginLeft: 8,
   },
 });

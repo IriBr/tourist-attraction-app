@@ -4,8 +4,9 @@ import { authenticate } from '../middleware/auth.js';
 
 const router = Router();
 
-// Public endpoint - get free tier limits
+// Public endpoints
 router.get('/limits', subscriptionController.getFreeTierLimits);
+router.get('/pricing', subscriptionController.getPricing);
 
 // All other subscription routes require authentication
 router.use(authenticate);
@@ -25,7 +26,24 @@ router.get('/scans/today', subscriptionController.getTodayScans);
 // Upgrade to premium (simplified for demo - production would use Stripe)
 router.post('/upgrade', subscriptionController.upgradeToPremium);
 
-// Cancel subscription
+// Cancel subscription (legacy)
 router.post('/cancel', subscriptionController.cancelSubscription);
+
+// ============ STRIPE ENDPOINTS ============
+
+// Create checkout session for Stripe payment
+router.post('/stripe/checkout', subscriptionController.createCheckoutSession);
+
+// Create billing portal session
+router.post('/stripe/portal', subscriptionController.createBillingPortal);
+
+// Get Stripe subscription status
+router.get('/stripe/status', subscriptionController.getStripeStatus);
+
+// Cancel Stripe subscription at period end
+router.post('/stripe/cancel', subscriptionController.cancelStripeSubscription);
+
+// Resume cancelled subscription
+router.post('/stripe/resume', subscriptionController.resumeStripeSubscription);
 
 export default router;

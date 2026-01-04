@@ -7,6 +7,7 @@ import { errorHandler } from './middleware/errorHandler.js';
 import routes from './routes/index.js';
 import { HealthCheckResponse } from '@tourist-app/shared';
 import { prisma } from './config/database.js';
+import { subscriptionController } from './controllers/index.js';
 
 const app = express();
 
@@ -27,6 +28,13 @@ const limiter = rateLimit({
   },
 });
 app.use(limiter);
+
+// Stripe webhook - must be before body parsing to get raw body
+app.post(
+  '/api/v1/subscription/stripe/webhook',
+  express.raw({ type: 'application/json' }),
+  subscriptionController.handleStripeWebhook
+);
 
 // Body parsing
 app.use(express.json({ limit: '10mb' }));

@@ -24,6 +24,10 @@ const envSchema = z.object({
   ANTHROPIC_API_KEY: z.string().optional(),
   RATE_LIMIT_WINDOW_MS: z.string().default('900000'),
   RATE_LIMIT_MAX_REQUESTS: z.string().default('100'),
+  STRIPE_SECRET_KEY: z.string().optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  STRIPE_MONTHLY_PRICE_ID: z.string().optional(),
+  STRIPE_ANNUAL_PRICE_ID: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -74,6 +78,16 @@ export const config = {
       autoMatch: 0.85,
       suggest: 0.60,
       showHint: 0.30,
+    },
+  },
+  stripe: {
+    secretKey: parsed.data.STRIPE_SECRET_KEY,
+    webhookSecret: parsed.data.STRIPE_WEBHOOK_SECRET,
+    monthlyPriceId: parsed.data.STRIPE_MONTHLY_PRICE_ID,
+    annualPriceId: parsed.data.STRIPE_ANNUAL_PRICE_ID,
+    prices: {
+      monthly: 499, // $4.99 in cents
+      annual: 4790, // $47.90 in cents (20% off $59.88)
     },
   },
 } as const;

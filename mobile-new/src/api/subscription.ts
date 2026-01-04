@@ -97,4 +97,72 @@ export const subscriptionApi = {
     const response = await apiClient.get('/subscription/limits');
     return response.data.data;
   },
+
+  // ============ STRIPE ENDPOINTS ============
+
+  /**
+   * Create Stripe checkout session
+   */
+  async createCheckoutSession(plan: 'monthly' | 'annual', successUrl: string, cancelUrl: string): Promise<{ url: string }> {
+    const response = await apiClient.post('/subscription/stripe/checkout', {
+      plan,
+      successUrl,
+      cancelUrl,
+    });
+    return response.data.data;
+  },
+
+  /**
+   * Create billing portal session
+   */
+  async createBillingPortal(returnUrl: string): Promise<{ url: string }> {
+    const response = await apiClient.post('/subscription/stripe/portal', { returnUrl });
+    return response.data.data;
+  },
+
+  /**
+   * Get Stripe subscription status
+   */
+  async getStripeStatus(): Promise<{
+    isActive: boolean;
+    plan: 'monthly' | 'annual' | null;
+    currentPeriodEnd: string | null;
+    cancelAtPeriodEnd: boolean;
+  }> {
+    const response = await apiClient.get('/subscription/stripe/status');
+    return response.data.data;
+  },
+
+  /**
+   * Cancel Stripe subscription at period end
+   */
+  async cancelStripeSubscription(): Promise<{
+    message: string;
+    subscription: any;
+  }> {
+    const response = await apiClient.post('/subscription/stripe/cancel');
+    return response.data.data;
+  },
+
+  /**
+   * Resume cancelled subscription
+   */
+  async resumeStripeSubscription(): Promise<{
+    message: string;
+    subscription: any;
+  }> {
+    const response = await apiClient.post('/subscription/stripe/resume');
+    return response.data.data;
+  },
+
+  /**
+   * Get pricing info (public endpoint)
+   */
+  async getPricing(): Promise<{
+    monthly: { price: number; priceFormatted: string; period: string };
+    annual: { price: number; priceFormatted: string; period: string; savings: string; monthlyEquivalent: string };
+  }> {
+    const response = await apiClient.get('/subscription/pricing');
+    return response.data.data;
+  },
 };
