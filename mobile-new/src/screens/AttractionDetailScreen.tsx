@@ -242,11 +242,10 @@ export function AttractionDetailScreen() {
           {/* Address */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Location</Text>
-            <TouchableOpacity style={styles.addressCard} onPress={handleOpenMaps}>
+            <View style={styles.addressCard}>
               <Ionicons name="map-outline" size={24} color="#e91e63" />
               <Text style={styles.addressText}>{attraction.address}</Text>
-              <Ionicons name="open-outline" size={18} color="#888" />
-            </TouchableOpacity>
+            </View>
           </View>
 
           {/* Contact */}
