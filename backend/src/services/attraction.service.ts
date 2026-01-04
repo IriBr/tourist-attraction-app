@@ -430,3 +430,52 @@ export async function canViewFullDetails(userId?: string): Promise<boolean> {
   if (!userId) return false;
   return subscriptionService.isPremiumUser(userId);
 }
+
+/**
+ * Get nearby attractions that the user has NOT visited
+ * Used for proximity notifications
+ */
+export async function getNearbyUnvisitedAttractions(
+  latitude: number,
+  longitude: number,
+  radiusMeters = 50,
+  userId: string,
+  limit = 5
+): Promise<AttractionSummary[]> {
+  // Get user's visited attraction IDs
+  const visits = await prisma.visit.findMany({
+    where: { userId },
+    select: { attractionId: true },
+  });
+  const visitedIds = new Set(visits.map((v) => v.attractionId));
+
+  // Get all attractions (we'll filter by distance in memory)
+  const attractions = await prisma.attraction.findMany({
+    include: {
+      city: {
+        include: {
+          country: {
+            include: {
+              continent: true,
+            },
+          },
+        },
+      },
+      openingHours: true,
+    },
+  });
+
+  // Filter by distance and exclude visited
+  const nearbyUnvisited = attractions
+    .map((attr) => ({
+      attraction: attr as AttractionWithRelations,
+      distance: calculateDistance(latitude, longitude, attr.latitude, attr.longitude),
+    }))
+    .filter((item) => item.distance <= radiusMeters && !visitedIds.has(item.attraction.id))
+    .sort((a, b) => a.distance - b.distance)
+    .slice(0, limit);
+
+  return nearbyUnvisited.map((item) =>
+    mapToSummary(item.attraction, userId, item.distance)
+  );
+}

@@ -59,4 +59,19 @@ export const attractionsApi = {
     >(`/attractions/category/${category}`, { params: { page, limit } });
     return response.data.data;
   },
+
+  async getNearbyUnvisited(
+    latitude: number,
+    longitude: number,
+    radiusMeters?: number,
+    limit?: number
+  ): Promise<AttractionSummary[]> {
+    const response = await apiClient.get<ApiResponse<{ items: AttractionSummary[] }>>(
+      '/attractions/nearby-unvisited',
+      {
+        params: { latitude, longitude, radiusMeters, limit },
+      }
+    );
+    return response.data.data.items;
+  },
 };

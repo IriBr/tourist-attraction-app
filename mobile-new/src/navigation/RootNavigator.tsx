@@ -1,15 +1,22 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuthStore } from '../store/authStore';
 import { AuthNavigator } from './AuthNavigator';
 import { MainTabNavigator } from './MainTabNavigator';
 import { PremiumScreen, AttractionDetailScreen } from '../screens';
 import { OnboardingScreen, isOnboardingComplete } from '../screens/OnboardingScreen';
+import {
+  startProximityTracking,
+  setupNotificationHandler,
+} from '../services/proximityNotifications';
 import type { RootStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+
+// Navigation ref for navigating from notification handler
+export const navigationRef = React.createRef<NavigationContainerRef<RootStackParamList>>();
 
 export function RootNavigator() {
   const { isAuthenticated, isLoading, checkAuth } = useAuthStore();
@@ -19,6 +26,24 @@ export function RootNavigator() {
     checkAuth();
     checkOnboarding();
   }, []);
+
+  // Set up proximity tracking and notification handling when authenticated
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    // Start background location tracking
+    startProximityTracking().catch(console.error);
+
+    // Handle notification taps - navigate to Camera tab
+    const cleanup = setupNotificationHandler((attractionId) => {
+      // Navigate to Camera tab
+      if (navigationRef.current) {
+        navigationRef.current.navigate('Main', { screen: 'Camera' });
+      }
+    });
+
+    return cleanup;
+  }, [isAuthenticated]);
 
   const checkOnboarding = async () => {
     const complete = await isOnboardingComplete();
@@ -42,7 +67,7 @@ export function RootNavigator() {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {isAuthenticated ? (
           <>

@@ -150,3 +150,30 @@ export const getPopularAttractions = asyncHandler(
     });
   }
 );
+
+const nearbyUnvisitedSchema = z.object({
+  latitude: z.coerce.number().min(-90).max(90),
+  longitude: z.coerce.number().min(-180).max(180),
+  radiusMeters: z.coerce.number().positive().max(1000).optional(),
+  limit: z.coerce.number().int().positive().max(10).optional(),
+});
+
+export const getNearbyUnvisitedAttractions = asyncHandler(
+  async (req: Request, res: Response) => {
+    if (!req.user?.id) {
+      return sendSuccess(res, { items: [] });
+    }
+
+    const params = nearbyUnvisitedSchema.parse(req.query);
+
+    const attractions = await attractionService.getNearbyUnvisitedAttractions(
+      params.latitude,
+      params.longitude,
+      params.radiusMeters || 50,
+      req.user.id,
+      params.limit || 5
+    );
+
+    sendSuccess(res, { items: attractions });
+  }
+);

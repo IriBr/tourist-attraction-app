@@ -20,6 +20,8 @@ export default {
       infoPlist: {
         NSCameraUsageDescription: "Wandr needs camera access to scan and identify tourist attractions",
         NSLocationWhenInUseUsageDescription: "Wandr needs your location to find nearby attractions",
+        NSLocationAlwaysAndWhenInUseUsageDescription: "Wandr uses your location in the background to notify you when you're near an attraction",
+        UIBackgroundModes: ["location", "fetch"],
         ITSAppUsesNonExemptEncryption: false
       }
     },
@@ -38,8 +40,28 @@ export default {
     web: {
       favicon: "./assets/favicon.png"
     },
+    updates: {
+      url: "https://u.expo.dev/9b30d187-8bd6-4466-a484-b20607a66e33"
+    },
+    runtimeVersion: {
+      policy: "appVersion"
+    },
     plugins: [
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-location",
+        {
+          locationAlwaysAndWhenInUsePermission: "Wandr uses your location in the background to notify you when you're near an attraction you haven't visited yet.",
+          isAndroidBackgroundLocationEnabled: true
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          icon: "./assets/icon.png",
+          color: "#0D9488"
+        }
+      ]
     ],
     extra: {
       eas: {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -12,8 +12,9 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { attractionsApi, locationsApi } from '../api';
+import { useVisitsStore } from '../store';
 import type { AttractionSummary } from '../types';
 import { colors } from '../theme';
 
@@ -33,9 +34,18 @@ export function SearchScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
 
+  const { visitedIds, fetchVisits } = useVisitsStore();
+
   useEffect(() => {
     loadPopularAttractions();
   }, []);
+
+  // Fetch visits when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchVisits();
+    }, [fetchVisits])
+  );
 
   useEffect(() => {
     if (searchQuery.length >= 2) {
@@ -196,36 +206,46 @@ export function SearchScreen() {
                 columnWrapperStyle={styles.gridRow}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.gridContainer}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={styles.attractionCard}
-                    onPress={() => handleAttractionPress(item)}
-                    activeOpacity={0.8}
-                  >
-                    <Image
-                      source={{ uri: item.thumbnailUrl }}
-                      style={styles.attractionImage}
-                      resizeMode="cover"
-                    />
-                    <View style={styles.attractionInfo}>
-                      <Text style={styles.attractionName} numberOfLines={2}>
-                        {item.name}
-                      </Text>
-                      <Text style={styles.attractionLocation} numberOfLines={1}>
-                        {item.location?.city}, {item.location?.country}
-                      </Text>
-                      <View style={styles.ratingContainer}>
-                        <Ionicons name="star" size={12} color="#FFD700" />
-                        <Text style={styles.ratingText}>
-                          {item.averageRating?.toFixed(1) || 'N/A'}
-                        </Text>
-                        <Text style={styles.reviewCount}>
-                          ({item.totalReviews || 0})
-                        </Text>
+                renderItem={({ item }) => {
+                  const isVisited = visitedIds.has(item.id);
+                  return (
+                    <TouchableOpacity
+                      style={styles.attractionCard}
+                      onPress={() => handleAttractionPress(item)}
+                      activeOpacity={0.8}
+                    >
+                      <View style={styles.imageContainer}>
+                        <Image
+                          source={{ uri: item.thumbnailUrl }}
+                          style={styles.attractionImage}
+                          resizeMode="cover"
+                        />
+                        {isVisited && (
+                          <View style={styles.visitedBadge}>
+                            <Ionicons name="checkmark" size={12} color="#fff" />
+                          </View>
+                        )}
                       </View>
-                    </View>
-                  </TouchableOpacity>
-                )}
+                      <View style={styles.attractionInfo}>
+                        <Text style={styles.attractionName} numberOfLines={2}>
+                          {item.name}
+                        </Text>
+                        <Text style={styles.attractionLocation} numberOfLines={1}>
+                          {item.location?.city}, {item.location?.country}
+                        </Text>
+                        <View style={styles.ratingContainer}>
+                          <Ionicons name="star" size={12} color="#FFD700" />
+                          <Text style={styles.ratingText}>
+                            {item.averageRating?.toFixed(1) || 'N/A'}
+                          </Text>
+                          <Text style={styles.reviewCount}>
+                            ({item.totalReviews || 0})
+                          </Text>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                }}
               />
             )}
           </View>
@@ -322,10 +342,24 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: 'hidden',
   },
+  imageContainer: {
+    position: 'relative',
+  },
   attractionImage: {
     width: '100%',
     height: 120,
     backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  visitedBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: '#4CAF50',
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   attractionInfo: {
     padding: 10,

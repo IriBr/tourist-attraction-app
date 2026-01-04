@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { attractionsApi, favoritesApi, visitsApi, NewBadgeInfo } from '../api';
-import { useStatsStore } from '../store';
+import { useStatsStore, useVisitsStore } from '../store';
 import { BadgeAwardModal } from '../components/BadgeAwardModal';
 import type { Attraction } from '../types';
 
@@ -70,6 +70,7 @@ export function AttractionDetailScreen() {
   const [showBadgeModal, setShowBadgeModal] = useState(false);
   const [newBadges, setNewBadges] = useState<NewBadgeInfo[]>([]);
   const { refreshStats } = useStatsStore();
+  const { addVisit: addToVisitsStore } = useVisitsStore();
 
   const handleMarkVisited = async () => {
     if (!attraction || isVisited || isMarkingVisited) return;
@@ -77,6 +78,8 @@ export function AttractionDetailScreen() {
       setIsMarkingVisited(true);
       const response = await visitsApi.markVisited({ attractionId: attraction.id });
       setIsVisited(true);
+      // Update global visits store immediately
+      addToVisitsStore(attraction.id);
       // Refresh global stats immediately
       refreshStats();
 

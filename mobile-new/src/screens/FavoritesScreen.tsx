@@ -15,7 +15,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors } from '../theme';
-import { favoritesApi, visitsApi } from '../api';
+import { favoritesApi } from '../api';
+import { useVisitsStore } from '../store';
 import type { FavoriteWithAttraction } from '../types';
 import type { RootStackParamList } from '../navigation/types';
 
@@ -24,10 +25,11 @@ export function FavoritesScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   const [favorites, setFavorites] = useState<FavoriteWithAttraction[]>([]);
-  const [visitedIds, setVisitedIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const { visitedIds, fetchVisits } = useVisitsStore();
 
   const fetchFavorites = async (showRefresh = false) => {
     try {
@@ -38,21 +40,13 @@ export function FavoritesScreen() {
       }
       setError(null);
 
-      const [favoritesData, visitsData] = await Promise.all([
+      // Fetch favorites and visits in parallel
+      const [favoritesData] = await Promise.all([
         favoritesApi.getAll({ limit: 100 }),
-        visitsApi.getUserVisits({ limit: 100 }),
+        fetchVisits(), // Use global visits store
       ]);
 
       setFavorites(favoritesData.items || []);
-
-      // Create a set of visited attraction IDs
-      const visited = new Set<string>();
-      (visitsData.items || []).forEach((visit: any) => {
-        if (visit.attractionId) {
-          visited.add(visit.attractionId);
-        }
-      });
-      setVisitedIds(visited);
     } catch (err) {
       console.error('Failed to fetch favorites:', err);
       setError('Failed to load favorites');
