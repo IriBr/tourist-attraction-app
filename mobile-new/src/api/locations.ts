@@ -69,7 +69,9 @@ export interface MapContinent {
 
 export const locationsApi = {
   async getStats(): Promise<GlobalStats> {
+    console.log('[LocationsAPI] Calling GET /locations/stats');
     const response = await apiClient.get('/locations/stats');
+    console.log('[LocationsAPI] Response:', JSON.stringify(response.data));
     return response.data.data;
   },
 

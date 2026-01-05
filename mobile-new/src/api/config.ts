@@ -5,16 +5,21 @@ import { ApiErrorResponse } from '../types';
 
 // Use appropriate URL based on platform
 const getApiUrl = () => {
-  if (__DEV__) {
-    // Use local IP for simulators during development
-    const LOCAL_IP = '192.168.8.206';
-    return `http://${LOCAL_IP}:3001/api/v1`;
-  }
-  // Production API on Digital Ocean
+  // Always use production API for now (testing)
+  // TODO: Revert to local for development when needed
   return 'https://wandr-backend-k87hq.ondigitalocean.app/api/v1';
+
+  // if (__DEV__) {
+  //   // Use local IP for simulators during development
+  //   const LOCAL_IP = '192.168.8.206';
+  //   return `http://${LOCAL_IP}:3001/api/v1`;
+  // }
+  // // Production API on Digital Ocean
+  // return 'https://wandr-backend-k87hq.ondigitalocean.app/api/v1';
 };
 
 const API_BASE_URL = getApiUrl();
+console.log('[API] Using base URL:', API_BASE_URL);
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,

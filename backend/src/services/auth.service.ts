@@ -17,6 +17,7 @@ import {
   User,
 } from '@tourist-app/shared';
 import type { JwtPayload } from '../middleware/auth.js';
+import { sendVerificationEmail, sendPasswordResetEmail, sendWelcomeEmail } from './email.service.js';
 
 // Google OAuth client
 const googleClient = config.google.clientId
@@ -114,6 +115,7 @@ export async function register(
       passwordHash,
       name,
       authProvider: 'email',
+      emailVerified: false,
     },
   });
 
@@ -126,6 +128,21 @@ export async function register(
       userId: user.id,
       expiresAt: new Date(Date.now() + parseExpiry(config.jwt.refreshExpiresIn)),
     },
+  });
+
+  // Create verification token and send email
+  const verificationToken = uuidv4();
+  await prisma.emailVerificationToken.create({
+    data: {
+      email,
+      token: verificationToken,
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+    },
+  });
+
+  // Send verification email (don't await to not block response)
+  sendVerificationEmail(email, name, verificationToken).catch((err) => {
+    console.error('Failed to send verification email:', err);
   });
 
   return {
@@ -270,9 +287,10 @@ export async function requestPasswordReset(email: string): Promise<void> {
     data: { email, token, expiresAt },
   });
 
-  // TODO: Send email with reset link
-  // In production, integrate with email service
-  console.log(`Password reset token for ${email}: ${token}`);
+  // Send password reset email
+  sendPasswordResetEmail(email, user.name, token).catch((err) => {
+    console.error('Failed to send password reset email:', err);
+  });
 }
 
 export async function resetPassword(token: string, newPassword: string): Promise<void> {
@@ -452,4 +470,61 @@ export async function appleLogin(
     user: mapUserToResponse(user),
     tokens,
   };
+}
+
+export async function verifyEmail(token: string): Promise<User> {
+  const verificationToken = await prisma.emailVerificationToken.findUnique({
+    where: { token },
+  });
+
+  if (!verificationToken) {
+    throw new BadRequestError('Invalid or expired verification token');
+  }
+
+  if (verificationToken.expiresAt < new Date()) {
+    await prisma.emailVerificationToken.delete({ where: { id: verificationToken.id } });
+    throw new BadRequestError('Verification token has expired');
+  }
+
+  const user = await prisma.user.update({
+    where: { email: verificationToken.email },
+    data: { emailVerified: true },
+  });
+
+  // Delete the used token
+  await prisma.emailVerificationToken.delete({ where: { id: verificationToken.id } });
+
+  // Send welcome email
+  sendWelcomeEmail(user.email, user.name).catch((err) => {
+    console.error('Failed to send welcome email:', err);
+  });
+
+  return mapUserToResponse(user);
+}
+
+export async function resendVerificationEmail(userId: string): Promise<void> {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+
+  if (!user) {
+    throw new NotFoundError('User');
+  }
+
+  if (user.emailVerified) {
+    throw new BadRequestError('Email is already verified');
+  }
+
+  // Delete any existing verification tokens
+  await prisma.emailVerificationToken.deleteMany({ where: { email: user.email } });
+
+  // Create new verification token
+  const verificationToken = uuidv4();
+  await prisma.emailVerificationToken.create({
+    data: {
+      email: user.email,
+      token: verificationToken,
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+    },
+  });
+
+  await sendVerificationEmail(user.email, user.name, verificationToken);
 }

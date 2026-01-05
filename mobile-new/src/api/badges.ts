@@ -39,9 +39,11 @@ export const badgesApi = {
   },
 
   async getProgress(): Promise<AllBadgeProgress> {
+    console.log('[BadgesAPI] Calling GET /badges/progress');
     const response = await apiClient.get<ApiResponse<AllBadgeProgress>>(
       '/badges/progress'
     );
+    console.log('[BadgesAPI] Response:', JSON.stringify(response.data));
     return response.data.data;
   },
 

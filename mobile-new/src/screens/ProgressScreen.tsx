@@ -253,21 +253,21 @@ export function ProgressScreen() {
 
   // Calculate visited counts from progress data
   const visitedStats = {
-    continents: progress?.byContinent?.filter(p => p.visitedAttractions > 0).length || 0,
-    countries: progress?.byCountry?.filter(p => p.visitedAttractions > 0).length || 0,
-    cities: progress?.byCity?.filter(p => p.visitedAttractions > 0).length || 0,
-    attractions: progress?.byCity?.reduce((sum, p) => sum + p.visitedAttractions, 0) || 0,
+    continents: progress?.continents?.filter(p => p.visitedAttractions > 0).length || 0,
+    countries: progress?.countries?.filter(p => p.visitedAttractions > 0).length || 0,
+    cities: progress?.cities?.filter(p => p.visitedAttractions > 0).length || 0,
+    attractions: progress?.cities?.reduce((sum, p) => sum + p.visitedAttractions, 0) || 0,
   };
 
   const getProgressList = (): BadgeProgress[] => {
     if (!progress) return [];
     switch (activeTab) {
       case 'continents':
-        return progress.byContinent || [];
+        return progress.continents || [];
       case 'countries':
-        return progress.byCountry || [];
+        return progress.countries || [];
       case 'cities':
-        return progress.byCity || [];
+        return progress.cities || [];
       default:
         return [];
     }

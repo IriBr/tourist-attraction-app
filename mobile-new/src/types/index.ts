@@ -268,9 +268,9 @@ export interface BadgeSummary {
 }
 
 export interface AllBadgeProgress {
-  byCity: BadgeProgress[];
-  byCountry: BadgeProgress[];
-  byContinent: BadgeProgress[];
+  cities: BadgeProgress[];
+  countries: BadgeProgress[];
+  continents: BadgeProgress[];
 }
 
 export interface NewBadgeResult {

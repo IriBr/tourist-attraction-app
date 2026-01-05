@@ -64,7 +64,9 @@ export const visitsApi = {
   },
 
   async getUserStats(): Promise<UserStats> {
+    console.log('[VisitsAPI] Calling GET /visits/stats');
     const response = await apiClient.get('/visits/stats');
+    console.log('[VisitsAPI] Response:', JSON.stringify(response.data));
     return response.data.data;
   },
 

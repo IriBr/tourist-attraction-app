@@ -20,18 +20,22 @@ export const useStatsStore = create<StatsState>((set, get) => ({
     // Avoid fetching if recently updated (within 5 seconds)
     const now = Date.now();
     if (now - get().lastUpdated < 5000 && get().userStats) {
+      console.log('[StatsStore] Using cached stats');
       return;
     }
 
+    console.log('[StatsStore] Fetching stats...');
     set({ isLoading: true });
     try {
       const [userStats, globalStats] = await Promise.all([
         visitsApi.getUserStats(),
         locationsApi.getStats(),
       ]);
+      console.log('[StatsStore] userStats:', JSON.stringify(userStats));
+      console.log('[StatsStore] globalStats:', JSON.stringify(globalStats));
       set({ userStats, globalStats, lastUpdated: now });
     } catch (error) {
-      console.error('Failed to fetch stats:', error);
+      console.error('[StatsStore] Failed to fetch stats:', error);
     } finally {
       set({ isLoading: false });
     }

@@ -50,11 +50,14 @@ export const useBadgeStore = create<BadgeState>((set, get) => ({
   },
 
   fetchProgress: async () => {
+    console.log('[BadgeStore] fetchProgress called');
     set({ isLoading: true, error: null });
     try {
       const progress = await badgesApi.getProgress();
+      console.log('[BadgeStore] progress response:', JSON.stringify(progress));
       set({ progress, isLoading: false });
     } catch (error: any) {
+      console.error('[BadgeStore] fetchProgress error:', error);
       set({
         error: error.message || 'Failed to fetch progress',
         isLoading: false,

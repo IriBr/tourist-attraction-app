@@ -62,6 +62,10 @@ const appleLoginSchema = z.object({
   email: z.string().email().optional(),
 });
 
+const verifyEmailSchema = z.object({
+  token: z.string(),
+});
+
 export const register = asyncHandler(async (req: Request, res: Response) => {
   const data = registerSchema.parse(req.body);
   const result = await authService.register(data.email, data.password, data.name);
@@ -132,4 +136,15 @@ export const appleLogin = asyncHandler(async (req: Request, res: Response) => {
     email: data.email,
   });
   sendSuccess(res, result);
+});
+
+export const verifyEmail = asyncHandler(async (req: Request, res: Response) => {
+  const data = verifyEmailSchema.parse(req.body);
+  const user = await authService.verifyEmail(data.token);
+  sendSuccess(res, { message: 'Email verified successfully', user });
+});
+
+export const resendVerification = asyncHandler(async (req: Request, res: Response) => {
+  await authService.resendVerificationEmail(req.user!.id);
+  sendSuccess(res, { message: 'Verification email sent' });
 });

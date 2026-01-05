@@ -28,6 +28,8 @@ const envSchema = z.object({
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
   STRIPE_MONTHLY_PRICE_ID: z.string().optional(),
   STRIPE_ANNUAL_PRICE_ID: z.string().optional(),
+  RESEND_API_KEY: z.string().optional(),
+  APP_URL: z.string().default('https://wandr.app'),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -90,6 +92,11 @@ export const config = {
       annual: 4790, // $47.90 in cents (20% off $59.88)
     },
   },
+  email: {
+    resendApiKey: parsed.data.RESEND_API_KEY,
+    fromAddress: 'Wandr <noreply@wandr.app>',
+  },
+  appUrl: parsed.data.APP_URL,
 } as const;
 
 export type Config = typeof config;
