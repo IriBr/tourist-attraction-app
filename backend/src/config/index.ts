@@ -30,6 +30,8 @@ const envSchema = z.object({
   STRIPE_ANNUAL_PRICE_ID: z.string().optional(),
   RESEND_API_KEY: z.string().optional(),
   APP_URL: z.string().default('https://wandr.app'),
+  APPLE_IAP_SHARED_SECRET: z.string().optional(),
+  APPLE_IAP_ENVIRONMENT: z.enum(['sandbox', 'production']).default('sandbox'),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -97,6 +99,13 @@ export const config = {
     fromAddress: 'Wandr <noreply@wandr-app.com>',
   },
   appUrl: parsed.data.APP_URL,
+  appleIap: {
+    sharedSecret: parsed.data.APPLE_IAP_SHARED_SECRET,
+    environment: parsed.data.APPLE_IAP_ENVIRONMENT,
+    verifyReceiptUrl: parsed.data.APPLE_IAP_ENVIRONMENT === 'production'
+      ? 'https://buy.itunes.apple.com/verifyReceipt'
+      : 'https://sandbox.itunes.apple.com/verifyReceipt',
+  },
 } as const;
 
 export type Config = typeof config;

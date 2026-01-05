@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,14 +7,14 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
-  Linking,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useSubscriptionStore } from '../store/subscriptionStore';
-import { subscriptionApi } from '../api';
+import { iapService, PRODUCT_IDS, IAPProduct } from '../services/iap';
 import { colors } from '../theme';
 
 const PREMIUM_FEATURES = [
@@ -62,92 +62,89 @@ const PREMIUM_FEATURES = [
   },
 ];
 
-const PRICING_PLANS = [
-  {
-    id: 'monthly' as const,
-    name: 'Monthly',
-    price: '$4.99',
-    period: '/month',
-    savings: null,
-    stripePlan: 'monthly' as const,
-  },
-  {
-    id: 'annual' as const,
-    name: 'Annual',
-    price: '$47.90',
-    period: '/year',
-    savings: 'Save 20%',
-    monthlyEquivalent: '$3.99/month',
-    stripePlan: 'annual' as const,
-    popular: true,
-  },
-];
-
 export function PremiumScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'annual'>('annual');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [products, setProducts] = useState<IAPProduct[]>([]);
+  const [isRestoring, setIsRestoring] = useState(false);
 
   const { isPremium, status, fetchStatus } = useSubscriptionStore();
 
+  useEffect(() => {
+    loadProducts();
+    return () => {
+      iapService.disconnect();
+    };
+  }, []);
+
+  const loadProducts = async () => {
+    setIsLoading(true);
+    try {
+      await iapService.connect();
+      const loadedProducts = await iapService.getProducts();
+      setProducts(loadedProducts);
+    } catch (error) {
+      console.error('Failed to load products:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getProductPrice = (productId: string): string => {
+    const product = products.find(p => p.productId === productId);
+    return product?.price || (productId === PRODUCT_IDS.MONTHLY ? '$4.99' : '$47.90');
+  };
+
   const handleUpgrade = async () => {
-    const plan = PRICING_PLANS.find(p => p.id === selectedPlan);
-    if (!plan) return;
+    const productId = selectedPlan === 'monthly' ? PRODUCT_IDS.MONTHLY : PRODUCT_IDS.ANNUAL;
 
     setIsProcessing(true);
     try {
-      // Create Stripe checkout session
-      // For mobile, we use a web URL that will redirect back to the app
-      const successUrl = 'https://wandr-backend-k87hq.ondigitalocean.app/payment-success';
-      const cancelUrl = 'https://wandr-backend-k87hq.ondigitalocean.app/payment-cancel';
-
-      const { url } = await subscriptionApi.createCheckoutSession(
-        plan.stripePlan,
-        successUrl,
-        cancelUrl
-      );
-
-      if (url) {
-        // Open Stripe checkout in browser
-        const supported = await Linking.canOpenURL(url);
-        if (supported) {
-          await Linking.openURL(url);
-          // Refresh status when user comes back
-          setTimeout(() => {
-            fetchStatus();
-          }, 2000);
-        } else {
-          Alert.alert('Error', 'Unable to open payment page. Please try again.');
-        }
+      const success = await iapService.purchaseProduct(productId);
+      if (success) {
+        // Purchase was initiated, the listener will handle the result
+        // Refresh status after a short delay
+        setTimeout(() => {
+          fetchStatus();
+        }, 2000);
       }
     } catch (error: any) {
-      console.error('Checkout error:', error);
+      console.error('Purchase error:', error);
       Alert.alert(
-        'Payment Setup Error',
-        error.message || 'Failed to setup payment. Please try again.'
+        'Purchase Failed',
+        error.message || 'Unable to complete purchase. Please try again.'
       );
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const handleManageSubscription = async () => {
-    setIsProcessing(true);
+  const handleRestorePurchases = async () => {
+    setIsRestoring(true);
     try {
-      const returnUrl = 'https://wandr-backend-k87hq.ondigitalocean.app/billing-return';
-      const { url } = await subscriptionApi.createBillingPortal(returnUrl);
-
-      if (url) {
-        const supported = await Linking.canOpenURL(url);
-        if (supported) {
-          await Linking.openURL(url);
-        }
+      const restored = await iapService.restorePurchases();
+      if (restored) {
+        Alert.alert('Success', 'Your purchases have been restored!');
+        fetchStatus();
+      } else {
+        Alert.alert('No Purchases Found', 'No previous purchases were found to restore.');
       }
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to open billing portal.');
+      Alert.alert('Restore Failed', error.message || 'Unable to restore purchases.');
     } finally {
-      setIsProcessing(false);
+      setIsRestoring(false);
+    }
+  };
+
+  const handleManageSubscription = () => {
+    // Open iOS subscription management
+    if (Platform.OS === 'ios') {
+      import('react-native').then(({ Linking }) => {
+        Linking.openURL('https://apps.apple.com/account/subscriptions');
+      });
     }
   };
 
@@ -192,16 +189,9 @@ export function PremiumScreen() {
             <TouchableOpacity
               style={styles.manageButton}
               onPress={handleManageSubscription}
-              disabled={isProcessing}
             >
-              {isProcessing ? (
-                <ActivityIndicator size="small" color="#FFD700" />
-              ) : (
-                <>
-                  <Ionicons name="settings-outline" size={20} color="#FFD700" />
-                  <Text style={styles.manageButtonText}>Manage Subscription</Text>
-                </>
-              )}
+              <Ionicons name="settings-outline" size={20} color="#FFD700" />
+              <Text style={styles.manageButtonText}>Manage Subscription</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -252,48 +242,76 @@ export function PremiumScreen() {
 
         {/* Pricing Plans */}
         <Text style={styles.sectionTitle}>Choose Your Plan</Text>
-        <View style={styles.plansContainer}>
-          {PRICING_PLANS.map((plan) => (
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.secondary} />
+          </View>
+        ) : (
+          <View style={styles.plansContainer}>
+            {/* Monthly Plan */}
             <TouchableOpacity
-              key={plan.id}
               style={[
                 styles.planCard,
-                selectedPlan === plan.id && styles.planCardSelected,
-                plan.popular && styles.planCardPopular,
+                selectedPlan === 'monthly' && styles.planCardSelected,
               ]}
-              onPress={() => setSelectedPlan(plan.id)}
+              onPress={() => setSelectedPlan('monthly')}
               activeOpacity={0.8}
             >
-              {plan.popular && (
-                <View style={styles.popularBadge}>
-                  <Text style={styles.popularBadgeText}>BEST VALUE</Text>
-                </View>
-              )}
               <View style={styles.planRadio}>
                 <View style={[
                   styles.planRadioOuter,
-                  selectedPlan === plan.id && styles.planRadioOuterSelected,
+                  selectedPlan === 'monthly' && styles.planRadioOuterSelected,
                 ]}>
-                  {selectedPlan === plan.id && (
+                  {selectedPlan === 'monthly' && (
                     <View style={styles.planRadioInner} />
                   )}
                 </View>
               </View>
               <View style={styles.planInfo}>
-                <Text style={styles.planName}>{plan.name}</Text>
+                <Text style={styles.planName}>Monthly</Text>
                 <View style={styles.planPriceRow}>
-                  <Text style={styles.planPrice}>{plan.price}</Text>
-                  <Text style={styles.planPeriod}>{plan.period}</Text>
+                  <Text style={styles.planPrice}>{getProductPrice(PRODUCT_IDS.MONTHLY)}</Text>
+                  <Text style={styles.planPeriod}>/month</Text>
                 </View>
-                {plan.savings && (
-                  <View style={styles.savingsBadge}>
-                    <Text style={styles.savingsText}>{plan.savings}</Text>
-                  </View>
-                )}
               </View>
             </TouchableOpacity>
-          ))}
-        </View>
+
+            {/* Annual Plan */}
+            <TouchableOpacity
+              style={[
+                styles.planCard,
+                selectedPlan === 'annual' && styles.planCardSelected,
+                styles.planCardPopular,
+              ]}
+              onPress={() => setSelectedPlan('annual')}
+              activeOpacity={0.8}
+            >
+              <View style={styles.popularBadge}>
+                <Text style={styles.popularBadgeText}>BEST VALUE</Text>
+              </View>
+              <View style={styles.planRadio}>
+                <View style={[
+                  styles.planRadioOuter,
+                  selectedPlan === 'annual' && styles.planRadioOuterSelected,
+                ]}>
+                  {selectedPlan === 'annual' && (
+                    <View style={styles.planRadioInner} />
+                  )}
+                </View>
+              </View>
+              <View style={styles.planInfo}>
+                <Text style={styles.planName}>Annual</Text>
+                <View style={styles.planPriceRow}>
+                  <Text style={styles.planPrice}>{getProductPrice(PRODUCT_IDS.ANNUAL)}</Text>
+                  <Text style={styles.planPeriod}>/year</Text>
+                </View>
+                <View style={styles.savingsBadge}>
+                  <Text style={styles.savingsText}>Save 20%</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Features Comparison */}
         <Text style={styles.sectionTitle}>What You Get</Text>
@@ -322,16 +340,18 @@ export function PremiumScreen() {
           ))}
         </View>
 
-        {/* Guarantee */}
-        <View style={styles.guaranteeSection}>
-          <Ionicons name="shield-checkmark" size={24} color="#4CAF50" />
-          <View style={styles.guaranteeContent}>
-            <Text style={styles.guaranteeTitle}>7-Day Money Back Guarantee</Text>
-            <Text style={styles.guaranteeDesc}>
-              Not satisfied? Get a full refund within 7 days, no questions asked.
-            </Text>
-          </View>
-        </View>
+        {/* Restore Purchases */}
+        <TouchableOpacity
+          style={styles.restoreButton}
+          onPress={handleRestorePurchases}
+          disabled={isRestoring}
+        >
+          {isRestoring ? (
+            <ActivityIndicator size="small" color="#888" />
+          ) : (
+            <Text style={styles.restoreButtonText}>Restore Purchases</Text>
+          )}
+        </TouchableOpacity>
 
         <View style={{ height: 120 }} />
       </ScrollView>
@@ -341,7 +361,7 @@ export function PremiumScreen() {
         <TouchableOpacity
           style={styles.ctaButton}
           onPress={handleUpgrade}
-          disabled={isProcessing}
+          disabled={isProcessing || isLoading}
           activeOpacity={0.8}
         >
           <LinearGradient
@@ -356,14 +376,15 @@ export function PremiumScreen() {
               <>
                 <Ionicons name="star" size={20} color="#fff" />
                 <Text style={styles.ctaText}>
-                  Upgrade to Premium - {PRICING_PLANS.find(p => p.id === selectedPlan)?.price}
+                  Subscribe - {selectedPlan === 'monthly' ? getProductPrice(PRODUCT_IDS.MONTHLY) : getProductPrice(PRODUCT_IDS.ANNUAL)}
                 </Text>
               </>
             )}
           </LinearGradient>
         </TouchableOpacity>
         <Text style={styles.ctaDisclaimer}>
-          Cancel anytime. Subscription auto-renews.
+          Cancel anytime in App Store settings.{'\n'}
+          Subscription auto-renews until cancelled.
         </Text>
       </View>
     </LinearGradient>
@@ -439,6 +460,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#fff',
     marginBottom: 16,
+  },
+  loadingContainer: {
+    height: 150,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   plansContainer: {
     marginBottom: 32,
@@ -586,27 +612,14 @@ const styles = StyleSheet.create({
     color: '#4CAF50',
     fontWeight: '600',
   },
-  guaranteeSection: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(76, 175, 80, 0.1)',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 24,
+  restoreButton: {
+    alignItems: 'center',
+    paddingVertical: 16,
   },
-  guaranteeContent: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  guaranteeTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#4CAF50',
-    marginBottom: 4,
-  },
-  guaranteeDesc: {
-    fontSize: 12,
+  restoreButtonText: {
     color: '#888',
-    lineHeight: 16,
+    fontSize: 14,
+    textDecorationLine: 'underline',
   },
   ctaContainer: {
     position: 'absolute',
@@ -640,6 +653,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     textAlign: 'center',
     marginTop: 12,
+    lineHeight: 16,
   },
   // Already Premium styles
   alreadyPremiumContainer: {

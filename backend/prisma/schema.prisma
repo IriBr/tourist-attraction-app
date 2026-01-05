@@ -139,6 +139,7 @@ model User {
   subscriptionEndDate   DateTime?
   stripeCustomerId      String?            @unique
   stripeSubscriptionId  String?            @unique
+  appleOriginalTransactionId String?       @unique
 
   refreshTokens RefreshToken[]
   reviews       Review[]

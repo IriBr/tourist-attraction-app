@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import { subscriptionService } from '../services/subscription.service.js';
 import { stripeService } from '../services/stripe.service.js';
+import { appleIapService } from '../services/apple-iap.service.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { sendSuccess, sendCreated } from '../utils/response.js';
 import { config } from '../config/index.js';
@@ -212,4 +213,44 @@ export const getPricing = asyncHandler(async (_req: Request, res: Response) => {
       monthlyEquivalent: '$3.99',
     },
   });
+});
+
+// ============ APPLE IN-APP PURCHASE INTEGRATION ============
+
+const validateAppleReceiptSchema = z.object({
+  receipt: z.string().min(1),
+  productId: z.string().min(1),
+});
+
+/**
+ * Validate Apple receipt and activate subscription
+ */
+export const validateAppleReceipt = asyncHandler(async (req: Request, res: Response) => {
+  const data = validateAppleReceiptSchema.parse(req.body);
+
+  const result = await appleIapService.validateReceipt(
+    req.user!.id,
+    data.receipt,
+    data.productId
+  );
+
+  sendSuccess(res, result);
+});
+
+const restoreApplePurchasesSchema = z.object({
+  receipt: z.string().min(1),
+});
+
+/**
+ * Restore Apple purchases for user
+ */
+export const restoreApplePurchases = asyncHandler(async (req: Request, res: Response) => {
+  const data = restoreApplePurchasesSchema.parse(req.body);
+
+  const result = await appleIapService.restorePurchases(
+    req.user!.id,
+    data.receipt
+  );
+
+  sendSuccess(res, result);
 });

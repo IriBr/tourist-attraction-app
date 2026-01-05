@@ -165,4 +165,39 @@ export const subscriptionApi = {
     const response = await apiClient.get('/subscription/pricing');
     return response.data.data;
   },
+
+  // ============ APPLE IAP ENDPOINTS ============
+
+  /**
+   * Validate Apple receipt and activate subscription
+   */
+  async validateAppleReceipt(receipt: string, productId: string): Promise<{
+    valid: boolean;
+    subscription?: {
+      tier: string;
+      expiresAt: string;
+    };
+  }> {
+    const response = await apiClient.post('/subscription/apple/validate', {
+      receipt,
+      productId,
+    });
+    return response.data.data;
+  },
+
+  /**
+   * Restore Apple purchases
+   */
+  async restoreApplePurchases(receipt: string): Promise<{
+    restored: boolean;
+    subscription?: {
+      tier: string;
+      expiresAt: string;
+    };
+  }> {
+    const response = await apiClient.post('/subscription/apple/restore', {
+      receipt,
+    });
+    return response.data.data;
+  },
 };

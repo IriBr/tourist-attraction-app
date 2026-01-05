@@ -46,4 +46,12 @@ router.post('/stripe/cancel', subscriptionController.cancelStripeSubscription);
 // Resume cancelled subscription
 router.post('/stripe/resume', subscriptionController.resumeStripeSubscription);
 
+// ============ APPLE IN-APP PURCHASE ENDPOINTS ============
+
+// Validate Apple receipt and activate subscription
+router.post('/apple/validate', subscriptionController.validateAppleReceipt);
+
+// Restore Apple purchases
+router.post('/apple/restore', subscriptionController.restoreApplePurchases);
+
 export default router;
