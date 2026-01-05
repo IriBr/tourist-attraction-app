@@ -94,7 +94,7 @@ export const config = {
   },
   email: {
     resendApiKey: parsed.data.RESEND_API_KEY,
-    fromAddress: 'Wandr <noreply@wandr.app>',
+    fromAddress: 'Wandr <noreply@wandr-app.com>',
   },
   appUrl: parsed.data.APP_URL,
 } as const;
