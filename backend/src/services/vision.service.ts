@@ -58,13 +58,35 @@ ${a.famousFor ? `Famous For: ${a.famousFor}` : ''}
 ${a.highlights.length > 0 ? `Key Features: ${a.highlights.join(', ')}` : ''}
 ---`).join('\n\n');
 
-  return `You are an expert at identifying tourist attractions from photographs.
+  return `You are an expert at identifying tourist attractions from photographs, including challenging conditions like nighttime, unusual angles, and partial views.
+
 Your task is to analyze the provided image and determine if it matches any of the known attractions listed below.
 
 INSTRUCTIONS:
 1. Analyze the image for distinctive architectural features, landmarks, signage, natural formations, or other identifying characteristics.
 2. Compare what you see against the provided attraction list.
 3. Return a structured JSON response.
+
+HANDLING SPECIAL CONDITIONS:
+
+NIGHTTIME/LOW LIGHT PHOTOS:
+- Look for illuminated features (lighting patterns, lit windows, spotlights on monuments)
+- Nighttime photos of famous landmarks often show distinctive lighting designs
+- Consider reflections on water which may reveal landmark silhouettes
+- Neon signs and city lights can help identify locations
+- Even silhouettes against night sky can match iconic shapes (towers, domes, spires)
+
+DIFFERENT ANGLES/PERSPECTIVES:
+- Close-up shots: Focus on architectural details, materials, decorative elements
+- Aerial/drone views: Match layouts, rooflines, surrounding patterns
+- Unusual angles: Identify distinctive shapes visible from any direction
+- Partial views: Even a portion of a famous landmark can be identifiable
+- Ground-level looking up: Match tower heights, structural elements
+
+WEATHER/ENVIRONMENTAL CONDITIONS:
+- Foggy/misty: Landmark silhouettes may still be recognizable
+- Rainy: Reflections and wet surfaces don't change the landmark identity
+- Crowded: The attraction is still valid even with tourists in frame
 
 RESPONSE FORMAT (JSON only, no markdown code blocks):
 {
@@ -75,16 +97,16 @@ RESPONSE FORMAT (JSON only, no markdown code blocks):
 }
 
 CONFIDENCE GUIDELINES:
-- 0.85-1.0: Clear match with multiple distinctive features visible (iconic landmark clearly recognizable)
-- 0.6-0.84: Good match with at least one distinctive feature (likely the attraction but some uncertainty)
-- 0.3-0.59: Possible match but uncertain (could be this attraction or similar)
+- 0.85-1.0: Clear match - iconic landmark recognizable (day or night, any angle)
+- 0.6-0.84: Good match - recognizable but partial view, unusual angle, or nighttime
+- 0.3-0.59: Possible match - distinctive features visible but some uncertainty
 - 0.0-0.29: No match or unrelated image
 
 IMPORTANT:
-- Only match if you are reasonably confident the image shows the specific attraction
-- Consider architectural style, signage, surrounding environment, and distinctive features
-- If the image is blurry, too dark, or doesn't show a recognizable place, set matched to false
-- Be conservative - it's better to ask for confirmation than to incorrectly match
+- Nighttime photos of well-known landmarks should still achieve high confidence if identifiable
+- Photos from unusual angles are VALID - tourists take creative shots
+- Match based on the attraction's distinctive features, not standard postcard views
+- Consider what makes each landmark unique and recognizable from ANY viewing condition
 
 KNOWN ATTRACTIONS:
 
@@ -221,14 +243,22 @@ export async function getImageDescription(imageBase64: string): Promise<string> 
     }
   }
 
-  const prompt = `Describe this image in detail, focusing on:
-1. Type of place (museum, landmark, monument, park, religious site, etc.)
+  const prompt = `Describe this image in detail, focusing on identifying the tourist attraction:
+
+1. Type of place (museum, landmark, monument, park, religious site, tower, bridge, etc.)
 2. Architectural style or natural features
 3. Any visible text, signage, or labels
 4. Location hints (language on signs, architectural style suggesting region/country)
 5. Distinctive features that could identify this specific place
+6. Iconic shapes, silhouettes, or structural elements
+
+SPECIAL CONDITIONS:
+- If NIGHTTIME: Describe lighting patterns, illuminated features, silhouettes against the sky
+- If UNUSUAL ANGLE: Describe what's visible from this perspective
+- If PARTIAL VIEW: Focus on the identifiable portion visible
 
 Keep your response under 150 words and focus on facts that would help identify the location.
+Name the attraction if you recognize it.
 If this doesn't appear to be a tourist attraction or notable place, say so.`;
 
   try {
