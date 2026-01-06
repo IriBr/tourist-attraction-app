@@ -43,7 +43,7 @@ export default function HomePage() {
 
           {/* App preview - Two phones */}
           <div className="mt-16 relative">
-            <div className="flex justify-center gap-4 md:gap-8">
+            <div className="flex justify-center items-center gap-4 md:gap-8">
               {/* Phone 1 - Login Screen */}
               <div className="relative w-44 md:w-56">
                 <div className="bg-gray-900 rounded-[2rem] md:rounded-[3rem] p-2 md:p-3 shadow-2xl">
@@ -57,7 +57,7 @@ export default function HomePage() {
                 </div>
               </div>
               {/* Phone 2 - Map Screen */}
-              <div className="relative w-44 md:w-56 mt-8">
+              <div className="relative w-44 md:w-56">
                 <div className="bg-gray-900 rounded-[2rem] md:rounded-[3rem] p-2 md:p-3 shadow-2xl">
                   <div className="bg-gray-800 rounded-[1.5rem] md:rounded-[2.5rem] overflow-hidden">
                     <img
