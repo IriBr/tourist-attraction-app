@@ -14,7 +14,7 @@ export default {
       backgroundColor: "#0D9488"
     },
     ios: {
-      supportsTablet: true,
+      supportsTablet: false,
       bundleIdentifier: "app.wandr.explore",
       buildNumber: "1",
       infoPlist: {

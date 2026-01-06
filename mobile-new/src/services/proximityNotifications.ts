@@ -6,7 +6,7 @@ import { attractionsApi } from '../api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const LOCATION_TASK_NAME = 'background-location-task';
-const PROXIMITY_RADIUS_METERS = 50;
+const PROXIMITY_RADIUS_METERS = 100;
 const NOTIFICATION_COOLDOWN_MS = 30 * 60 * 1000; // 30 minutes per attraction
 const LAST_NOTIFIED_KEY = 'proximity_last_notified';
 
