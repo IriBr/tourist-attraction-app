@@ -54,16 +54,28 @@ export function HomeScreen() {
       colors={colors.gradientDark}
       style={styles.container}
     >
-      {/* Header */}
+      {/* Header with centered logo */}
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <View>
+        <View style={styles.headerLeft}>
           <Text style={styles.greeting}>Welcome back,</Text>
           <Text style={styles.userName}>{firstName}</Text>
         </View>
-        <TouchableOpacity style={styles.notificationButton}>
-          <Ionicons name="notifications-outline" size={24} color="#fff" />
-          <View style={styles.notificationBadge} />
-        </TouchableOpacity>
+
+        <View style={styles.logoContainer}>
+          <Image
+            source={require('../../assets/icon.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <Text style={styles.logoText}>Wandr</Text>
+        </View>
+
+        <View style={styles.headerRight}>
+          <TouchableOpacity style={styles.notificationButton}>
+            <Ionicons name="notifications-outline" size={24} color="#fff" />
+            <View style={styles.notificationBadge} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* World Map Section - Full Screen */}
@@ -82,17 +94,41 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingBottom: 8,
   },
+  headerLeft: {
+    flex: 1,
+  },
   greeting: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#888',
   },
   userName: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#fff',
+  },
+  logoContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+  },
+  logo: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+  },
+  logoText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginLeft: 8,
+  },
+  headerRight: {
+    flex: 1,
+    alignItems: 'flex-end',
   },
   notificationButton: {
     width: 40,
@@ -101,12 +137,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'relative',
   },
   notificationBadge: {
     position: 'absolute',
     top: 8,
-    right: 10,
+    right: 8,
     width: 8,
     height: 8,
     borderRadius: 4,
