@@ -1,7 +1,7 @@
 import { Camera, MapPin, Trophy, Star, Shield, Globe } from 'lucide-react';
 import logo from '../assets/logo.png';
 import screenLogin from '../assets/screen-login.png';
-import screenPremium from '../assets/screen-premium.png';
+import screenMap from '../assets/screen-map.jpg';
 
 export default function HomePage() {
   return (
@@ -56,13 +56,13 @@ export default function HomePage() {
                   </div>
                 </div>
               </div>
-              {/* Phone 2 - Premium Screen */}
+              {/* Phone 2 - Map Screen */}
               <div className="relative w-44 md:w-56 mt-8">
                 <div className="bg-gray-900 rounded-[2rem] md:rounded-[3rem] p-2 md:p-3 shadow-2xl">
                   <div className="bg-gray-800 rounded-[1.5rem] md:rounded-[2.5rem] overflow-hidden">
                     <img
-                      src={screenPremium}
-                      alt="Wandr Premium Screen"
+                      src={screenMap}
+                      alt="Wandr Map Screen"
                       className="w-full h-auto"
                     />
                   </div>
