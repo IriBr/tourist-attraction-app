@@ -1,20 +1,27 @@
 import { Camera, MapPin, Trophy, Star, Shield, Globe } from 'lucide-react';
+import logo from '../assets/logo.png';
+import screenLogin from '../assets/screen-login.png';
+import screenPremium from '../assets/screen-premium.png';
 
 export default function HomePage() {
   return (
     <div>
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-        {/* Background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary-600 via-primary-700 to-primary-900" />
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1488085061387-422e29b40080?w=1920')] bg-cover bg-center opacity-20" />
+        {/* Background - App branded colors */}
+        <div className="absolute inset-0 bg-gradient-to-br from-amber-500 via-amber-600 to-teal-700" />
+        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1488085061387-422e29b40080?w=1920')] bg-cover bg-center opacity-10" />
 
         {/* Content */}
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32 text-center">
+          {/* Logo */}
+          <div className="flex justify-center mb-8">
+            <img src={logo} alt="Wandr Logo" className="w-24 h-24 md:w-32 md:h-32 rounded-3xl shadow-2xl" />
+          </div>
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6">
             Explore the World.
             <br />
-            <span className="text-primary-200">Collect Memories.</span>
+            <span className="text-teal-200">Collect Memories.</span>
           </h1>
           <p className="text-xl md:text-2xl text-white/80 max-w-3xl mx-auto mb-10">
             Discover amazing attractions, verify your visits with AI-powered photo recognition,
@@ -34,19 +41,30 @@ export default function HomePage() {
             </a>
           </div>
 
-          {/* App preview */}
+          {/* App preview - Two phones */}
           <div className="mt-16 relative">
-            <div className="absolute inset-0 bg-gradient-to-t from-primary-900/50 to-transparent" />
-            <div className="flex justify-center">
-              <div className="relative w-64 md:w-80">
-                <div className="bg-gray-900 rounded-[3rem] p-3 shadow-2xl">
-                  <div className="bg-gray-100 rounded-[2.5rem] overflow-hidden aspect-[9/19]">
+            <div className="flex justify-center gap-4 md:gap-8">
+              {/* Phone 1 - Login Screen */}
+              <div className="relative w-44 md:w-56">
+                <div className="bg-gray-900 rounded-[2rem] md:rounded-[3rem] p-2 md:p-3 shadow-2xl">
+                  <div className="bg-gray-800 rounded-[1.5rem] md:rounded-[2.5rem] overflow-hidden">
                     <img
-                      src="https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=400"
-                      alt="App preview"
-                      className="w-full h-full object-cover"
+                      src={screenLogin}
+                      alt="Wandr Login Screen"
+                      className="w-full h-auto"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-primary-900/80" />
+                  </div>
+                </div>
+              </div>
+              {/* Phone 2 - Premium Screen */}
+              <div className="relative w-44 md:w-56 mt-8">
+                <div className="bg-gray-900 rounded-[2rem] md:rounded-[3rem] p-2 md:p-3 shadow-2xl">
+                  <div className="bg-gray-800 rounded-[1.5rem] md:rounded-[2.5rem] overflow-hidden">
+                    <img
+                      src={screenPremium}
+                      alt="Wandr Premium Screen"
+                      className="w-full h-auto"
+                    />
                   </div>
                 </div>
               </div>
@@ -107,8 +125,8 @@ export default function HomePage() {
                 key={index}
                 className="bg-gray-50 rounded-2xl p-8 hover:shadow-lg transition-shadow duration-300"
               >
-                <div className="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center mb-4">
-                  <feature.icon className="w-6 h-6 text-primary-600" />
+                <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center mb-4">
+                  <feature.icon className="w-6 h-6 text-teal-600" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">{feature.title}</h3>
                 <p className="text-gray-600">{feature.description}</p>
@@ -155,7 +173,7 @@ export default function HomePage() {
                     className="w-full h-48 object-cover"
                   />
                   <div className="p-6">
-                    <span className="text-5xl font-bold text-primary-100">{item.step}</span>
+                    <span className="text-5xl font-bold text-amber-200">{item.step}</span>
                     <h3 className="text-xl font-semibold text-gray-900 mt-2 mb-2">{item.title}</h3>
                     <p className="text-gray-600">{item.description}</p>
                   </div>
@@ -167,7 +185,7 @@ export default function HomePage() {
       </section>
 
       {/* Stats Section */}
-      <section className="py-24 bg-primary-600">
+      <section className="py-24 bg-gradient-to-r from-amber-500 to-teal-600">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             {[
@@ -178,7 +196,7 @@ export default function HomePage() {
             ].map((stat, index) => (
               <div key={index}>
                 <div className="text-4xl md:text-5xl font-bold text-white mb-2">{stat.value}</div>
-                <div className="text-primary-200">{stat.label}</div>
+                <div className="text-amber-100">{stat.label}</div>
               </div>
             ))}
           </div>
@@ -229,7 +247,7 @@ export default function HomePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 bg-gradient-to-br from-primary-600 to-primary-800">
+      <section className="py-24 bg-gradient-to-br from-teal-600 to-teal-800">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
             Ready to Start Exploring?

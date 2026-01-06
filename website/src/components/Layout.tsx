@@ -1,6 +1,7 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 import { useState } from 'react';
+import logo from '../assets/logo.png';
 
 export default function Layout() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -14,7 +15,7 @@ export default function Layout() {
         <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <Link to="/" className="flex items-center space-x-2">
-              <span className="text-2xl">🌍</span>
+              <img src={logo} alt="Wandr" className="w-8 h-8 rounded-lg" />
               <span className={`text-xl font-bold ${isHome ? 'text-white' : 'text-gray-900'}`}>Wandr</span>
             </Link>
 
@@ -74,7 +75,7 @@ export default function Layout() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="col-span-1 md:col-span-2">
               <div className="flex items-center space-x-2 mb-4">
-                <span className="text-2xl">🌍</span>
+                <img src={logo} alt="Wandr" className="w-10 h-10 rounded-lg" />
                 <span className="text-xl font-bold">Wandr</span>
               </div>
               <p className="text-gray-400 mb-4">
