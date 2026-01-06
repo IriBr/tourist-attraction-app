@@ -23,7 +23,7 @@ export default function PrivacyPage() {
               <li><strong>Account Information:</strong> Name, email address, and password when you create an account</li>
               <li><strong>Profile Information:</strong> Optional profile photo and display name</li>
               <li><strong>Reviews and Content:</strong> Reviews, ratings, and photos you submit for attractions</li>
-              <li><strong>Payment Information:</strong> When you subscribe to premium features, payment processing is handled securely by Stripe</li>
+              <li><strong>Payment Information:</strong> When you subscribe to premium features, payment processing is handled securely through Apple's App Store</li>
             </ul>
 
             <h3 className="text-xl font-medium text-gray-800 mb-3">2.2 Information Collected Automatically</h3>
@@ -55,7 +55,7 @@ export default function PrivacyPage() {
               We do not sell your personal information. We may share information in the following circumstances:
             </p>
             <ul className="list-disc pl-6 text-gray-600 mb-4 space-y-2">
-              <li><strong>Service Providers:</strong> We work with trusted third parties (Stripe for payments, Anthropic for AI processing, Resend for emails) who help us operate our services</li>
+              <li><strong>Service Providers:</strong> We work with trusted third parties (Apple for payments, Anthropic for AI processing, Resend for emails) who help us operate our services</li>
               <li><strong>Public Content:</strong> Reviews and ratings you submit may be visible to other users</li>
               <li><strong>Legal Requirements:</strong> When required by law or to protect our rights</li>
               <li><strong>Business Transfers:</strong> In connection with a merger, acquisition, or sale of assets</li>
