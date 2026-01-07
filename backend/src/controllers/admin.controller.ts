@@ -217,6 +217,15 @@ export class AdminController {
       next(error);
     }
   }
+
+  async addLocationImages(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await adminService.addLocationImages();
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const adminController = new AdminController();
