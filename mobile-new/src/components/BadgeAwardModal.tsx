@@ -8,6 +8,7 @@ import {
   Animated,
   Easing,
   Dimensions,
+  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -318,7 +319,7 @@ export function BadgeAwardModal({ visible, badges, onClose }: BadgeAwardModalPro
             colors={['#1a1a2e', '#16213e']}
             style={styles.card}
           >
-            {/* Badge */}
+            {/* Personalized Badge with location image */}
             <Animated.View
               style={[
                 styles.badgeContainer,
@@ -335,13 +336,32 @@ export function BadgeAwardModal({ visible, badges, onClose }: BadgeAwardModalPro
                 style={styles.badgeOuter}
               >
                 <View style={styles.badgeInner}>
-                  <Ionicons
-                    name={tierConfig.icon as any}
-                    size={48}
-                    color={tierConfig.color}
-                  />
+                  {currentBadge.locationImageUrl ? (
+                    <Image
+                      source={{ uri: currentBadge.locationImageUrl }}
+                      style={styles.locationImage}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <Ionicons
+                      name={
+                        currentBadge.locationType === 'city'
+                          ? 'business'
+                          : currentBadge.locationType === 'country'
+                          ? 'flag'
+                          : 'globe'
+                      }
+                      size={48}
+                      color={tierConfig.color}
+                    />
+                  )}
                 </View>
               </LinearGradient>
+
+              {/* Tier indicator */}
+              <View style={[styles.tierIndicator, { backgroundColor: tierConfig.color }]}>
+                <Text style={styles.tierIndicatorText}>{tierConfig.label.toUpperCase()}</Text>
+              </View>
 
               {/* Shimmer overlay */}
               <Animated.View
@@ -485,6 +505,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 3,
     borderColor: 'rgba(255, 255, 255, 0.2)',
+    overflow: 'hidden',
+  },
+  locationImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+  },
+  tierIndicator: {
+    position: 'absolute',
+    bottom: -8,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  tierIndicatorText: {
+    color: '#000',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1,
   },
   shimmer: {
     position: 'absolute',

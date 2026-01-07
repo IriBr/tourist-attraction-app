@@ -12,7 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useBadgeStore } from '../store';
-import { AppHeader } from '../components';
+import { AppHeader, PersonalizedBadge } from '../components';
 import { BadgeTier, LocationType, UserBadge } from '../types';
 import { colors } from '../theme';
 
@@ -47,7 +47,6 @@ const LOCATION_ICONS: Record<LocationType, keyof typeof Ionicons.glyphMap> = {
 
 function BadgeCard({ badge }: { badge: UserBadge }) {
   const tierConfig = TIER_CONFIG[badge.tier as BadgeTier] || TIER_CONFIG.bronze;
-  const locationIcon = LOCATION_ICONS[badge.locationType as LocationType] || 'trophy';
 
   return (
     <View style={styles.badgeCard}>
@@ -58,15 +57,16 @@ function BadgeCard({ badge }: { badge: UserBadge }) {
         end={{ x: 1, y: 1 }}
       />
 
-      {/* Badge Icon */}
-      <View style={[styles.badgeIconOuter, { shadowColor: tierConfig.text }]}>
-        <LinearGradient
-          colors={tierConfig.gradient}
-          style={styles.badgeIconGradient}
-        >
-          <Ionicons name={locationIcon} size={24} color="#fff" />
-        </LinearGradient>
-      </View>
+      {/* Personalized Badge with location image/flag */}
+      <PersonalizedBadge
+        imageUrl={badge.locationImageUrl}
+        tier={badge.tier}
+        locationType={badge.locationType}
+        locationName={badge.locationName}
+        size="small"
+        showLabel={false}
+        earned={true}
+      />
 
       {/* Badge Info */}
       <View style={styles.badgeInfo}>

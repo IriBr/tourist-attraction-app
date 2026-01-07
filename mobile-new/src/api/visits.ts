@@ -49,7 +49,12 @@ export interface NewBadgeInfo {
   locationId: string;
   locationName: string;
   locationType: 'city' | 'country' | 'continent';
+  iconUrl?: string | null;
+  locationImageUrl?: string | null; // City image, country flag, or continent image
   earnedAt: string;
+  attractionsVisited?: number;
+  totalAttractions?: number;
+  progressPercent?: number;
 }
 
 export interface MarkVisitedResponse {

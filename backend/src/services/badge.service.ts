@@ -10,6 +10,7 @@ interface BadgeInfo {
   locationName: string;
   locationType: LocationType;
   iconUrl: string | null;
+  locationImageUrl: string | null; // City image, country flag, or continent image
   earnedAt: string;
   attractionsVisited: number;
   totalAttractions: number;
@@ -74,7 +75,7 @@ function getProgressToNextTier(progressPercent: number, currentTier: BadgeTier |
   return Math.max(0, nextThreshold - progressPercent);
 }
 
-function mapUserBadgeToBadgeInfo(userBadge: any): BadgeInfo {
+function mapUserBadgeToBadgeInfo(userBadge: any, locationImageUrl: string | null = null): BadgeInfo {
   return {
     id: userBadge.id,
     tier: userBadge.badge.tier,
@@ -82,11 +83,46 @@ function mapUserBadgeToBadgeInfo(userBadge: any): BadgeInfo {
     locationName: userBadge.badge.locationName,
     locationType: userBadge.badge.locationType,
     iconUrl: userBadge.badge.iconUrl,
+    locationImageUrl,
     earnedAt: userBadge.earnedAt.toISOString(),
     attractionsVisited: userBadge.attractionsVisited,
     totalAttractions: userBadge.totalAttractions,
     progressPercent: userBadge.progressPercent,
   };
+}
+
+// Helper to fetch location image URL based on location type
+async function getLocationImageUrl(locationId: string, locationType: LocationType): Promise<string | null> {
+  if (locationType === 'city') {
+    const city = await prisma.city.findUnique({
+      where: { id: locationId },
+      select: { imageUrl: true },
+    });
+    return city?.imageUrl || null;
+  } else if (locationType === 'country') {
+    const country = await prisma.country.findUnique({
+      where: { id: locationId },
+      select: { flagUrl: true, imageUrl: true },
+    });
+    // Prefer flagUrl for countries, fall back to imageUrl
+    return country?.flagUrl || country?.imageUrl || null;
+  } else if (locationType === 'continent') {
+    const continent = await prisma.continent.findUnique({
+      where: { id: locationId },
+      select: { imageUrl: true },
+    });
+    return continent?.imageUrl || null;
+  }
+  return null;
+}
+
+// Helper to map user badge with location image
+async function mapUserBadgeWithImage(userBadge: any): Promise<BadgeInfo> {
+  const locationImageUrl = await getLocationImageUrl(
+    userBadge.badge.locationId,
+    userBadge.badge.locationType
+  );
+  return mapUserBadgeToBadgeInfo(userBadge, locationImageUrl);
 }
 
 // ============ SERVICE CLASS ============
@@ -200,7 +236,7 @@ export class BadgeService {
     if (existingUserBadge) {
       // User already has this badge
       return {
-        badge: mapUserBadgeToBadgeInfo(existingUserBadge),
+        badge: await mapUserBadgeWithImage(existingUserBadge),
         isNew: false,
       };
     }
@@ -218,7 +254,7 @@ export class BadgeService {
     });
 
     return {
-      badge: mapUserBadgeToBadgeInfo(userBadge),
+      badge: await mapUserBadgeWithImage(userBadge),
       isNew: true,
     };
   }
@@ -319,7 +355,7 @@ export class BadgeService {
       orderBy: { earnedAt: 'desc' },
     });
 
-    return userBadges.map(mapUserBadgeToBadgeInfo);
+    return Promise.all(userBadges.map(mapUserBadgeWithImage));
   }
 
   /**
@@ -369,7 +405,7 @@ export class BadgeService {
       currentTier,
       nextTier,
       progressToNextTier,
-      earnedBadges: userBadges.map(mapUserBadgeToBadgeInfo),
+      earnedBadges: await Promise.all(userBadges.map(mapUserBadgeWithImage)),
     };
   }
 
@@ -464,7 +500,7 @@ export class BadgeService {
       take: limit,
     });
 
-    return userBadges.map(mapUserBadgeToBadgeInfo);
+    return Promise.all(userBadges.map(mapUserBadgeWithImage));
   }
 
   /**
@@ -499,7 +535,7 @@ export class BadgeService {
       totalBadges: userBadges.length,
       badgesByTier,
       badgesByType,
-      recentBadge: userBadges.length > 0 ? mapUserBadgeToBadgeInfo(userBadges[0]) : null,
+      recentBadge: userBadges.length > 0 ? await mapUserBadgeWithImage(userBadges[0]) : null,
     };
   }
 }

@@ -236,11 +236,14 @@ export interface Badge {
 
 export interface UserBadge {
   id: string;
-  badge: Badge;
-  badgeId: string;
+  badge?: Badge;
+  badgeId?: string;
   tier: BadgeTier;
+  locationId?: string;
   locationType: LocationType;
   locationName: string;
+  iconUrl?: string | null;
+  locationImageUrl?: string | null; // City image, country flag, or continent image
   earnedAt: string;
   attractionsVisited: number;
   totalAttractions: number;

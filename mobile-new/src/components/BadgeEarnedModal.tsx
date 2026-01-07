@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Animated,
   Dimensions,
+  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -78,7 +79,15 @@ function BadgeDisplay({ badge }: { badge: NewBadgeResult['badge'] }) {
           colors={[tierColors.primary, tierColors.secondary]}
           style={styles.badgeGradient}
         >
-          <Ionicons name={locationIcon as any} size={40} color="#fff" />
+          {badge.locationImageUrl ? (
+            <Image
+              source={{ uri: badge.locationImageUrl }}
+              style={styles.locationImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <Ionicons name={locationIcon as any} size={40} color="#fff" />
+          )}
         </LinearGradient>
       </View>
       <View style={[styles.tierRibbon, { backgroundColor: tierColors.primary }]}>
@@ -272,6 +281,12 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  locationImage: {
+    width: 92,
+    height: 92,
+    borderRadius: 46,
   },
   tierRibbon: {
     position: 'absolute',

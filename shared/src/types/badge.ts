@@ -27,6 +27,7 @@ export interface UserBadge {
   locationName: string;
   locationType: LocationType;
   iconUrl: string | null;
+  locationImageUrl: string | null; // City image, country flag, or continent image
   earnedAt: string;
   attractionsVisited: number;
   totalAttractions: number;
