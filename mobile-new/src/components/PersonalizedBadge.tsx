@@ -15,11 +15,42 @@ interface PersonalizedBadgeProps {
   earned?: boolean;
 }
 
-const TIER_COLORS: Record<string, { primary: string; secondary: string; glow: string }> = {
-  bronze: { primary: '#CD7F32', secondary: '#8B4513', glow: 'rgba(205, 127, 50, 0.5)' },
-  silver: { primary: '#C0C0C0', secondary: '#808080', glow: 'rgba(192, 192, 192, 0.5)' },
-  gold: { primary: '#FFD700', secondary: '#FFA500', glow: 'rgba(255, 215, 0, 0.6)' },
-  platinum: { primary: '#E5E4E2', secondary: '#BCC6CC', glow: 'rgba(229, 228, 226, 0.7)' },
+// Tier colors with engraved overlay colors
+const TIER_COLORS: Record<string, {
+  primary: string;
+  secondary: string;
+  glow: string;
+  overlay: string;  // For engraved tint effect
+  overlayDark: string;  // Darker shade for depth
+}> = {
+  bronze: {
+    primary: '#CD7F32',
+    secondary: '#8B4513',
+    glow: 'rgba(205, 127, 50, 0.5)',
+    overlay: 'rgba(205, 127, 50, 0.7)',
+    overlayDark: 'rgba(139, 69, 19, 0.4)',
+  },
+  silver: {
+    primary: '#C0C0C0',
+    secondary: '#808080',
+    glow: 'rgba(192, 192, 192, 0.5)',
+    overlay: 'rgba(192, 192, 192, 0.7)',
+    overlayDark: 'rgba(128, 128, 128, 0.4)',
+  },
+  gold: {
+    primary: '#FFD700',
+    secondary: '#FFA500',
+    glow: 'rgba(255, 215, 0, 0.6)',
+    overlay: 'rgba(255, 215, 0, 0.65)',
+    overlayDark: 'rgba(255, 165, 0, 0.35)',
+  },
+  platinum: {
+    primary: '#E5E4E2',
+    secondary: '#BCC6CC',
+    glow: 'rgba(229, 228, 226, 0.7)',
+    overlay: 'rgba(229, 228, 226, 0.7)',
+    overlayDark: 'rgba(188, 198, 204, 0.4)',
+  },
 };
 
 const SIZE_CONFIG = {
@@ -102,21 +133,50 @@ export const PersonalizedBadge: React.FC<PersonalizedBadgeProps> = ({
           ]}
         >
           {imageUrl ? (
-            <Image
-              source={{ uri: imageUrl }}
-              style={[
-                styles.image,
-                {
-                  width: innerSize,
-                  height: innerSize,
-                  borderRadius: innerSize / 2,
-                },
-                !earned && styles.imageGrayscale,
-              ]}
-              resizeMode="cover"
-            />
+            <View style={{ width: innerSize, height: innerSize, borderRadius: innerSize / 2, overflow: 'hidden' }}>
+              {/* Base image - desaturated for engraved look */}
+              <Image
+                source={{ uri: imageUrl }}
+                style={[
+                  styles.image,
+                  {
+                    width: innerSize,
+                    height: innerSize,
+                  },
+                  !earned && styles.imageGrayscale,
+                ]}
+                resizeMode="cover"
+              />
+              {/* Tier color overlay for engraved metallic effect */}
+              <LinearGradient
+                colors={[tierColors.overlay, tierColors.overlayDark]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={[
+                  styles.engravedOverlay,
+                  {
+                    width: innerSize,
+                    height: innerSize,
+                  },
+                ]}
+              />
+              {/* Inner shadow for depth/engraved effect */}
+              <View
+                style={[
+                  styles.innerShadow,
+                  {
+                    width: innerSize,
+                    height: innerSize,
+                    borderRadius: innerSize / 2,
+                  },
+                ]}
+              />
+            </View>
           ) : (
-            <View
+            <LinearGradient
+              colors={[tierColors.overlay, tierColors.overlayDark]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
               style={[
                 styles.placeholder,
                 {
@@ -129,9 +189,9 @@ export const PersonalizedBadge: React.FC<PersonalizedBadgeProps> = ({
               <Ionicons
                 name={locationIcon}
                 size={sizeConfig.icon}
-                color={colors.textSecondary}
+                color="rgba(255, 255, 255, 0.9)"
               />
-            </View>
+            </LinearGradient>
           )}
         </View>
       </LinearGradient>
@@ -186,8 +246,23 @@ const styles = StyleSheet.create({
   imageGrayscale: {
     opacity: 0.6,
   },
+  engravedOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+  },
+  innerShadow: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    borderWidth: 3,
+    borderColor: 'rgba(0, 0, 0, 0.2)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
   placeholder: {
-    backgroundColor: colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -743,6 +743,124 @@ export class AdminService {
       'Antarctica': 'https://images.unsplash.com/photo-1551415923-a2297c7fda79?w=800',
     };
 
+    // Curated city images from Unsplash (iconic landmarks/skylines)
+    const CITY_IMAGES: Record<string, string> = {
+      // Europe
+      'Paris': 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800',
+      'London': 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=800',
+      'Rome': 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=800',
+      'Barcelona': 'https://images.unsplash.com/photo-1583422409516-2895a77efded?w=800',
+      'Amsterdam': 'https://images.unsplash.com/photo-1534351590666-13e3e96b5017?w=800',
+      'Prague': 'https://images.unsplash.com/photo-1541849546-216549ae216d?w=800',
+      'Vienna': 'https://images.unsplash.com/photo-1516550893923-42d28e5677af?w=800',
+      'Berlin': 'https://images.unsplash.com/photo-1560969184-10fe8719e047?w=800',
+      'Athens': 'https://images.unsplash.com/photo-1555993539-1732b0258235?w=800',
+      'Lisbon': 'https://images.unsplash.com/photo-1585208798174-6cedd86e019a?w=800',
+      'Madrid': 'https://images.unsplash.com/photo-1539037116277-4db20889f2d4?w=800',
+      'Venice': 'https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?w=800',
+      'Florence': 'https://images.unsplash.com/photo-1543429258-c5ca3f4d5c4c?w=800',
+      'Milan': 'https://images.unsplash.com/photo-1520440229-6469a149ac59?w=800',
+      'Munich': 'https://images.unsplash.com/photo-1595867818082-083862f3d630?w=800',
+      'Budapest': 'https://images.unsplash.com/photo-1549923746-c502d488b3ea?w=800',
+      'Dublin': 'https://images.unsplash.com/photo-1549918864-48ac978761a4?w=800',
+      'Edinburgh': 'https://images.unsplash.com/photo-1506377585622-bedcbb5f8551?w=800',
+      'Stockholm': 'https://images.unsplash.com/photo-1509356843151-3e7d96241e11?w=800',
+      'Copenhagen': 'https://images.unsplash.com/photo-1513622470522-26c3c8a854bc?w=800',
+      'Oslo': 'https://images.unsplash.com/photo-1533928298208-27ff66555d8d?w=800',
+      'Helsinki': 'https://images.unsplash.com/photo-1538332576228-eb5b4c4de6f5?w=800',
+      'Reykjavik': 'https://images.unsplash.com/photo-1504893524553-b855bce32c67?w=800',
+      'Brussels': 'https://images.unsplash.com/photo-1559113513-d5e09c78b9dd?w=800',
+      'Zurich': 'https://images.unsplash.com/photo-1515488764276-beab7607c1e6?w=800',
+      'Geneva': 'https://images.unsplash.com/photo-1573108037329-37aa135a142e?w=800',
+      'Warsaw': 'https://images.unsplash.com/photo-1519197924294-4ba991a11128?w=800',
+      'Krakow': 'https://images.unsplash.com/photo-1574236170878-f66e35f83207?w=800',
+      'Nice': 'https://images.unsplash.com/photo-1491166617655-0723a0999cfc?w=800',
+      'Santorini': 'https://images.unsplash.com/photo-1613395877344-13d4a8e0d49e?w=800',
+      'Dubrovnik': 'https://images.unsplash.com/photo-1555990538-1d0d0d37d60c?w=800',
+      'Split': 'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=800',
+      'Salzburg': 'https://images.unsplash.com/photo-1595867818082-083862f3d630?w=800',
+      'Porto': 'https://images.unsplash.com/photo-1555881400-74d7acaacd8b?w=800',
+      'Seville': 'https://images.unsplash.com/photo-1558642452-9d2a7deb7f62?w=800',
+      'Valencia': 'https://images.unsplash.com/photo-1599561046251-bfb9465b4c44?w=800',
+      'Bucharest': 'https://images.unsplash.com/photo-1584646098378-0874589d76b1?w=800',
+      'Ljubljana': 'https://images.unsplash.com/photo-1569949381669-ecf31ae8e613?w=800',
+      'Riga': 'https://images.unsplash.com/photo-1539180412834-bd8f61da01ee?w=800',
+      'Vilnius': 'https://images.unsplash.com/photo-1549990476-a2e5a0ed6769?w=800',
+      'Tallinn': 'https://images.unsplash.com/photo-1560969184-10fe8719e047?w=800',
+      'Tirana': 'https://images.unsplash.com/photo-1603228254119-e6a4d095dc59?w=800',
+      'Kotor': 'https://images.unsplash.com/photo-1555990538-1d0d0d37d60c?w=800',
+      // Asia
+      'Tokyo': 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=800',
+      'Kyoto': 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=800',
+      'Osaka': 'https://images.unsplash.com/photo-1590559899731-a382839e5549?w=800',
+      'Seoul': 'https://images.unsplash.com/photo-1517154421773-0529f29ea451?w=800',
+      'Bangkok': 'https://images.unsplash.com/photo-1508009603885-50cf7c579365?w=800',
+      'Singapore': 'https://images.unsplash.com/photo-1525625293386-3f8f99389edd?w=800',
+      'Hong Kong': 'https://images.unsplash.com/photo-1536599018102-9f803c140fc1?w=800',
+      'Shanghai': 'https://images.unsplash.com/photo-1474181487882-5abf3f0ba6c2?w=800',
+      'Beijing': 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?w=800',
+      'Dubai': 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800',
+      'Mumbai': 'https://images.unsplash.com/photo-1529253355930-ddbe423a2ac7?w=800',
+      'Delhi': 'https://images.unsplash.com/photo-1587474260584-136574528ed5?w=800',
+      'Bali': 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=800',
+      'Hanoi': 'https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=800',
+      'Ho Chi Minh City': 'https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=800',
+      'Kuala Lumpur': 'https://images.unsplash.com/photo-1596422846543-75c6fc197f07?w=800',
+      'Taipei': 'https://images.unsplash.com/photo-1470004914212-05527e49370b?w=800',
+      'Manila': 'https://images.unsplash.com/photo-1518509562904-e7ef99cdcc86?w=800',
+      'Jakarta': 'https://images.unsplash.com/photo-1555899434-94d1368aa7af?w=800',
+      'Tel Aviv': 'https://images.unsplash.com/photo-1544629885-a0f5e1efb53e?w=800',
+      'Jerusalem': 'https://images.unsplash.com/photo-1552423314-cf29ab68ad73?w=800',
+      'Istanbul': 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=800',
+      'Kathmandu': 'https://images.unsplash.com/photo-1558799401-1dcba79f0a0a?w=800',
+      'Jaipur': 'https://images.unsplash.com/photo-1477587458883-47145ed94245?w=800',
+      'Varanasi': 'https://images.unsplash.com/photo-1561361513-2d000a50f0dc?w=800',
+      'Siem Reap': 'https://images.unsplash.com/photo-1539667547529-a5a2ea7e5f60?w=800',
+      'Chiang Mai': 'https://images.unsplash.com/photo-1528181304800-259b08848526?w=800',
+      'Phuket': 'https://images.unsplash.com/photo-1589394815804-964ed0be2eb5?w=800',
+      // North America
+      'New York': 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=800',
+      'Los Angeles': 'https://images.unsplash.com/photo-1534190760961-74e8c1c5c3da?w=800',
+      'San Francisco': 'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=800',
+      'Chicago': 'https://images.unsplash.com/photo-1494522855154-9297ac14b55f?w=800',
+      'Miami': 'https://images.unsplash.com/photo-1514214246283-d427a95c5d2f?w=800',
+      'Las Vegas': 'https://images.unsplash.com/photo-1581351721010-8cf859cb14a4?w=800',
+      'Washington DC': 'https://images.unsplash.com/photo-1501466044931-62695aada8e9?w=800',
+      'Boston': 'https://images.unsplash.com/photo-1558642452-9d2a7deb7f62?w=800',
+      'Seattle': 'https://images.unsplash.com/photo-1502175353174-a7a70e73b362?w=800',
+      'Toronto': 'https://images.unsplash.com/photo-1517090504586-fde19ea6066f?w=800',
+      'Vancouver': 'https://images.unsplash.com/photo-1559511260-66a654ae982a?w=800',
+      'Montreal': 'https://images.unsplash.com/photo-1519178614-68673b201f36?w=800',
+      'Mexico City': 'https://images.unsplash.com/photo-1518659526054-190340b32735?w=800',
+      'Cancun': 'https://images.unsplash.com/photo-1510097467424-192d713fd8b2?w=800',
+      'Havana': 'https://images.unsplash.com/photo-1500759285222-a95626b934cb?w=800',
+      // South America
+      'Rio de Janeiro': 'https://images.unsplash.com/photo-1483729558449-99ef09a8c325?w=800',
+      'Buenos Aires': 'https://images.unsplash.com/photo-1589909202802-8f4aadce1849?w=800',
+      'Lima': 'https://images.unsplash.com/photo-1531968455001-5c5272a41129?w=800',
+      'Cusco': 'https://images.unsplash.com/photo-1526392060635-9d6019884377?w=800',
+      'Bogota': 'https://images.unsplash.com/photo-1536086845232-16c09eba7e70?w=800',
+      'Cartagena': 'https://images.unsplash.com/photo-1583531172005-814892e68f84?w=800',
+      'Santiago': 'https://images.unsplash.com/photo-1510253687831-0f982d5e8411?w=800',
+      'Sao Paulo': 'https://images.unsplash.com/photo-1543059080-f9b1272213d5?w=800',
+      'Quito': 'https://images.unsplash.com/photo-1566438480900-0609be27a4be?w=800',
+      // Oceania
+      'Sydney': 'https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?w=800',
+      'Melbourne': 'https://images.unsplash.com/photo-1514395462725-fb4566210144?w=800',
+      'Auckland': 'https://images.unsplash.com/photo-1507699622108-4be3abd695ad?w=800',
+      'Queenstown': 'https://images.unsplash.com/photo-1589871973318-9ca1258faa5d?w=800',
+      // Africa
+      'Cape Town': 'https://images.unsplash.com/photo-1580060839134-75a5edca2e99?w=800',
+      'Marrakech': 'https://images.unsplash.com/photo-1597212618440-806262de4f6b?w=800',
+      'Cairo': 'https://images.unsplash.com/photo-1553913861-c0fddf2619ee?w=800',
+      'Nairobi': 'https://images.unsplash.com/photo-1611348524140-53c9a25263d6?w=800',
+      'Zanzibar': 'https://images.unsplash.com/photo-1590523277543-a94d2e4eb00b?w=800',
+      'Casablanca': 'https://images.unsplash.com/photo-1569383746724-6f1b882b8f46?w=800',
+      'Fes': 'https://images.unsplash.com/photo-1548017534-5b7b4e08b9f1?w=800',
+      'Luxor': 'https://images.unsplash.com/photo-1539650116574-8efeb43e2750?w=800',
+      'Victoria Falls': 'https://images.unsplash.com/photo-1568093858174-0f391ea21c45?w=800',
+    };
+
     // Update countries with flags
     const countries = await prisma.country.findMany();
     let countriesUpdated = 0;
@@ -758,13 +876,15 @@ export class AdminService {
       }
     }
 
-    // Update cities with images (using picsum for placeholder)
+    // Update cities with curated images (fallback to Unsplash source for unknown cities)
     const cities = await prisma.city.findMany();
     for (const city of cities) {
-      const hash = city.name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      // Use curated image if available, otherwise use Unsplash source search
+      const imageUrl = CITY_IMAGES[city.name] ||
+        `https://source.unsplash.com/800x600/?${encodeURIComponent(city.name + ' city skyline')}`;
       await prisma.city.update({
         where: { id: city.id },
-        data: { imageUrl: `https://picsum.photos/seed/${hash}/800/600` },
+        data: { imageUrl },
       });
     }
 
