@@ -226,6 +226,15 @@ export class AdminController {
       next(error);
     }
   }
+
+  async seedUSA(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await adminService.seedUSA();
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const adminController = new AdminController();

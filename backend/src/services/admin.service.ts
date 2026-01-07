@@ -908,6 +908,237 @@ export class AdminService {
     };
   }
 
+  // ============ USA SEEDING ============
+
+  async seedUSA() {
+    const GOOGLE_API_KEY = process.env.GOOGLE_PLACES_API_KEY;
+    if (!GOOGLE_API_KEY) {
+      throw new Error('GOOGLE_PLACES_API_KEY environment variable is required');
+    }
+
+    // USA cities to seed
+    const USA_CITIES = [
+      { name: 'Washington DC', state: 'DC', lat: 38.9072, lng: -77.0369 },
+      { name: 'Boston', state: 'MA', lat: 42.3601, lng: -71.0589 },
+      { name: 'Seattle', state: 'WA', lat: 47.6062, lng: -122.3321 },
+      { name: 'Las Vegas', state: 'NV', lat: 36.1699, lng: -115.1398 },
+      { name: 'New Orleans', state: 'LA', lat: 29.9511, lng: -90.0715 },
+      { name: 'San Diego', state: 'CA', lat: 32.7157, lng: -117.1611 },
+      { name: 'Philadelphia', state: 'PA', lat: 39.9526, lng: -75.1652 },
+      { name: 'Denver', state: 'CO', lat: 39.7392, lng: -104.9903 },
+      { name: 'Austin', state: 'TX', lat: 30.2672, lng: -97.7431 },
+      { name: 'Houston', state: 'TX', lat: 29.7604, lng: -95.3698 },
+      { name: 'Dallas', state: 'TX', lat: 32.7767, lng: -96.7970 },
+      { name: 'San Antonio', state: 'TX', lat: 29.4241, lng: -98.4936 },
+      { name: 'Phoenix', state: 'AZ', lat: 33.4484, lng: -112.0740 },
+      { name: 'Atlanta', state: 'GA', lat: 33.7490, lng: -84.3880 },
+      { name: 'Nashville', state: 'TN', lat: 36.1627, lng: -86.7816 },
+      { name: 'Portland', state: 'OR', lat: 45.5152, lng: -122.6784 },
+      { name: 'Minneapolis', state: 'MN', lat: 44.9778, lng: -93.2650 },
+      { name: 'Detroit', state: 'MI', lat: 42.3314, lng: -83.0458 },
+      { name: 'Baltimore', state: 'MD', lat: 39.2904, lng: -76.6122 },
+      { name: 'Orlando', state: 'FL', lat: 28.5383, lng: -81.3792 },
+      { name: 'Tampa', state: 'FL', lat: 27.9506, lng: -82.4572 },
+      { name: 'Pittsburgh', state: 'PA', lat: 40.4406, lng: -79.9959 },
+      { name: 'Cleveland', state: 'OH', lat: 41.4993, lng: -81.6944 },
+      { name: 'St. Louis', state: 'MO', lat: 38.6270, lng: -90.1994 },
+      { name: 'Kansas City', state: 'MO', lat: 39.0997, lng: -94.5786 },
+      { name: 'Indianapolis', state: 'IN', lat: 39.7684, lng: -86.1581 },
+      { name: 'Salt Lake City', state: 'UT', lat: 40.7608, lng: -111.8910 },
+      { name: 'Savannah', state: 'GA', lat: 32.0809, lng: -81.0912 },
+      { name: 'Charleston', state: 'SC', lat: 32.7765, lng: -79.9311 },
+      { name: 'Memphis', state: 'TN', lat: 35.1495, lng: -90.0490 },
+      { name: 'Honolulu', state: 'HI', lat: 21.3069, lng: -157.8583 },
+      { name: 'Anchorage', state: 'AK', lat: 61.2181, lng: -149.9003 },
+      { name: 'Key West', state: 'FL', lat: 24.5551, lng: -81.7800 },
+      { name: 'Santa Fe', state: 'NM', lat: 35.6870, lng: -105.9378 },
+      { name: 'Sedona', state: 'AZ', lat: 34.8697, lng: -111.7610 },
+      { name: 'Asheville', state: 'NC', lat: 35.5951, lng: -82.5515 },
+      { name: 'Napa', state: 'CA', lat: 38.2975, lng: -122.2869 },
+      { name: 'Santa Barbara', state: 'CA', lat: 34.4208, lng: -119.6982 },
+      { name: 'San Jose', state: 'CA', lat: 37.3382, lng: -121.8863 },
+      { name: 'Jackson Hole', state: 'WY', lat: 43.4799, lng: -110.7624 },
+      { name: 'Aspen', state: 'CO', lat: 39.1911, lng: -106.8175 },
+      { name: 'Boulder', state: 'CO', lat: 40.0150, lng: -105.2705 },
+      { name: 'Newport', state: 'RI', lat: 41.4901, lng: -71.3128 },
+      { name: 'Portland', state: 'ME', lat: 43.6591, lng: -70.2568 },
+    ];
+
+    const EXCLUDED_TYPES = new Set([
+      'bar', 'restaurant', 'night_club', 'liquor_store',
+      'cafe', 'bakery', 'meal_delivery', 'meal_takeaway', 'food', 'lodging', 'hotel',
+    ]);
+
+    const typeMap: Record<string, string> = {
+      'museum': 'museum', 'art_gallery': 'museum', 'park': 'park',
+      'national_park': 'nature', 'amusement_park': 'entertainment',
+      'tourist_attraction': 'landmark', 'point_of_interest': 'landmark',
+      'church': 'religious', 'place_of_worship': 'religious',
+      'natural_feature': 'nature', 'beach': 'beach', 'zoo': 'nature',
+      'aquarium': 'nature', 'stadium': 'entertainment',
+      'historical_landmark': 'historical', 'monument': 'historical',
+    };
+
+    const mapCategory = (types: string[]): string | null => {
+      for (const type of types) if (EXCLUDED_TYPES.has(type)) return null;
+      for (const type of types) if (typeMap[type]) return typeMap[type];
+      return 'landmark';
+    };
+
+    const getPhotoUrl = (photoName: string, maxWidth: number = 800): string => {
+      return `https://places.googleapis.com/v1/${photoName}/media?maxWidthPx=${maxWidth}&key=${GOOGLE_API_KEY}`;
+    };
+
+    const searchAttractions = async (query: string, lat: number, lng: number): Promise<any[]> => {
+      try {
+        const response = await fetch('https://places.googleapis.com/v1/places:searchText', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': GOOGLE_API_KEY,
+            'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.types,places.rating,places.userRatingCount,places.editorialSummary,places.photos,places.websiteUri,places.internationalPhoneNumber',
+          },
+          body: JSON.stringify({
+            textQuery: query,
+            locationBias: { circle: { center: { latitude: lat, longitude: lng }, radius: 30000 } },
+            maxResultCount: 20,
+            languageCode: 'en',
+          }),
+        });
+        if (!response.ok) return [];
+        const data = await response.json() as { places?: any[] };
+        return data.places || [];
+      } catch { return []; }
+    };
+
+    const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
+
+    // Find USA
+    const usa = await prisma.country.findFirst({
+      where: { OR: [{ name: 'United States' }, { code: 'US' }] }
+    });
+    if (!usa) throw new Error('USA not found in database');
+
+    const stats = { citiesCreated: 0, citiesProcessed: 0, attractionsAdded: 0 };
+
+    const SEARCH_QUERIES = [
+      'famous tourist attractions in',
+      'historic landmarks in',
+      'museums in',
+      'popular things to do in',
+      'parks and nature in',
+      'monuments in',
+    ];
+
+    for (const cityData of USA_CITIES) {
+      // Find or create city
+      let city = await prisma.city.findFirst({
+        where: { name: cityData.name, countryId: usa.id }
+      });
+
+      if (!city) {
+        city = await prisma.city.create({
+          data: {
+            name: cityData.name,
+            countryId: usa.id,
+            latitude: cityData.lat,
+            longitude: cityData.lng,
+          }
+        });
+        stats.citiesCreated++;
+      }
+
+      // Check current count
+      const currentCount = await prisma.attraction.count({ where: { cityId: city.id } });
+      if (currentCount >= 50) {
+        stats.citiesProcessed++;
+        continue;
+      }
+
+      const addedNames = new Set<string>();
+      const existing = await prisma.attraction.findMany({
+        where: { cityId: city.id },
+        select: { name: true }
+      });
+      existing.forEach(a => addedNames.add(a.name.toLowerCase()));
+
+      let cityAdded = 0;
+      for (const queryPrefix of SEARCH_QUERIES) {
+        if (cityAdded >= 50) break;
+
+        const query = `${queryPrefix} ${cityData.name} ${cityData.state}`;
+        const places = await searchAttractions(query, cityData.lat, cityData.lng);
+
+        for (const place of places) {
+          if (cityAdded >= 60) break;
+
+          const name = place.displayName?.text || '';
+          if (!name || addedNames.has(name.toLowerCase())) continue;
+
+          const category = mapCategory(place.types || []);
+          if (!category) continue;
+
+          const rating = place.rating || 0;
+          if (rating < 3.5) continue;
+
+          const images: string[] = [];
+          let thumbnailUrl = '';
+          if (place.photos?.length > 0) {
+            thumbnailUrl = getPhotoUrl(place.photos[0].name, 400);
+            for (let i = 0; i < Math.min(place.photos.length, 5); i++) {
+              images.push(getPhotoUrl(place.photos[i].name, 800));
+            }
+          }
+
+          try {
+            await prisma.attraction.create({
+              data: {
+                name,
+                description: place.editorialSummary?.text || `A popular attraction in ${cityData.name}, ${cityData.state}.`,
+                shortDescription: place.editorialSummary?.text?.substring(0, 150) || `Visit ${name} in ${cityData.name}`,
+                category: category as any,
+                cityId: city.id,
+                latitude: place.location?.latitude || cityData.lat,
+                longitude: place.location?.longitude || cityData.lng,
+                address: place.formattedAddress || `${cityData.name}, ${cityData.state}`,
+                images,
+                thumbnailUrl: thumbnailUrl || 'https://via.placeholder.com/400x300',
+                website: place.websiteUri || null,
+                contactPhone: place.internationalPhoneNumber || null,
+                averageRating: rating,
+                totalReviews: place.userRatingCount || 0,
+                isFree: false,
+              },
+            });
+            addedNames.add(name.toLowerCase());
+            cityAdded++;
+            stats.attractionsAdded++;
+          } catch { /* skip duplicates */ }
+        }
+        await delay(200);
+      }
+      stats.citiesProcessed++;
+      await delay(300);
+    }
+
+    const totalUSA = await prisma.attraction.count({
+      where: { city: { countryId: usa.id } }
+    });
+
+    const usaCities = await prisma.city.count({
+      where: { countryId: usa.id }
+    });
+
+    return {
+      success: true,
+      stats,
+      totals: {
+        usaCities,
+        usaAttractions: totalUSA,
+      },
+    };
+  }
+
   // ============ DASHBOARD STATS ============
 
   async getDashboardStats() {
