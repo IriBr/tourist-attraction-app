@@ -97,8 +97,10 @@ export const locationsApi = {
     return response.data.data;
   },
 
-  async getAttractionsInCity(cityId: string): Promise<{ city: any; attractions: MapAttraction[] }> {
-    const response = await apiClient.get(`/locations/cities/${cityId}/attractions`);
+  async getAttractionsInCity(cityId: string, category?: string): Promise<{ city: any; attractions: MapAttraction[]; isLimited?: boolean; totalAttractions?: number }> {
+    const response = await apiClient.get(`/locations/cities/${cityId}/attractions`, {
+      params: category ? { category } : undefined,
+    });
     return response.data.data;
   },
 

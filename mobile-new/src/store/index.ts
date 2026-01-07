@@ -3,3 +3,4 @@ export { useLocationStore } from './locationStore';
 export { useBadgeStore } from './badgeStore';
 export { useStatsStore } from './statsStore';
 export { useVisitsStore } from './visitsStore';
+export { useSubscriptionStore } from './subscriptionStore';

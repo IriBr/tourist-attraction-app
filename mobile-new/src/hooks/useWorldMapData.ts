@@ -275,7 +275,7 @@ export function useWorldMapData(): UseWorldMapDataReturn {
   // Load attractions for a city
   const loadCityAttractions = useCallback(async (cityId: string): Promise<MapAttraction[]> => {
     try {
-      const attractions = await locationsApi.getCityAttractions(cityId);
+      const { attractions } = await locationsApi.getAttractionsInCity(cityId);
 
       // Update the map data with attractions
       setMapData(prev => prev.map(continent => ({

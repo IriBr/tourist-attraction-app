@@ -9,13 +9,30 @@ import {
   Platform,
   Modal,
   ActivityIndicator,
+  ScrollView,
+  Alert,
 } from 'react-native';
 import MapView, { Marker, Region } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { visitsApi, locationsApi, LocationStats } from '../api';
-import { useStatsStore } from '../store';
+import { useStatsStore, useSubscriptionStore } from '../store';
 import type { MapContinent, MapCountry, MapCity, MapAttraction } from '../api/locations';
+
+// Category filter options
+const CATEGORY_FILTERS = [
+  { id: 'all', label: 'All', icon: 'apps-outline' },
+  { id: 'museum', label: 'Museums', icon: 'business-outline' },
+  { id: 'park', label: 'Parks', icon: 'leaf-outline' },
+  { id: 'landmark', label: 'Landmarks', icon: 'flag-outline' },
+  { id: 'beach', label: 'Beaches', icon: 'sunny-outline' },
+  { id: 'nature', label: 'Nature', icon: 'earth-outline' },
+  { id: 'historical', label: 'Historical', icon: 'time-outline' },
+  { id: 'religious', label: 'Religious', icon: 'home-outline' },
+  { id: 'entertainment', label: 'Entertainment', icon: 'musical-notes-outline' },
+  { id: 'restaurant', label: 'Restaurants', icon: 'restaurant-outline' },
+  { id: 'shopping', label: 'Shopping', icon: 'cart-outline' },
+] as const;
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -42,6 +59,8 @@ interface WorldMapProps {
 
 export function WorldMap({ onContinentSelect, onAttractionPress }: WorldMapProps) {
   const mapRef = useRef<MapView>(null);
+  const navigation = useNavigation<any>();
+  const { isPremium } = useSubscriptionStore();
 
   // Map data from API
   const [mapData, setMapData] = useState<ContinentWithAttractions[]>([]);
@@ -49,6 +68,10 @@ export function WorldMap({ onContinentSelect, onAttractionPress }: WorldMapProps
   const [globalStats, setGlobalStats] = useState({ continents: 0, countries: 0, cities: 0, attractions: 0 });
   const [mapReady, setMapReady] = useState(false);
   const [hasError, setHasError] = useState(false);
+
+  // Category filter state
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [isLoadingAttractions, setIsLoadingAttractions] = useState(false);
 
   // Navigation state
   const [level, setLevel] = useState<MapLevel>('world');
@@ -216,17 +239,32 @@ export function WorldMap({ onContinentSelect, onAttractionPress }: WorldMapProps
     }
   }, [selectedCountry]);
 
-  // Fetch city stats and attractions when city is selected
+  // Fetch city stats when city is selected
   useEffect(() => {
     if (selectedCity) {
-      const fetchCityData = async () => {
+      const fetchCityStats = async () => {
         setIsLoadingStats(true);
         try {
-          const [stats, attractionsData] = await Promise.all([
-            visitsApi.getCityStats(selectedCity.name),
-            locationsApi.getAttractionsInCity(selectedCity.id),
-          ]);
+          const stats = await visitsApi.getCityStats(selectedCity.name);
           setCityStats(stats);
+        } catch (error) {
+          console.log('Failed to fetch city stats:', error);
+        } finally {
+          setIsLoadingStats(false);
+        }
+      };
+      fetchCityStats();
+    }
+  }, [selectedCity?.id]);
+
+  // Fetch attractions when city or category filter changes
+  useEffect(() => {
+    if (selectedCity) {
+      const fetchAttractions = async () => {
+        setIsLoadingAttractions(true);
+        try {
+          const category = selectedCategory === 'all' ? undefined : selectedCategory;
+          const attractionsData = await locationsApi.getAttractionsInCity(selectedCity.id, category);
 
           // Update the selected city with attractions
           setSelectedCity(prev => prev ? {
@@ -234,14 +272,14 @@ export function WorldMap({ onContinentSelect, onAttractionPress }: WorldMapProps
             attractions: attractionsData.attractions || [],
           } : null);
         } catch (error) {
-          console.log('Failed to fetch city data:', error);
+          console.log('Failed to fetch attractions:', error);
         } finally {
-          setIsLoadingStats(false);
+          setIsLoadingAttractions(false);
         }
       };
-      fetchCityData();
+      fetchAttractions();
     }
-  }, [selectedCity?.id]);
+  }, [selectedCity?.id, selectedCategory]);
 
   const worldRegion: Region = {
     latitude: 20,
@@ -326,6 +364,41 @@ export function WorldMap({ onContinentSelect, onAttractionPress }: WorldMapProps
     if (selectedCity) parts.push(selectedCity.name);
     return parts.join(' > ');
   };
+
+  const handleCategorySelect = (categoryId: string) => {
+    // "All" is always allowed
+    if (categoryId === 'all') {
+      setSelectedCategory(categoryId);
+      return;
+    }
+
+    // Premium users can use all filters
+    if (isPremium) {
+      setSelectedCategory(categoryId);
+      return;
+    }
+
+    // Free users get upgrade prompt
+    Alert.alert(
+      'Premium Feature',
+      'Filtering attractions by category is a premium feature. Upgrade to unlock all filters and unlimited scans!',
+      [
+        { text: 'Maybe Later', style: 'cancel' },
+        {
+          text: 'Upgrade Now',
+          onPress: () => {
+            setShowAttractionsSheet(false);
+            navigation.navigate('Premium');
+          },
+        },
+      ]
+    );
+  };
+
+  // Reset category filter when city changes
+  useEffect(() => {
+    setSelectedCategory('all');
+  }, [selectedCity?.id]);
 
   const renderMarkers = () => {
     if (isLoadingMap) return null;
@@ -1084,16 +1157,72 @@ export function WorldMap({ onContinentSelect, onAttractionPress }: WorldMapProps
                   <Ionicons name="close" size={24} color="#fff" />
                 </TouchableOpacity>
               </View>
-              {isLoadingStats && selectedCity.attractions.length === 0 ? (
+              {/* Category Filter Chips */}
+              <View style={styles.filterContainer}>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.filterScrollContent}
+                >
+                  {CATEGORY_FILTERS.map((filter) => {
+                    const isSelected = selectedCategory === filter.id;
+                    const isLocked = filter.id !== 'all' && !isPremium;
+                    return (
+                      <TouchableOpacity
+                        key={filter.id}
+                        style={[
+                          styles.filterChip,
+                          isSelected && styles.filterChipSelected,
+                          isSelected && { backgroundColor: selectedContinent.color },
+                        ]}
+                        onPress={() => handleCategorySelect(filter.id)}
+                      >
+                        <Ionicons
+                          name={filter.icon as any}
+                          size={16}
+                          color={isSelected ? '#fff' : '#888'}
+                        />
+                        <Text
+                          style={[
+                            styles.filterChipText,
+                            isSelected && styles.filterChipTextSelected,
+                          ]}
+                        >
+                          {filter.label}
+                        </Text>
+                        {isLocked && (
+                          <Ionicons
+                            name="lock-closed"
+                            size={12}
+                            color="#888"
+                            style={styles.filterLockIcon}
+                          />
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+              {(isLoadingStats || isLoadingAttractions) && selectedCity.attractions.length === 0 ? (
                 <View style={styles.emptyStateContainer}>
                   <ActivityIndicator size="large" color="#FFD700" />
                   <Text style={styles.emptyStateText}>Loading attractions...</Text>
                 </View>
               ) : selectedCity.attractions.length === 0 ? (
                 <View style={styles.emptyStateContainer}>
-                  <Ionicons name="lock-closed" size={48} color="#888" />
-                  <Text style={styles.emptyStateText}>No attractions available</Text>
-                  <Text style={styles.emptyStateSubText}>Upgrade to Premium to see all attractions</Text>
+                  {selectedCategory !== 'all' ? (
+                    <>
+                      <Ionicons name="search-outline" size={48} color="#888" />
+                      <Text style={styles.emptyStateText}>No {CATEGORY_FILTERS.find(f => f.id === selectedCategory)?.label.toLowerCase()} found</Text>
+                      <Text style={styles.emptyStateSubText}>Try selecting a different category</Text>
+                    </>
+                  ) : (
+                    <>
+                      <Ionicons name="lock-closed" size={48} color="#888" />
+                      <Text style={styles.emptyStateText}>No attractions available</Text>
+                      <Text style={styles.emptyStateSubText}>Upgrade to Premium to see all attractions</Text>
+                    </>
+                  )}
                 </View>
               ) : (
                 <FlatList
@@ -1493,5 +1622,41 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 8,
     textAlign: 'center',
+  },
+  // Filter chip styles
+  filterContainer: {
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.1)',
+    paddingVertical: 12,
+  },
+  filterScrollContent: {
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  filterChipSelected: {
+    borderColor: 'transparent',
+  },
+  filterChipText: {
+    color: '#888',
+    fontSize: 13,
+    fontWeight: '500',
+    marginLeft: 6,
+  },
+  filterChipTextSelected: {
+    color: '#fff',
+  },
+  filterLockIcon: {
+    marginLeft: 4,
   },
 });
