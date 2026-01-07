@@ -34,5 +34,6 @@ router.post('/locations/cities', adminController.createCity.bind(adminController
 
 // ============ DATABASE SEED ============
 router.post('/seed', adminController.seedDatabase.bind(adminController));
+router.post('/seed-google', adminController.seedGooglePlaces.bind(adminController));
 
 export default router;

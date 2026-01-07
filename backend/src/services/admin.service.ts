@@ -487,6 +487,213 @@ export class AdminService {
     };
   }
 
+  // ============ GOOGLE PLACES SEED ============
+
+  async seedGooglePlaces(maxCities: number = 10) {
+    const GOOGLE_API_KEY = process.env.GOOGLE_PLACES_API_KEY;
+
+    if (!GOOGLE_API_KEY) {
+      throw new Error('GOOGLE_PLACES_API_KEY environment variable is required');
+    }
+
+    const EXCLUDED_TYPES = new Set([
+      'bar', 'restaurant', 'night_club', 'liquor_store',
+      'cafe', 'bakery', 'meal_delivery', 'meal_takeaway', 'food',
+    ]);
+
+    const typeMap: Record<string, string> = {
+      'museum': 'museum',
+      'art_gallery': 'museum',
+      'park': 'park',
+      'national_park': 'nature',
+      'amusement_park': 'entertainment',
+      'tourist_attraction': 'landmark',
+      'point_of_interest': 'landmark',
+      'church': 'religious',
+      'hindu_temple': 'religious',
+      'mosque': 'religious',
+      'synagogue': 'religious',
+      'place_of_worship': 'religious',
+      'natural_feature': 'nature',
+      'beach': 'beach',
+      'zoo': 'nature',
+      'aquarium': 'nature',
+      'shopping_mall': 'shopping',
+      'stadium': 'entertainment',
+      'movie_theater': 'entertainment',
+      'historical_landmark': 'historical',
+      'monument': 'historical',
+    };
+
+    const mapGoogleTypeToCategory = (types: string[]): string | null => {
+      for (const type of types) {
+        if (EXCLUDED_TYPES.has(type)) return null;
+      }
+      for (const type of types) {
+        if (typeMap[type]) return typeMap[type];
+      }
+      return 'landmark';
+    };
+
+    const getPhotoUrl = (photoName: string, maxWidth: number = 800): string => {
+      return `https://places.googleapis.com/v1/${photoName}/media?maxWidthPx=${maxWidth}&key=${GOOGLE_API_KEY}`;
+    };
+
+    const searchAttractions = async (query: string, lat: number, lng: number, maxResults: number = 15): Promise<any[]> => {
+      const url = 'https://places.googleapis.com/v1/places:searchText';
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': GOOGLE_API_KEY,
+            'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.types,places.rating,places.userRatingCount,places.editorialSummary,places.photos,places.websiteUri,places.internationalPhoneNumber',
+          },
+          body: JSON.stringify({
+            textQuery: query,
+            locationBias: { circle: { center: { latitude: lat, longitude: lng }, radius: 30000 } },
+            maxResultCount: maxResults,
+            languageCode: 'en',
+          }),
+        });
+        if (!response.ok) return [];
+        const data = await response.json() as { places?: any[] };
+        return data.places || [];
+      } catch {
+        return [];
+      }
+    };
+
+    const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+    const SEARCH_QUERIES = [
+      'famous landmarks and monuments in',
+      'museums and galleries in',
+      'parks and gardens in',
+      'historical sites in',
+    ];
+
+    const stats = { citiesProcessed: 0, citiesSkipped: 0, attractionsAdded: 0, attractionsSkipped: 0, apiCalls: 0 };
+
+    // Get cities with their attraction counts
+    const cities = await prisma.city.findMany({
+      include: { country: { select: { name: true } } },
+      orderBy: { name: 'asc' },
+    });
+
+    const citiesWithCounts = await Promise.all(
+      cities.map(async (city) => {
+        const count = await prisma.attraction.count({ where: { cityId: city.id } });
+        return { ...city, attractionCount: count };
+      })
+    );
+
+    // Sort by attraction count and limit
+    citiesWithCounts.sort((a, b) => a.attractionCount - b.attractionCount);
+    const citiesToProcess = citiesWithCounts.slice(0, maxCities);
+
+    for (const city of citiesToProcess) {
+      if (city.attractionCount >= 50) {
+        stats.citiesSkipped++;
+        continue;
+      }
+
+      const lat = city.latitude || 0;
+      const lng = city.longitude || 0;
+      if (!lat || !lng) {
+        stats.citiesSkipped++;
+        continue;
+      }
+
+      const seenPlaceIds = new Set<string>();
+
+      for (const queryPrefix of SEARCH_QUERIES) {
+        const query = `${queryPrefix} ${city.name}`;
+        const places = await searchAttractions(query, lat, lng, 15);
+        stats.apiCalls++;
+
+        for (const place of places) {
+          try {
+            if (seenPlaceIds.has(place.id)) continue;
+            seenPlaceIds.add(place.id);
+
+            const placeName = place.displayName?.text || '';
+            if (!placeName) continue;
+
+            const category = mapGoogleTypeToCategory(place.types || []);
+            if (category === null) {
+              stats.attractionsSkipped++;
+              continue;
+            }
+
+            const rating = place.rating || 0;
+            const reviews = place.userRatingCount || 0;
+            if (rating < 3.5 || reviews < 20) {
+              stats.attractionsSkipped++;
+              continue;
+            }
+
+            const existing = await prisma.attraction.findFirst({
+              where: { name: placeName, cityId: city.id },
+            });
+            if (existing) continue;
+
+            const images: string[] = [];
+            let thumbnailUrl = '';
+            if (place.photos && place.photos.length > 0) {
+              thumbnailUrl = getPhotoUrl(place.photos[0].name, 400);
+              for (let i = 0; i < Math.min(place.photos.length, 5); i++) {
+                images.push(getPhotoUrl(place.photos[i].name, 800));
+              }
+            }
+
+            await prisma.attraction.create({
+              data: {
+                name: placeName,
+                description: place.editorialSummary?.text || `A popular attraction in ${city.name}, ${city.country.name}`,
+                shortDescription: place.editorialSummary?.text?.substring(0, 150) || `Visit ${placeName} in ${city.name}`,
+                category: category as any,
+                cityId: city.id,
+                latitude: place.location?.latitude || lat,
+                longitude: place.location?.longitude || lng,
+                address: place.formattedAddress || `${city.name}, ${city.country.name}`,
+                images: images,
+                thumbnailUrl: thumbnailUrl || 'https://via.placeholder.com/400x300?text=No+Image',
+                website: place.websiteUri || null,
+                contactPhone: place.internationalPhoneNumber || null,
+                averageRating: rating,
+                totalReviews: reviews,
+                isFree: false,
+              },
+            });
+
+            stats.attractionsAdded++;
+          } catch {
+            // Skip this place on error
+          }
+        }
+
+        await delay(250);
+      }
+
+      stats.citiesProcessed++;
+      await delay(500);
+    }
+
+    const dbStats = {
+      continents: await prisma.continent.count(),
+      countries: await prisma.country.count(),
+      cities: await prisma.city.count(),
+      attractions: await prisma.attraction.count(),
+    };
+
+    return {
+      success: true,
+      stats,
+      database: dbStats,
+    };
+  }
+
   // ============ DASHBOARD STATS ============
 
   async getDashboardStats() {

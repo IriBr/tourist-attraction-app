@@ -198,6 +198,17 @@ export class AdminController {
 
   // ============ DATABASE SEED ============
 
+  async seedGooglePlaces(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { limit } = req.query;
+      const maxCities = limit ? parseInt(limit as string) : 10;
+      const result = await adminService.seedGooglePlaces(maxCities);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async seedDatabase(req: Request, res: Response, next: NextFunction) {
     try {
       const result = await seedDatabase();
