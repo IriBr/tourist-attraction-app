@@ -571,6 +571,12 @@ export class AdminService {
       'museums and galleries in',
       'parks and gardens in',
       'historical sites in',
+      'nature reserves and wildlife in',
+      'beaches and coastline in',
+      'temples churches mosques in',
+      'castles and palaces in',
+      'viewpoints and scenic spots in',
+      'archaeological sites in',
     ];
 
     const stats = { citiesProcessed: 0, citiesSkipped: 0, attractionsAdded: 0, attractionsSkipped: 0, apiCalls: 0 };
