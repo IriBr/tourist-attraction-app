@@ -188,7 +188,7 @@ export const appleIapService = {
       body: JSON.stringify(requestBody),
     });
 
-    let result: AppleReceiptResponse = await response.json();
+    let result = await response.json() as AppleReceiptResponse;
 
     // If we get sandbox receipt on production, retry with sandbox URL
     if (result.status === APPLE_STATUS_CODES.SANDBOX_RECEIPT_ON_PRODUCTION) {
@@ -197,7 +197,7 @@ export const appleIapService = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody),
       });
-      result = await response.json();
+      result = await response.json() as AppleReceiptResponse;
     }
 
     return result;
