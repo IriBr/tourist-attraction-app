@@ -337,6 +337,36 @@ export class AdminService {
     return { success: true, message: 'Attraction deleted successfully' };
   }
 
+  async deleteAttractionsByCategory(category: string) {
+    // Find all attractions of this category
+    const attractions = await prisma.attraction.findMany({
+      where: { category: category as any },
+      select: { id: true },
+    });
+
+    if (attractions.length === 0) {
+      return { success: true, message: `No attractions found with category: ${category}`, deleted: 0 };
+    }
+
+    const ids = attractions.map((a) => a.id);
+
+    // Delete related records first
+    await prisma.visit.deleteMany({ where: { attractionId: { in: ids } } });
+    await prisma.favorite.deleteMany({ where: { attractionId: { in: ids } } });
+    await prisma.review.deleteMany({ where: { attractionId: { in: ids } } });
+
+    // Delete the attractions
+    const result = await prisma.attraction.deleteMany({
+      where: { category: category as any },
+    });
+
+    return {
+      success: true,
+      message: `Deleted ${result.count} attractions with category: ${category}`,
+      deleted: result.count,
+    };
+  }
+
   // ============ LOCATION MANAGEMENT ============
 
   async getAllCountries() {
