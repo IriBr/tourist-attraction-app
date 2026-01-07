@@ -30,7 +30,6 @@ const CATEGORY_FILTERS = [
   { id: 'historical', label: 'Historical', icon: 'time-outline' },
   { id: 'religious', label: 'Religious', icon: 'home-outline' },
   { id: 'entertainment', label: 'Entertainment', icon: 'musical-notes-outline' },
-  { id: 'restaurant', label: 'Restaurants', icon: 'restaurant-outline' },
   { id: 'shopping', label: 'Shopping', icon: 'cart-outline' },
 ] as const;
 
