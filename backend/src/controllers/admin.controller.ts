@@ -138,6 +138,16 @@ export class AdminController {
     }
   }
 
+  async deleteAttractionsByContinent(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { continent } = req.params;
+      const result = await adminService.deleteAttractionsByContinent(continent);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   // ============ LOCATION MANAGEMENT ============
 
   async getAllCountries(req: Request, res: Response, next: NextFunction) {

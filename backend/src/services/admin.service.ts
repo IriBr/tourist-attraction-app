@@ -367,6 +367,58 @@ export class AdminService {
     };
   }
 
+  async deleteAttractionsByContinent(continentName: string) {
+    // Find continent and all its city IDs
+    const continent = await prisma.continent.findFirst({
+      where: { name: continentName },
+      include: {
+        countries: {
+          include: {
+            cities: { select: { id: true } },
+          },
+        },
+      },
+    });
+
+    if (!continent) {
+      throw new NotFoundError(`Continent not found: ${continentName}`);
+    }
+
+    const cityIds = continent.countries.flatMap((country) => country.cities.map((city) => city.id));
+
+    if (cityIds.length === 0) {
+      return { success: true, message: `No cities found in ${continentName}`, deleted: 0 };
+    }
+
+    // Find all attractions in these cities
+    const attractions = await prisma.attraction.findMany({
+      where: { cityId: { in: cityIds } },
+      select: { id: true },
+    });
+
+    if (attractions.length === 0) {
+      return { success: true, message: `No attractions found in ${continentName}`, deleted: 0 };
+    }
+
+    const ids = attractions.map((a) => a.id);
+
+    // Delete related records first
+    await prisma.visit.deleteMany({ where: { attractionId: { in: ids } } });
+    await prisma.favorite.deleteMany({ where: { attractionId: { in: ids } } });
+    await prisma.review.deleteMany({ where: { attractionId: { in: ids } } });
+
+    // Delete the attractions
+    const result = await prisma.attraction.deleteMany({
+      where: { cityId: { in: cityIds } },
+    });
+
+    return {
+      success: true,
+      message: `Deleted ${result.count} attractions from ${continentName}`,
+      deleted: result.count,
+    };
+  }
+
   // ============ LOCATION MANAGEMENT ============
 
   async getAllCountries() {

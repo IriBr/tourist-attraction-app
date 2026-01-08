@@ -175,131 +175,82 @@ export function WorldMap({ onContinentSelect, onAttractionPress }: WorldMapProps
   // Fetch continent stats and country progress when continent is selected
   useEffect(() => {
     if (selectedContinent) {
-      let isMounted = true;
-
       const fetchContinentStats = async () => {
         setIsLoadingStats(true);
         try {
           const stats = await visitsApi.getContinentStats(selectedContinent.name);
-          if (isMounted) {
-            setContinentStats(stats);
-          }
+          setContinentStats(stats);
         } catch (error) {
           console.log('Failed to fetch continent stats:', error);
         } finally {
-          if (isMounted) {
-            setIsLoadingStats(false);
-          }
+          setIsLoadingStats(false);
         }
       };
 
-      // Fetch country progress in smaller batches with delays to avoid overwhelming the device
+      // Fetch country progress in batches to avoid overwhelming the device
       const fetchCountryProgress = async () => {
         const progressMap: Record<string, number> = {};
         const countries = selectedContinent.countries;
-        const batchSize = 3; // Smaller batches for better stability
+        const batchSize = 5; // Process 5 countries at a time
 
         for (let i = 0; i < countries.length; i += batchSize) {
-          if (!isMounted) break;
-
           const batch = countries.slice(i, i + batchSize);
-          try {
-            await Promise.all(batch.map(async (country) => {
-              try {
-                const stats = await visitsApi.getCountryStats(country.name);
-                progressMap[country.id] = stats.progress;
-              } catch (error) {
-                progressMap[country.id] = 0;
-              }
-            }));
-            // Update state progressively so UI shows progress
-            if (isMounted) {
-              setCountryProgressMap({ ...progressMap });
+          await Promise.all(batch.map(async (country) => {
+            try {
+              const stats = await visitsApi.getCountryStats(country.name);
+              progressMap[country.id] = stats.progress;
+            } catch (error) {
+              progressMap[country.id] = 0;
             }
-            // Small delay between batches to prevent overwhelming the device
-            if (i + batchSize < countries.length) {
-              await new Promise(resolve => setTimeout(resolve, 100));
-            }
-          } catch (error) {
-            console.log('Batch failed:', error);
-          }
+          }));
+          // Update state progressively so UI shows progress
+          setCountryProgressMap({ ...progressMap });
         }
       };
 
-      // Delay fetching to let map animation complete first
-      const timer = setTimeout(() => {
-        fetchContinentStats();
-        fetchCountryProgress();
-      }, 300);
-
-      return () => {
-        isMounted = false;
-        clearTimeout(timer);
-      };
+      fetchContinentStats();
+      fetchCountryProgress();
     }
   }, [selectedContinent]);
 
   // Fetch country stats and city progress when country is selected
   useEffect(() => {
     if (selectedCountry) {
-      let isMounted = true;
-
       const fetchCountryStats = async () => {
         setIsLoadingStats(true);
         try {
           const stats = await visitsApi.getCountryStats(selectedCountry.name);
-          if (isMounted) {
-            setCountryStats(stats);
-          }
+          setCountryStats(stats);
         } catch (error) {
           console.log('Failed to fetch country stats:', error);
         } finally {
-          if (isMounted) {
-            setIsLoadingStats(false);
-          }
+          setIsLoadingStats(false);
         }
       };
 
-      // Fetch city progress in batches with delays
+      // Fetch city progress in batches to avoid overwhelming the device
       const fetchCityProgress = async () => {
         const progressMap: Record<string, number> = {};
         const cities = selectedCountry.cities;
-        const batchSize = 3;
+        const batchSize = 5; // Process 5 cities at a time
 
         for (let i = 0; i < cities.length; i += batchSize) {
-          if (!isMounted) break;
-
           const batch = cities.slice(i, i + batchSize);
-          try {
-            await Promise.all(batch.map(async (city) => {
-              try {
-                const stats = await visitsApi.getCityStats(city.name);
-                progressMap[city.id] = stats.progress;
-              } catch (error) {
-                progressMap[city.id] = 0;
-              }
-            }));
-            if (isMounted) {
-              setCityProgressMap({ ...progressMap });
+          await Promise.all(batch.map(async (city) => {
+            try {
+              const stats = await visitsApi.getCityStats(city.name);
+              progressMap[city.id] = stats.progress;
+            } catch (error) {
+              progressMap[city.id] = 0;
             }
-            if (i + batchSize < cities.length) {
-              await new Promise(resolve => setTimeout(resolve, 100));
-            }
-          } catch (error) {
-            console.log('City batch failed:', error);
-          }
+          }));
+          // Update state progressively so UI shows progress
+          setCityProgressMap({ ...progressMap });
         }
       };
 
-      const timer = setTimeout(() => {
-        fetchCountryStats();
-        fetchCityProgress();
-      }, 300);
-
-      return () => {
-        isMounted = false;
-        clearTimeout(timer);
-      };
+      fetchCountryStats();
+      fetchCityProgress();
     }
   }, [selectedCountry]);
 
