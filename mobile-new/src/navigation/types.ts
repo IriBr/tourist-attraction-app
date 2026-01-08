@@ -46,6 +46,10 @@ export type ProfileStackParamList = {
   Settings: undefined;
   BadgesScreen: undefined;
   ProgressScreen: undefined;
+  Notifications: undefined;
+  Privacy: undefined;
+  Help: undefined;
+  About: undefined;
 };
 
 // Root Navigator

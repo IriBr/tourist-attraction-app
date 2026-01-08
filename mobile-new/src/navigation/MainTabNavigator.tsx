@@ -9,7 +9,16 @@ import { HomeScreen } from './HomeScreen';
 import { SearchScreen } from '../screens/SearchScreen';
 import { CameraScreen } from '../screens/CameraScreen';
 import { FavoritesScreen } from '../screens/FavoritesScreen';
-import { ProfileScreen, BadgesScreen, ProgressScreen } from '../screens';
+import {
+  ProfileScreen,
+  BadgesScreen,
+  ProgressScreen,
+  EditProfileScreen,
+  NotificationsScreen,
+  PrivacyScreen,
+  HelpScreen,
+  AboutScreen,
+} from '../screens';
 import { ProfileStackParamList } from './types';
 
 const ProfileStack = createNativeStackNavigator<ProfileStackParamList>();
@@ -20,6 +29,11 @@ function ProfileStackNavigator() {
       <ProfileStack.Screen name="ProfileScreen" component={ProfileScreen} />
       <ProfileStack.Screen name="BadgesScreen" component={BadgesScreen} />
       <ProfileStack.Screen name="ProgressScreen" component={ProgressScreen} />
+      <ProfileStack.Screen name="EditProfile" component={EditProfileScreen} />
+      <ProfileStack.Screen name="Notifications" component={NotificationsScreen} />
+      <ProfileStack.Screen name="Privacy" component={PrivacyScreen} />
+      <ProfileStack.Screen name="Help" component={HelpScreen} />
+      <ProfileStack.Screen name="About" component={AboutScreen} />
     </ProfileStack.Navigator>
   );
 }

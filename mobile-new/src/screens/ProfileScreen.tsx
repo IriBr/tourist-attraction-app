@@ -22,7 +22,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList, ProfileStackParamList } from '../navigation/types';
 import type { CompositeNavigationProp } from '@react-navigation/native';
 
-const menuItems = [
+const menuItems: { id: string; icon: keyof typeof import('@expo/vector-icons').Ionicons.glyphMap; label: string; screen: keyof ProfileStackParamList }[] = [
   { id: '1', icon: 'person-outline', label: 'Edit Profile', screen: 'EditProfile' },
   { id: '2', icon: 'notifications-outline', label: 'Notifications', screen: 'Notifications' },
   { id: '3', icon: 'lock-closed-outline', label: 'Privacy', screen: 'Privacy' },
@@ -266,9 +266,13 @@ export function ProfileScreen() {
         {/* Menu Items */}
         <View style={styles.menuContainer}>
           {menuItems.map((item) => (
-            <TouchableOpacity key={item.id} style={styles.menuItem}>
+            <TouchableOpacity
+              key={item.id}
+              style={styles.menuItem}
+              onPress={() => navigation.navigate(item.screen)}
+            >
               <View style={styles.menuIconContainer}>
-                <Ionicons name={item.icon as any} size={22} color={colors.secondary} />
+                <Ionicons name={item.icon} size={22} color={colors.secondary} />
               </View>
               <Text style={styles.menuLabel}>{item.label}</Text>
               <Ionicons name="chevron-forward" size={20} color="#888" />

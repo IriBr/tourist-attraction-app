@@ -9,3 +9,8 @@ export { BadgesScreen } from './BadgesScreen';
 export { ProgressScreen } from './ProgressScreen';
 export { AttractionDetailScreen } from './AttractionDetailScreen';
 export { PremiumScreen } from './PremiumScreen';
+export { EditProfileScreen } from './EditProfileScreen';
+export { NotificationsScreen } from './NotificationsScreen';
+export { PrivacyScreen } from './PrivacyScreen';
+export { HelpScreen } from './HelpScreen';
+export { AboutScreen } from './AboutScreen';
