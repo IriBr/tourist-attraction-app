@@ -4,6 +4,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useResponsive } from '../hooks';
 import { HomeScreen } from './HomeScreen';
 import { SearchScreen } from '../screens/SearchScreen';
 import { CameraScreen } from '../screens/CameraScreen';
@@ -35,10 +36,25 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 
 function CustomTabBar({ state, descriptors, navigation }: any) {
   const insets = useSafeAreaInsets();
+  const { isTablet, cameraButtonSize, horizontalPadding } = useResponsive();
+
+  // Dynamic icon sizes
+  const iconSize = isTablet ? 28 : 24;
+  const cameraIconSize = isTablet ? 32 : 28;
 
   return (
     <View style={[styles.tabBarContainer, { paddingBottom: insets.bottom }]}>
-      <View style={styles.tabBar}>
+      <View style={[
+        styles.tabBar,
+        {
+          marginHorizontal: horizontalPadding,
+          ...(isTablet && {
+            maxWidth: 500,
+            alignSelf: 'center' as const,
+            width: '50%',
+          }),
+        },
+      ]}>
         {state.routes.map((route: any, index: number) => {
           const { options } = descriptors[route.key];
           const isFocused = state.index === index;
@@ -73,12 +89,19 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
             return (
               <TouchableOpacity
                 key={route.key}
-                style={styles.cameraButtonContainer}
+                style={[styles.cameraButtonContainer, { marginTop: isTablet ? -36 : -30 }]}
                 onPress={onPress}
                 activeOpacity={0.8}
               >
-                <View style={styles.cameraButton}>
-                  <Ionicons name="camera" size={28} color="#fff" />
+                <View style={[
+                  styles.cameraButton,
+                  {
+                    width: cameraButtonSize,
+                    height: cameraButtonSize,
+                    borderRadius: cameraButtonSize / 2,
+                  },
+                ]}>
+                  <Ionicons name="camera" size={cameraIconSize} color="#fff" />
                 </View>
               </TouchableOpacity>
             );
@@ -93,7 +116,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
             >
               <Ionicons
                 name={iconName}
-                size={24}
+                size={iconSize}
                 color={isFocused ? '#e91e63' : '#888'}
               />
             </TouchableOpacity>
@@ -132,11 +155,10 @@ const styles = StyleSheet.create({
   tabBar: {
     flexDirection: 'row',
     backgroundColor: 'rgba(26, 26, 46, 0.95)',
-    marginHorizontal: 16,
     marginBottom: Platform.OS === 'ios' ? 0 : 16,
     borderRadius: 24,
-    paddingVertical: 8,
-    paddingHorizontal: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     alignItems: 'center',
     justifyContent: 'space-around',
     borderWidth: 1,
@@ -156,12 +178,8 @@ const styles = StyleSheet.create({
   cameraButtonContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: -30,
   },
   cameraButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
     backgroundColor: '#e91e63',
     alignItems: 'center',
     justifyContent: 'center',

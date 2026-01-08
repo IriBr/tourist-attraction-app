@@ -17,12 +17,14 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors } from '../theme';
 import { favoritesApi } from '../api';
 import { useVisitsStore } from '../store';
+import { useResponsive } from '../hooks';
 import type { FavoriteWithAttraction } from '../types';
 import type { RootStackParamList } from '../navigation/types';
 
 export function FavoritesScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { maxContentWidth, horizontalPadding, thumbnailSize } = useResponsive();
 
   const [favorites, setFavorites] = useState<FavoriteWithAttraction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -99,7 +101,16 @@ export function FavoritesScreen() {
       colors={colors.gradientDark}
       style={styles.container}
     >
-      <View style={[styles.content, { paddingTop: insets.top + 16 }]}>
+      <View style={[
+        styles.content,
+        {
+          paddingTop: insets.top + 16,
+          paddingHorizontal: horizontalPadding,
+          maxWidth: maxContentWidth,
+          alignSelf: 'center',
+          width: '100%',
+        },
+      ]}>
         {/* Header */}
         <Text style={styles.title}>Favorites</Text>
         <Text style={styles.subtitle}>Your saved attractions</Text>
@@ -171,11 +182,11 @@ export function FavoritesScreen() {
                   {attraction.thumbnailUrl ? (
                     <Image
                       source={{ uri: attraction.thumbnailUrl }}
-                      style={styles.cardImage}
+                      style={[styles.cardImage, { width: thumbnailSize, height: thumbnailSize }]}
                       resizeMode="cover"
                     />
                   ) : (
-                    <View style={styles.cardImagePlaceholder}>
+                    <View style={[styles.cardImagePlaceholder, { width: thumbnailSize, height: thumbnailSize }]}>
                       <Ionicons name="image-outline" size={32} color="#666" />
                     </View>
                   )}
@@ -225,7 +236,6 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
   },
   loadingContainer: {
     flex: 1,
@@ -326,13 +336,9 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   cardImage: {
-    width: 80,
-    height: 80,
     borderRadius: 12,
   },
   cardImagePlaceholder: {
-    width: 80,
-    height: 80,
     backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 12,
     alignItems: 'center',

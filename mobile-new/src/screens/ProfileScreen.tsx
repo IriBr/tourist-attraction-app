@@ -17,6 +17,7 @@ import { useSubscriptionStore } from '../store/subscriptionStore';
 import { useBadgeStore, useStatsStore } from '../store';
 import { locationsApi, visitsApi } from '../api';
 import { colors } from '../theme';
+import { useResponsive } from '../hooks';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList, ProfileStackParamList } from '../navigation/types';
 import type { CompositeNavigationProp } from '@react-navigation/native';
@@ -37,6 +38,7 @@ type ProfileNavigationProp = CompositeNavigationProp<
 export function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<ProfileNavigationProp>();
+  const { maxContentWidth, horizontalPadding, avatarSize, isTablet } = useResponsive();
   const { user, logout } = useAuthStore();
   const {
     status,
@@ -101,14 +103,30 @@ export function ProfileScreen() {
     >
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + 16 }]}
+        contentContainerStyle={[
+          styles.content,
+          {
+            paddingTop: insets.top + 16,
+            paddingHorizontal: horizontalPadding,
+            maxWidth: maxContentWidth,
+            alignSelf: 'center',
+            width: '100%',
+          },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         {/* Profile Header */}
         <View style={styles.profileHeader}>
           <View style={styles.avatarContainer}>
-            <View style={styles.avatar}>
-              <Ionicons name="person" size={40} color="#fff" />
+            <View style={[
+              styles.avatar,
+              {
+                width: avatarSize,
+                height: avatarSize,
+                borderRadius: avatarSize / 2,
+              },
+            ]}>
+              <Ionicons name="person" size={isTablet ? 48 : 40} color="#fff" />
             </View>
             <TouchableOpacity style={styles.editAvatarButton}>
               <Ionicons name="camera" size={16} color="#fff" />
@@ -278,7 +296,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    paddingHorizontal: 20,
+    // paddingHorizontal set dynamically
   },
   profileHeader: {
     alignItems: 'center',
@@ -289,9 +307,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
     backgroundColor: 'rgba(245, 158, 11, 0.3)',
     alignItems: 'center',
     justifyContent: 'center',

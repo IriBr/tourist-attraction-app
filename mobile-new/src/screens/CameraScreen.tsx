@@ -21,12 +21,14 @@ import { verificationApi, VerifyResponse, AttractionSummary } from '../api';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
 import { colors } from '../theme';
+import { useResponsive } from '../hooks';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export function CameraScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp>();
+  const { isTablet, maxContentWidth, scale } = useResponsive();
   const [facing, setFacing] = useState<CameraType>('back');
   const [permission, requestPermission] = useCameraPermissions();
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
@@ -404,7 +406,14 @@ export function CameraScreen() {
         </View>
 
         {/* Camera Frame Guide */}
-        <View style={styles.frameContainer}>
+        <View style={[
+          styles.frameContainer,
+          isTablet && {
+            maxWidth: 500,
+            alignSelf: 'center',
+            marginHorizontal: 80,
+          },
+        ]}>
           <View style={styles.frameCorner} />
           <View style={[styles.frameCorner, styles.frameTopRight]} />
           <View style={[styles.frameCorner, styles.frameBottomLeft]} />
@@ -420,22 +429,26 @@ export function CameraScreen() {
         {/* Bottom Controls */}
         <View style={[styles.bottomControls, { paddingBottom: insets.bottom + 100 }]}>
           <TouchableOpacity
-            style={styles.galleryButton}
+            style={[styles.galleryButton, isTablet && { width: 60, height: 60, borderRadius: 30 }]}
             onPress={pickImage}
             disabled={isProcessing}
           >
-            <Ionicons name="images" size={28} color="#fff" />
+            <Ionicons name="images" size={isTablet ? 32 : 28} color="#fff" />
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.captureButton, isProcessing && styles.captureButtonDisabled]}
+            style={[
+              styles.captureButton,
+              isProcessing && styles.captureButtonDisabled,
+              isTablet && { width: 96, height: 96, borderRadius: 48 },
+            ]}
             onPress={takePicture}
             disabled={isProcessing}
           >
-            <View style={styles.captureButtonInner} />
+            <View style={[styles.captureButtonInner, isTablet && { width: 72, height: 72, borderRadius: 36 }]} />
           </TouchableOpacity>
 
-          <View style={styles.placeholderButton} />
+          <View style={[styles.placeholderButton, isTablet && { width: 60, height: 60 }]} />
         </View>
       </CameraView>
 
@@ -447,7 +460,10 @@ export function CameraScreen() {
         onRequestClose={resetCamera}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[
+            styles.modalContent,
+            isTablet && { maxWidth: 500, alignSelf: 'center', width: '100%', borderRadius: 24 },
+          ]}>
             <View style={styles.modalHandle} />
 
             {/* Preview Image */}

@@ -55,7 +55,7 @@ interface LocationStats {
   totalAttractions: number;
   visitedAttractions: number;
   progress: number;
-  attractions: {
+  attractions?: {
     id: string;
     name: string;
     isVisited: boolean;
@@ -290,12 +290,11 @@ export async function getContinentStats(
       totalAttractions: 0,
       visitedAttractions: 0,
       progress: 0,
-      attractions: [],
     };
   }
 
-  // Get all attractions in this continent
-  const attractions = await prisma.attraction.findMany({
+  // Count attractions in this continent (much more efficient than fetching all)
+  const totalAttractions = await prisma.attraction.count({
     where: {
       city: {
         country: {
@@ -303,11 +302,10 @@ export async function getContinentStats(
         },
       },
     },
-    select: { id: true, name: true },
   });
 
-  // Get user's visits in this continent
-  const visits = await prisma.visit.findMany({
+  // Count user's visits in this continent
+  const visitedAttractions = await prisma.visit.count({
     where: {
       userId,
       attraction: {
@@ -318,20 +316,12 @@ export async function getContinentStats(
         },
       },
     },
-    select: { attractionId: true },
   });
 
-  const visitedIds = new Set(visits.map((v) => v.attractionId));
-
   return {
-    totalAttractions: attractions.length,
-    visitedAttractions: visits.length,
-    progress: attractions.length > 0 ? Math.round((visits.length / attractions.length) * 100) : 0,
-    attractions: attractions.map((a) => ({
-      id: a.id,
-      name: a.name,
-      isVisited: visitedIds.has(a.id),
-    })),
+    totalAttractions,
+    visitedAttractions,
+    progress: totalAttractions > 0 ? Math.round((visitedAttractions / totalAttractions) * 100) : 0,
   };
 }
 
@@ -349,20 +339,20 @@ export async function getCountryStats(
       totalAttractions: 0,
       visitedAttractions: 0,
       progress: 0,
-      attractions: [],
     };
   }
 
-  const attractions = await prisma.attraction.findMany({
+  // Count attractions in this country (more efficient than fetching all)
+  const totalAttractions = await prisma.attraction.count({
     where: {
       city: {
         countryId: country.id,
       },
     },
-    select: { id: true, name: true },
   });
 
-  const visits = await prisma.visit.findMany({
+  // Count user's visits in this country
+  const visitedAttractions = await prisma.visit.count({
     where: {
       userId,
       attraction: {
@@ -371,20 +361,12 @@ export async function getCountryStats(
         },
       },
     },
-    select: { attractionId: true },
   });
 
-  const visitedIds = new Set(visits.map((v) => v.attractionId));
-
   return {
-    totalAttractions: attractions.length,
-    visitedAttractions: visits.length,
-    progress: attractions.length > 0 ? Math.round((visits.length / attractions.length) * 100) : 0,
-    attractions: attractions.map((a) => ({
-      id: a.id,
-      name: a.name,
-      isVisited: visitedIds.has(a.id),
-    })),
+    totalAttractions,
+    visitedAttractions,
+    progress: totalAttractions > 0 ? Math.round((visitedAttractions / totalAttractions) * 100) : 0,
   };
 }
 

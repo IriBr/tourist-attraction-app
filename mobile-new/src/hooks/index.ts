@@ -4,3 +4,4 @@ export * from './useFavorites';
 export * from './useGoogleAuth';
 export * from './useAppleAuth';
 export * from './useWorldMapData';
+export * from './useResponsive';

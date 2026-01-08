@@ -18,6 +18,7 @@ import { attractionsApi, locationsApi } from '../api';
 import { useVisitsStore } from '../store';
 import type { AttractionSummary } from '../types';
 import { colors } from '../theme';
+import { useResponsive } from '../hooks';
 
 interface SearchResult {
   id: string;
@@ -29,6 +30,7 @@ interface SearchResult {
 export function SearchScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
+  const { gridColumns, horizontalPadding, cardImageHeight, isTablet } = useResponsive();
   const [searchQuery, setSearchQuery] = useState('');
   const [nearbyAttractions, setNearbyAttractions] = useState<AttractionSummary[]>([]);
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -38,6 +40,9 @@ export function SearchScreen() {
   const [sectionTitle, setSectionTitle] = useState('Popular Attractions');
 
   const { visitedIds, fetchVisits } = useVisitsStore();
+
+  // Calculate card width based on grid columns
+  const cardWidth = `${Math.floor(100 / gridColumns) - 2}%` as `${number}%`;
 
   useEffect(() => {
     loadAttractions();
@@ -187,7 +192,7 @@ export function SearchScreen() {
       colors={colors.gradientDark}
       style={styles.container}
     >
-      <View style={[styles.content, { paddingTop: insets.top + 16 }]}>
+      <View style={[styles.content, { paddingTop: insets.top + 16, paddingHorizontal: horizontalPadding }]}>
         {/* Header */}
         <Text style={styles.title}>Explore</Text>
         <Text style={styles.subtitle}>
@@ -248,9 +253,10 @@ export function SearchScreen() {
               <ActivityIndicator size="large" color={colors.secondary} style={{ marginTop: 40 }} />
             ) : (
               <FlatList
+                key={gridColumns}
                 data={nearbyAttractions}
                 keyExtractor={(item) => item.id}
-                numColumns={2}
+                numColumns={gridColumns}
                 columnWrapperStyle={styles.gridRow}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.gridContainer}
@@ -258,14 +264,14 @@ export function SearchScreen() {
                   const isVisited = visitedIds.has(item.id);
                   return (
                     <TouchableOpacity
-                      style={styles.attractionCard}
+                      style={[styles.attractionCard, { width: cardWidth }]}
                       onPress={() => handleAttractionPress(item)}
                       activeOpacity={0.8}
                     >
                       <View style={styles.imageContainer}>
                         <Image
                           source={{ uri: item.thumbnailUrl }}
-                          style={styles.attractionImage}
+                          style={[styles.attractionImage, { height: cardImageHeight }]}
                           resizeMode="cover"
                         />
                         {isVisited && (
@@ -309,7 +315,6 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: 16,
     paddingBottom: 100,
   },
   title: {
@@ -385,17 +390,16 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   attractionCard: {
-    width: '48%',
     backgroundColor: 'rgba(255,255,255,0.08)',
     borderRadius: 16,
     overflow: 'hidden',
+    marginBottom: 4,
   },
   imageContainer: {
     position: 'relative',
   },
   attractionImage: {
     width: '100%',
-    height: 120,
     backgroundColor: 'rgba(255,255,255,0.05)',
   },
   visitedBadge: {
