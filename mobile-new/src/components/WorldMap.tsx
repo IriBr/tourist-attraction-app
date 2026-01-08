@@ -187,17 +187,25 @@ export function WorldMap({ onContinentSelect, onAttractionPress }: WorldMapProps
         }
       };
 
+      // Fetch country progress in batches to avoid overwhelming the device
       const fetchCountryProgress = async () => {
         const progressMap: Record<string, number> = {};
-        await Promise.all(selectedContinent.countries.map(async (country) => {
-          try {
-            const stats = await visitsApi.getCountryStats(country.name);
-            progressMap[country.id] = stats.progress;
-          } catch (error) {
-            progressMap[country.id] = 0;
-          }
-        }));
-        setCountryProgressMap(progressMap);
+        const countries = selectedContinent.countries;
+        const batchSize = 5; // Process 5 countries at a time
+
+        for (let i = 0; i < countries.length; i += batchSize) {
+          const batch = countries.slice(i, i + batchSize);
+          await Promise.all(batch.map(async (country) => {
+            try {
+              const stats = await visitsApi.getCountryStats(country.name);
+              progressMap[country.id] = stats.progress;
+            } catch (error) {
+              progressMap[country.id] = 0;
+            }
+          }));
+          // Update state progressively so UI shows progress
+          setCountryProgressMap({ ...progressMap });
+        }
       };
 
       fetchContinentStats();
@@ -220,17 +228,25 @@ export function WorldMap({ onContinentSelect, onAttractionPress }: WorldMapProps
         }
       };
 
+      // Fetch city progress in batches to avoid overwhelming the device
       const fetchCityProgress = async () => {
         const progressMap: Record<string, number> = {};
-        await Promise.all(selectedCountry.cities.map(async (city) => {
-          try {
-            const stats = await visitsApi.getCityStats(city.name);
-            progressMap[city.id] = stats.progress;
-          } catch (error) {
-            progressMap[city.id] = 0;
-          }
-        }));
-        setCityProgressMap(progressMap);
+        const cities = selectedCountry.cities;
+        const batchSize = 5; // Process 5 cities at a time
+
+        for (let i = 0; i < cities.length; i += batchSize) {
+          const batch = cities.slice(i, i + batchSize);
+          await Promise.all(batch.map(async (city) => {
+            try {
+              const stats = await visitsApi.getCityStats(city.name);
+              progressMap[city.id] = stats.progress;
+            } catch (error) {
+              progressMap[city.id] = 0;
+            }
+          }));
+          // Update state progressively so UI shows progress
+          setCityProgressMap({ ...progressMap });
+        }
       };
 
       fetchCountryStats();
