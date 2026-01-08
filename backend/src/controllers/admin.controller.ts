@@ -161,6 +161,15 @@ export class AdminController {
     }
   }
 
+  async addEuropeanCountries(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await adminService.addEuropeanCountries();
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   // ============ LOCATION MANAGEMENT ============
 
   async getAllCountries(req: Request, res: Response, next: NextFunction) {

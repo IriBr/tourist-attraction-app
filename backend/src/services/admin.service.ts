@@ -367,6 +367,54 @@ export class AdminService {
     };
   }
 
+  async addEuropeanCountries() {
+    // Get Europe continent
+    const europe = await prisma.continent.findFirst({ where: { name: 'Europe' } });
+    if (!europe) {
+      throw new NotFoundError('Europe continent not found');
+    }
+
+    // Countries to add back (the 20 we deleted)
+    const countriesToAdd = [
+      { name: 'Austria', code: 'AT', latitude: 47.5162, longitude: 14.5501, latitudeDelta: 3, longitudeDelta: 4 },
+      { name: 'Belgium', code: 'BE', latitude: 50.5039, longitude: 4.4699, latitudeDelta: 2, longitudeDelta: 3 },
+      { name: 'Bulgaria', code: 'BG', latitude: 42.7339, longitude: 25.4858, latitudeDelta: 3, longitudeDelta: 4 },
+      { name: 'Cyprus', code: 'CY', latitude: 35.1264, longitude: 33.4299, latitudeDelta: 1.5, longitudeDelta: 2 },
+      { name: 'Czech Republic', code: 'CZ', latitude: 49.8175, longitude: 15.4730, latitudeDelta: 3, longitudeDelta: 4 },
+      { name: 'Denmark', code: 'DK', latitude: 56.2639, longitude: 9.5018, latitudeDelta: 3, longitudeDelta: 4 },
+      { name: 'Finland', code: 'FI', latitude: 61.9241, longitude: 25.7482, latitudeDelta: 8, longitudeDelta: 10 },
+      { name: 'Hungary', code: 'HU', latitude: 47.1625, longitude: 19.5033, latitudeDelta: 3, longitudeDelta: 4 },
+      { name: 'Iceland', code: 'IS', latitude: 64.9631, longitude: -19.0208, latitudeDelta: 4, longitudeDelta: 6 },
+      { name: 'Ireland', code: 'IE', latitude: 53.4129, longitude: -8.2439, latitudeDelta: 4, longitudeDelta: 5 },
+      { name: 'Latvia', code: 'LV', latitude: 56.8796, longitude: 24.6032, latitudeDelta: 3, longitudeDelta: 4 },
+      { name: 'Lithuania', code: 'LT', latitude: 55.1694, longitude: 23.8813, latitudeDelta: 3, longitudeDelta: 4 },
+      { name: 'Luxembourg', code: 'LU', latitude: 49.8153, longitude: 6.1296, latitudeDelta: 0.5, longitudeDelta: 0.7 },
+      { name: 'Montenegro', code: 'ME', latitude: 42.7087, longitude: 19.3744, latitudeDelta: 1.5, longitudeDelta: 2 },
+      { name: 'Norway', code: 'NO', latitude: 60.4720, longitude: 8.4689, latitudeDelta: 10, longitudeDelta: 12 },
+      { name: 'Poland', code: 'PL', latitude: 51.9194, longitude: 19.1451, latitudeDelta: 5, longitudeDelta: 6 },
+      { name: 'Romania', code: 'RO', latitude: 45.9432, longitude: 24.9668, latitudeDelta: 4, longitudeDelta: 5 },
+      { name: 'Slovenia', code: 'SI', latitude: 46.1512, longitude: 14.9955, latitudeDelta: 1.5, longitudeDelta: 2 },
+      { name: 'Sweden', code: 'SE', latitude: 60.1282, longitude: 18.6435, latitudeDelta: 10, longitudeDelta: 10 },
+      { name: 'Albania', code: 'AL', latitude: 41.1533, longitude: 20.1683, latitudeDelta: 2, longitudeDelta: 2.5 },
+    ];
+
+    let added = 0;
+    for (const country of countriesToAdd) {
+      // Check if already exists
+      const existing = await prisma.country.findFirst({
+        where: { name: country.name, continentId: europe.id },
+      });
+      if (!existing) {
+        await prisma.country.create({
+          data: { ...country, continentId: europe.id },
+        });
+        added++;
+      }
+    }
+
+    return { success: true, message: `Added ${added} European countries`, added };
+  }
+
   async deleteCountriesByNames(countryNames: string[]) {
     // Find countries
     const countries = await prisma.country.findMany({

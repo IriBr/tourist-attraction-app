@@ -425,6 +425,7 @@ export function WorldMap({ onContinentSelect, onAttractionPress }: WorldMapProps
           coordinate={{ latitude: continent.latitude, longitude: continent.longitude }}
           onPress={() => handleContinentPress(continent)}
           pinColor={continent.color}
+          tracksViewChanges={false}
         >
           <View style={[styles.continentMarker, { backgroundColor: continent.color || '#4CAF50' }]}>
             <Text style={styles.continentMarkerText}>{continent.name}</Text>
@@ -439,6 +440,7 @@ export function WorldMap({ onContinentSelect, onAttractionPress }: WorldMapProps
           key={country.id}
           coordinate={{ latitude: country.latitude, longitude: country.longitude }}
           onPress={() => handleCountryPress(country)}
+          tracksViewChanges={false}
         >
           <View style={[styles.countryMarker, { backgroundColor: selectedContinent.color || '#4CAF50' }]}>
             <Text style={styles.countryMarkerText}>{country.code}</Text>
@@ -453,6 +455,7 @@ export function WorldMap({ onContinentSelect, onAttractionPress }: WorldMapProps
           key={city.id}
           coordinate={{ latitude: city.latitude, longitude: city.longitude }}
           onPress={() => handleCityPress(city)}
+          tracksViewChanges={false}
         >
           <View style={styles.cityMarker}>
             <Ionicons name="location" size={24} color="#e91e63" />
@@ -470,6 +473,7 @@ export function WorldMap({ onContinentSelect, onAttractionPress }: WorldMapProps
           title={attraction.name}
           description={attraction.shortDescription}
           onPress={() => onAttractionPress?.(attraction.name, selectedCity.name)}
+          tracksViewChanges={false}
         >
           <View style={styles.attractionMarker}>
             <Ionicons name="star" size={20} color="#FFD700" />
