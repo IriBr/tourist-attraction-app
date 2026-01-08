@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Image } from 'react-native';
+import { View, Text, StyleSheet, Alert, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { WorldMap } from '../components';
@@ -9,7 +8,7 @@ import { useAuthStore } from '../store/authStore';
 import { attractionsApi } from '../api';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from './types';
-import { colors, BRAND } from '../theme';
+import { colors } from '../theme';
 
 export function HomeScreen() {
   const { user } = useAuthStore();
@@ -70,12 +69,7 @@ export function HomeScreen() {
           <Text style={styles.logoText}>Wandr</Text>
         </View>
 
-        <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.notificationButton}>
-            <Ionicons name="notifications-outline" size={24} color="#fff" />
-            <View style={styles.notificationBadge} />
-          </TouchableOpacity>
-        </View>
+        <View style={styles.headerRight} />
       </View>
 
       {/* World Map Section - Full Screen */}
@@ -129,23 +123,6 @@ const styles = StyleSheet.create({
   headerRight: {
     flex: 1,
     alignItems: 'flex-end',
-  },
-  notificationButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  notificationBadge: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.secondary,
   },
   mapContainer: {
     flex: 1,

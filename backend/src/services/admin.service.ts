@@ -1465,6 +1465,442 @@ export class AdminService {
     };
   }
 
+  async seedEurope() {
+    const GOOGLE_API_KEY = process.env.GOOGLE_PLACES_API_KEY;
+    if (!GOOGLE_API_KEY) {
+      throw new Error('GOOGLE_PLACES_API_KEY environment variable is required');
+    }
+
+    // European cities to seed - comprehensive list by country
+    const EUROPE_CITIES: { name: string; country: string; lat: number; lng: number }[] = [
+      // United Kingdom
+      { name: 'London', country: 'United Kingdom', lat: 51.5074, lng: -0.1278 },
+      { name: 'Edinburgh', country: 'United Kingdom', lat: 55.9533, lng: -3.1883 },
+      { name: 'Manchester', country: 'United Kingdom', lat: 53.4808, lng: -2.2426 },
+      { name: 'Liverpool', country: 'United Kingdom', lat: 53.4084, lng: -2.9916 },
+      { name: 'Birmingham', country: 'United Kingdom', lat: 52.4862, lng: -1.8904 },
+      { name: 'Glasgow', country: 'United Kingdom', lat: 55.8642, lng: -4.2518 },
+      { name: 'Bristol', country: 'United Kingdom', lat: 51.4545, lng: -2.5879 },
+      { name: 'Oxford', country: 'United Kingdom', lat: 51.7520, lng: -1.2577 },
+      { name: 'Cambridge', country: 'United Kingdom', lat: 52.2053, lng: 0.1218 },
+      { name: 'Bath', country: 'United Kingdom', lat: 51.3811, lng: -2.3590 },
+      { name: 'York', country: 'United Kingdom', lat: 53.9600, lng: -1.0873 },
+      { name: 'Brighton', country: 'United Kingdom', lat: 50.8225, lng: -0.1372 },
+      { name: 'Canterbury', country: 'United Kingdom', lat: 51.2802, lng: 1.0789 },
+      { name: 'Stratford-upon-Avon', country: 'United Kingdom', lat: 52.1917, lng: -1.7083 },
+      { name: 'Windsor', country: 'United Kingdom', lat: 51.4839, lng: -0.6044 },
+      { name: 'Stonehenge', country: 'United Kingdom', lat: 51.1789, lng: -1.8262 },
+      { name: 'Lake District', country: 'United Kingdom', lat: 54.4609, lng: -3.0886 },
+      { name: 'Cornwall', country: 'United Kingdom', lat: 50.2660, lng: -5.0527 },
+      { name: 'Cotswolds', country: 'United Kingdom', lat: 51.8330, lng: -1.8433 },
+      { name: 'Belfast', country: 'United Kingdom', lat: 54.5973, lng: -5.9301 },
+      // France
+      { name: 'Paris', country: 'France', lat: 48.8566, lng: 2.3522 },
+      { name: 'Nice', country: 'France', lat: 43.7102, lng: 7.2620 },
+      { name: 'Lyon', country: 'France', lat: 45.7640, lng: 4.8357 },
+      { name: 'Marseille', country: 'France', lat: 43.2965, lng: 5.3698 },
+      { name: 'Bordeaux', country: 'France', lat: 44.8378, lng: -0.5792 },
+      { name: 'Strasbourg', country: 'France', lat: 48.5734, lng: 7.7521 },
+      { name: 'Toulouse', country: 'France', lat: 43.6047, lng: 1.4442 },
+      { name: 'Cannes', country: 'France', lat: 43.5528, lng: 7.0174 },
+      { name: 'Monaco', country: 'France', lat: 43.7384, lng: 7.4246 },
+      { name: 'Mont Saint-Michel', country: 'France', lat: 48.6361, lng: -1.5115 },
+      { name: 'Avignon', country: 'France', lat: 43.9493, lng: 4.8055 },
+      { name: 'Normandy', country: 'France', lat: 49.1829, lng: -0.3707 },
+      { name: 'Versailles', country: 'France', lat: 48.8049, lng: 2.1204 },
+      { name: 'Provence', country: 'France', lat: 43.9352, lng: 6.0679 },
+      { name: 'Chamonix', country: 'France', lat: 45.9237, lng: 6.8694 },
+      { name: 'Saint-Tropez', country: 'France', lat: 43.2727, lng: 6.6407 },
+      { name: 'Nantes', country: 'France', lat: 47.2184, lng: -1.5536 },
+      { name: 'Lille', country: 'France', lat: 50.6292, lng: 3.0573 },
+      // Italy
+      { name: 'Rome', country: 'Italy', lat: 41.9028, lng: 12.4964 },
+      { name: 'Venice', country: 'Italy', lat: 45.4408, lng: 12.3155 },
+      { name: 'Florence', country: 'Italy', lat: 43.7696, lng: 11.2558 },
+      { name: 'Milan', country: 'Italy', lat: 45.4642, lng: 9.1900 },
+      { name: 'Naples', country: 'Italy', lat: 40.8518, lng: 14.2681 },
+      { name: 'Amalfi Coast', country: 'Italy', lat: 40.6340, lng: 14.6027 },
+      { name: 'Cinque Terre', country: 'Italy', lat: 44.1461, lng: 9.6439 },
+      { name: 'Tuscany', country: 'Italy', lat: 43.7711, lng: 11.2486 },
+      { name: 'Pisa', country: 'Italy', lat: 43.7228, lng: 10.4017 },
+      { name: 'Siena', country: 'Italy', lat: 43.3188, lng: 11.3308 },
+      { name: 'Verona', country: 'Italy', lat: 45.4384, lng: 10.9916 },
+      { name: 'Bologna', country: 'Italy', lat: 44.4949, lng: 11.3426 },
+      { name: 'Turin', country: 'Italy', lat: 45.0703, lng: 7.6869 },
+      { name: 'Pompeii', country: 'Italy', lat: 40.7462, lng: 14.4989 },
+      { name: 'Capri', country: 'Italy', lat: 40.5531, lng: 14.2222 },
+      { name: 'Lake Como', country: 'Italy', lat: 46.0160, lng: 9.2572 },
+      { name: 'Sicily', country: 'Italy', lat: 37.5994, lng: 14.0154 },
+      { name: 'Sardinia', country: 'Italy', lat: 40.1209, lng: 9.0129 },
+      { name: 'Genoa', country: 'Italy', lat: 44.4056, lng: 8.9463 },
+      { name: 'Ravenna', country: 'Italy', lat: 44.4184, lng: 12.2035 },
+      // Spain
+      { name: 'Barcelona', country: 'Spain', lat: 41.3851, lng: 2.1734 },
+      { name: 'Madrid', country: 'Spain', lat: 40.4168, lng: -3.7038 },
+      { name: 'Seville', country: 'Spain', lat: 37.3891, lng: -5.9845 },
+      { name: 'Granada', country: 'Spain', lat: 37.1773, lng: -3.5986 },
+      { name: 'Valencia', country: 'Spain', lat: 39.4699, lng: -0.3763 },
+      { name: 'Bilbao', country: 'Spain', lat: 43.2630, lng: -2.9350 },
+      { name: 'San Sebastian', country: 'Spain', lat: 43.3183, lng: -1.9812 },
+      { name: 'Malaga', country: 'Spain', lat: 36.7213, lng: -4.4214 },
+      { name: 'Toledo', country: 'Spain', lat: 39.8628, lng: -4.0273 },
+      { name: 'Cordoba', country: 'Spain', lat: 37.8882, lng: -4.7794 },
+      { name: 'Ibiza', country: 'Spain', lat: 38.9067, lng: 1.4206 },
+      { name: 'Mallorca', country: 'Spain', lat: 39.6953, lng: 3.0176 },
+      { name: 'Tenerife', country: 'Spain', lat: 28.2916, lng: -16.6291 },
+      { name: 'Santiago de Compostela', country: 'Spain', lat: 42.8782, lng: -8.5448 },
+      { name: 'Salamanca', country: 'Spain', lat: 40.9701, lng: -5.6635 },
+      // Germany
+      { name: 'Berlin', country: 'Germany', lat: 52.5200, lng: 13.4050 },
+      { name: 'Munich', country: 'Germany', lat: 48.1351, lng: 11.5820 },
+      { name: 'Hamburg', country: 'Germany', lat: 53.5511, lng: 9.9937 },
+      { name: 'Frankfurt', country: 'Germany', lat: 50.1109, lng: 8.6821 },
+      { name: 'Cologne', country: 'Germany', lat: 50.9375, lng: 6.9603 },
+      { name: 'Dresden', country: 'Germany', lat: 51.0504, lng: 13.7373 },
+      { name: 'Heidelberg', country: 'Germany', lat: 49.3988, lng: 8.6724 },
+      { name: 'Nuremberg', country: 'Germany', lat: 49.4521, lng: 11.0767 },
+      { name: 'Rothenburg', country: 'Germany', lat: 49.3769, lng: 10.1789 },
+      { name: 'Neuschwanstein', country: 'Germany', lat: 47.5576, lng: 10.7498 },
+      { name: 'Black Forest', country: 'Germany', lat: 48.3705, lng: 8.2193 },
+      { name: 'Stuttgart', country: 'Germany', lat: 48.7758, lng: 9.1829 },
+      { name: 'Dusseldorf', country: 'Germany', lat: 51.2277, lng: 6.7735 },
+      { name: 'Leipzig', country: 'Germany', lat: 51.3397, lng: 12.3731 },
+      { name: 'Bremen', country: 'Germany', lat: 53.0793, lng: 8.8017 },
+      // Netherlands
+      { name: 'Amsterdam', country: 'Netherlands', lat: 52.3676, lng: 4.9041 },
+      { name: 'Rotterdam', country: 'Netherlands', lat: 51.9244, lng: 4.4777 },
+      { name: 'The Hague', country: 'Netherlands', lat: 52.0705, lng: 4.3007 },
+      { name: 'Utrecht', country: 'Netherlands', lat: 52.0907, lng: 5.1214 },
+      { name: 'Delft', country: 'Netherlands', lat: 52.0116, lng: 4.3571 },
+      { name: 'Leiden', country: 'Netherlands', lat: 52.1601, lng: 4.4970 },
+      { name: 'Haarlem', country: 'Netherlands', lat: 52.3874, lng: 4.6462 },
+      { name: 'Maastricht', country: 'Netherlands', lat: 50.8514, lng: 5.6910 },
+      // Belgium
+      { name: 'Brussels', country: 'Belgium', lat: 50.8503, lng: 4.3517 },
+      { name: 'Bruges', country: 'Belgium', lat: 51.2093, lng: 3.2247 },
+      { name: 'Ghent', country: 'Belgium', lat: 51.0543, lng: 3.7174 },
+      { name: 'Antwerp', country: 'Belgium', lat: 51.2194, lng: 4.4025 },
+      { name: 'Leuven', country: 'Belgium', lat: 50.8798, lng: 4.7005 },
+      // Austria
+      { name: 'Vienna', country: 'Austria', lat: 48.2082, lng: 16.3738 },
+      { name: 'Salzburg', country: 'Austria', lat: 47.8095, lng: 13.0550 },
+      { name: 'Innsbruck', country: 'Austria', lat: 47.2692, lng: 11.4041 },
+      { name: 'Hallstatt', country: 'Austria', lat: 47.5622, lng: 13.6493 },
+      { name: 'Graz', country: 'Austria', lat: 47.0707, lng: 15.4395 },
+      // Switzerland
+      { name: 'Zurich', country: 'Switzerland', lat: 47.3769, lng: 8.5417 },
+      { name: 'Geneva', country: 'Switzerland', lat: 46.2044, lng: 6.1432 },
+      { name: 'Lucerne', country: 'Switzerland', lat: 47.0502, lng: 8.3093 },
+      { name: 'Interlaken', country: 'Switzerland', lat: 46.6863, lng: 7.8632 },
+      { name: 'Zermatt', country: 'Switzerland', lat: 46.0207, lng: 7.7491 },
+      { name: 'Bern', country: 'Switzerland', lat: 46.9480, lng: 7.4474 },
+      { name: 'Basel', country: 'Switzerland', lat: 47.5596, lng: 7.5886 },
+      { name: 'Lausanne', country: 'Switzerland', lat: 46.5197, lng: 6.6323 },
+      // Portugal
+      { name: 'Lisbon', country: 'Portugal', lat: 38.7223, lng: -9.1393 },
+      { name: 'Porto', country: 'Portugal', lat: 41.1579, lng: -8.6291 },
+      { name: 'Sintra', country: 'Portugal', lat: 38.8029, lng: -9.3817 },
+      { name: 'Algarve', country: 'Portugal', lat: 37.0179, lng: -7.9304 },
+      { name: 'Madeira', country: 'Portugal', lat: 32.6669, lng: -16.9241 },
+      { name: 'Azores', country: 'Portugal', lat: 37.7412, lng: -25.6756 },
+      { name: 'Coimbra', country: 'Portugal', lat: 40.2033, lng: -8.4103 },
+      { name: 'Evora', country: 'Portugal', lat: 38.5714, lng: -7.9135 },
+      // Greece
+      { name: 'Athens', country: 'Greece', lat: 37.9838, lng: 23.7275 },
+      { name: 'Santorini', country: 'Greece', lat: 36.3932, lng: 25.4615 },
+      { name: 'Mykonos', country: 'Greece', lat: 37.4467, lng: 25.3289 },
+      { name: 'Crete', country: 'Greece', lat: 35.2401, lng: 24.8093 },
+      { name: 'Rhodes', country: 'Greece', lat: 36.4341, lng: 28.2176 },
+      { name: 'Corfu', country: 'Greece', lat: 39.6243, lng: 19.9217 },
+      { name: 'Thessaloniki', country: 'Greece', lat: 40.6401, lng: 22.9444 },
+      { name: 'Delphi', country: 'Greece', lat: 38.4824, lng: 22.5010 },
+      { name: 'Meteora', country: 'Greece', lat: 39.7217, lng: 21.6306 },
+      { name: 'Zakynthos', country: 'Greece', lat: 37.7870, lng: 20.8979 },
+      // Czech Republic
+      { name: 'Prague', country: 'Czech Republic', lat: 50.0755, lng: 14.4378 },
+      { name: 'Cesky Krumlov', country: 'Czech Republic', lat: 48.8127, lng: 14.3175 },
+      { name: 'Karlovy Vary', country: 'Czech Republic', lat: 50.2297, lng: 12.8714 },
+      { name: 'Brno', country: 'Czech Republic', lat: 49.1951, lng: 16.6068 },
+      // Poland
+      { name: 'Warsaw', country: 'Poland', lat: 52.2297, lng: 21.0122 },
+      { name: 'Krakow', country: 'Poland', lat: 50.0647, lng: 19.9450 },
+      { name: 'Gdansk', country: 'Poland', lat: 54.3520, lng: 18.6466 },
+      { name: 'Wroclaw', country: 'Poland', lat: 51.1079, lng: 17.0385 },
+      { name: 'Poznan', country: 'Poland', lat: 52.4064, lng: 16.9252 },
+      { name: 'Zakopane', country: 'Poland', lat: 49.2992, lng: 19.9496 },
+      // Hungary
+      { name: 'Budapest', country: 'Hungary', lat: 47.4979, lng: 19.0402 },
+      { name: 'Eger', country: 'Hungary', lat: 47.9025, lng: 20.3772 },
+      { name: 'Lake Balaton', country: 'Hungary', lat: 46.8333, lng: 17.7500 },
+      // Croatia
+      { name: 'Dubrovnik', country: 'Croatia', lat: 42.6507, lng: 18.0944 },
+      { name: 'Split', country: 'Croatia', lat: 43.5081, lng: 16.4402 },
+      { name: 'Zagreb', country: 'Croatia', lat: 45.8150, lng: 15.9819 },
+      { name: 'Plitvice Lakes', country: 'Croatia', lat: 44.8654, lng: 15.5820 },
+      { name: 'Hvar', country: 'Croatia', lat: 43.1729, lng: 16.4412 },
+      { name: 'Zadar', country: 'Croatia', lat: 44.1194, lng: 15.2314 },
+      { name: 'Rovinj', country: 'Croatia', lat: 45.0812, lng: 13.6387 },
+      // Slovenia
+      { name: 'Ljubljana', country: 'Slovenia', lat: 46.0569, lng: 14.5058 },
+      { name: 'Bled', country: 'Slovenia', lat: 46.3683, lng: 14.1146 },
+      { name: 'Piran', country: 'Slovenia', lat: 45.5283, lng: 13.5681 },
+      // Denmark
+      { name: 'Copenhagen', country: 'Denmark', lat: 55.6761, lng: 12.5683 },
+      { name: 'Aarhus', country: 'Denmark', lat: 56.1629, lng: 10.2039 },
+      { name: 'Odense', country: 'Denmark', lat: 55.4038, lng: 10.4024 },
+      // Sweden
+      { name: 'Stockholm', country: 'Sweden', lat: 59.3293, lng: 18.0686 },
+      { name: 'Gothenburg', country: 'Sweden', lat: 57.7089, lng: 11.9746 },
+      { name: 'Malmo', country: 'Sweden', lat: 55.6050, lng: 13.0038 },
+      { name: 'Uppsala', country: 'Sweden', lat: 59.8586, lng: 17.6389 },
+      { name: 'Lapland', country: 'Sweden', lat: 66.8309, lng: 20.3992 },
+      // Norway
+      { name: 'Oslo', country: 'Norway', lat: 59.9139, lng: 10.7522 },
+      { name: 'Bergen', country: 'Norway', lat: 60.3913, lng: 5.3221 },
+      { name: 'Tromso', country: 'Norway', lat: 69.6492, lng: 18.9553 },
+      { name: 'Stavanger', country: 'Norway', lat: 58.9700, lng: 5.7331 },
+      { name: 'Lofoten', country: 'Norway', lat: 68.2500, lng: 14.0000 },
+      { name: 'Geirangerfjord', country: 'Norway', lat: 62.1008, lng: 7.0940 },
+      { name: 'Flam', country: 'Norway', lat: 60.8628, lng: 7.1140 },
+      // Finland
+      { name: 'Helsinki', country: 'Finland', lat: 60.1699, lng: 24.9384 },
+      { name: 'Rovaniemi', country: 'Finland', lat: 66.5039, lng: 25.7294 },
+      { name: 'Turku', country: 'Finland', lat: 60.4518, lng: 22.2666 },
+      { name: 'Tampere', country: 'Finland', lat: 61.4978, lng: 23.7610 },
+      // Iceland
+      { name: 'Reykjavik', country: 'Iceland', lat: 64.1466, lng: -21.9426 },
+      { name: 'Blue Lagoon', country: 'Iceland', lat: 63.8804, lng: -22.4495 },
+      { name: 'Golden Circle', country: 'Iceland', lat: 64.3271, lng: -20.1199 },
+      { name: 'Vik', country: 'Iceland', lat: 63.4186, lng: -19.0060 },
+      // Ireland
+      { name: 'Dublin', country: 'Ireland', lat: 53.3498, lng: -6.2603 },
+      { name: 'Galway', country: 'Ireland', lat: 53.2707, lng: -9.0568 },
+      { name: 'Cork', country: 'Ireland', lat: 51.8985, lng: -8.4756 },
+      { name: 'Killarney', country: 'Ireland', lat: 52.0599, lng: -9.5044 },
+      { name: 'Cliffs of Moher', country: 'Ireland', lat: 52.9715, lng: -9.4309 },
+      { name: 'Ring of Kerry', country: 'Ireland', lat: 51.9442, lng: -9.8856 },
+      // Baltic States
+      { name: 'Tallinn', country: 'Estonia', lat: 59.4370, lng: 24.7536 },
+      { name: 'Riga', country: 'Latvia', lat: 56.9496, lng: 24.1052 },
+      { name: 'Vilnius', country: 'Lithuania', lat: 54.6872, lng: 25.2797 },
+      { name: 'Kaunas', country: 'Lithuania', lat: 54.8985, lng: 23.9036 },
+      // Romania
+      { name: 'Bucharest', country: 'Romania', lat: 44.4268, lng: 26.1025 },
+      { name: 'Brasov', country: 'Romania', lat: 45.6427, lng: 25.5887 },
+      { name: 'Transylvania', country: 'Romania', lat: 46.7712, lng: 23.6236 },
+      { name: 'Sibiu', country: 'Romania', lat: 45.7983, lng: 24.1256 },
+      { name: 'Cluj-Napoca', country: 'Romania', lat: 46.7712, lng: 23.6236 },
+      // Bulgaria
+      { name: 'Sofia', country: 'Bulgaria', lat: 42.6977, lng: 23.3219 },
+      { name: 'Plovdiv', country: 'Bulgaria', lat: 42.1354, lng: 24.7453 },
+      // Turkey (European part)
+      { name: 'Istanbul', country: 'Turkey', lat: 41.0082, lng: 28.9784 },
+      // Malta
+      { name: 'Valletta', country: 'Malta', lat: 35.8989, lng: 14.5146 },
+      { name: 'Mdina', country: 'Malta', lat: 35.8867, lng: 14.4028 },
+      { name: 'Gozo', country: 'Malta', lat: 36.0444, lng: 14.2510 },
+      // Luxembourg
+      { name: 'Luxembourg City', country: 'Luxembourg', lat: 49.6116, lng: 6.1319 },
+    ];
+
+    const EXCLUDED_TYPES = new Set([
+      'bar', 'restaurant', 'night_club', 'liquor_store',
+      'cafe', 'bakery', 'meal_delivery', 'meal_takeaway', 'food', 'lodging', 'hotel',
+    ]);
+
+    const typeMap: Record<string, string> = {
+      'museum': 'museum', 'art_gallery': 'museum', 'park': 'park',
+      'national_park': 'nature', 'amusement_park': 'entertainment',
+      'tourist_attraction': 'landmark', 'point_of_interest': 'landmark',
+      'church': 'religious', 'place_of_worship': 'religious',
+      'natural_feature': 'nature', 'beach': 'beach', 'zoo': 'nature',
+      'aquarium': 'nature', 'stadium': 'entertainment',
+      'historical_landmark': 'historical', 'monument': 'historical',
+    };
+
+    const mapCategory = (types: string[]): string | null => {
+      for (const type of types) if (EXCLUDED_TYPES.has(type)) return null;
+      for (const type of types) if (typeMap[type]) return typeMap[type];
+      return 'landmark';
+    };
+
+    const getPhotoUrl = (photoName: string, maxWidth: number = 800): string => {
+      return `https://places.googleapis.com/v1/${photoName}/media?maxWidthPx=${maxWidth}&key=${GOOGLE_API_KEY}`;
+    };
+
+    const searchAttractions = async (query: string, lat: number, lng: number): Promise<any[]> => {
+      try {
+        const response = await fetch('https://places.googleapis.com/v1/places:searchText', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': GOOGLE_API_KEY,
+            'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.types,places.rating,places.userRatingCount,places.editorialSummary,places.photos,places.websiteUri,places.internationalPhoneNumber',
+          },
+          body: JSON.stringify({
+            textQuery: query,
+            locationBias: { circle: { center: { latitude: lat, longitude: lng }, radius: 30000 } },
+            maxResultCount: 20,
+            languageCode: 'en',
+          }),
+        });
+        if (!response.ok) return [];
+        const data = await response.json() as { places?: any[] };
+        return data.places || [];
+      } catch { return []; }
+    };
+
+    const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
+
+    const stats = { citiesCreated: 0, citiesProcessed: 0, attractionsAdded: 0 };
+
+    const SEARCH_QUERIES = [
+      'famous tourist attractions in',
+      'historic landmarks in',
+      'museums in',
+      'popular things to do in',
+      'parks and nature in',
+      'monuments in',
+    ];
+
+    for (const cityData of EUROPE_CITIES) {
+      // Find or create country
+      let country = await prisma.country.findFirst({
+        where: { name: cityData.country }
+      });
+
+      if (!country) {
+        // Find Europe continent
+        const europe = await prisma.continent.findFirst({
+          where: { name: 'Europe' }
+        });
+        if (!europe) continue;
+
+        country = await prisma.country.create({
+          data: {
+            name: cityData.country,
+            code: cityData.country.substring(0, 2).toUpperCase(),
+            continentId: europe.id,
+          }
+        });
+      }
+
+      // Find or create city
+      let city = await prisma.city.findFirst({
+        where: { name: cityData.name, countryId: country.id }
+      });
+
+      if (!city) {
+        city = await prisma.city.create({
+          data: {
+            name: cityData.name,
+            countryId: country.id,
+            latitude: cityData.lat,
+            longitude: cityData.lng,
+          }
+        });
+        stats.citiesCreated++;
+      }
+
+      // Check current count
+      const currentCount = await prisma.attraction.count({ where: { cityId: city.id } });
+      if (currentCount >= 50) {
+        stats.citiesProcessed++;
+        continue;
+      }
+
+      const addedNames = new Set<string>();
+      const existing = await prisma.attraction.findMany({
+        where: { cityId: city.id },
+        select: { name: true }
+      });
+      existing.forEach(a => addedNames.add(a.name.toLowerCase()));
+
+      let cityAdded = 0;
+      for (const queryPrefix of SEARCH_QUERIES) {
+        if (cityAdded >= 50) break;
+
+        const query = `${queryPrefix} ${cityData.name} ${cityData.country}`;
+        const places = await searchAttractions(query, cityData.lat, cityData.lng);
+
+        for (const place of places) {
+          if (cityAdded >= 60) break;
+
+          const name = place.displayName?.text || '';
+          if (!name || addedNames.has(name.toLowerCase())) continue;
+
+          const category = mapCategory(place.types || []);
+          if (!category) continue;
+
+          const rating = place.rating || 0;
+          if (rating < 3.5) continue;
+
+          const images: string[] = [];
+          let thumbnailUrl = '';
+          if (place.photos?.length > 0) {
+            thumbnailUrl = getPhotoUrl(place.photos[0].name, 400);
+            for (let i = 0; i < Math.min(place.photos.length, 5); i++) {
+              images.push(getPhotoUrl(place.photos[i].name, 800));
+            }
+          }
+
+          try {
+            await prisma.attraction.create({
+              data: {
+                name,
+                description: place.editorialSummary?.text || `A popular attraction in ${cityData.name}, ${cityData.country}.`,
+                shortDescription: place.editorialSummary?.text?.substring(0, 150) || `Visit ${name} in ${cityData.name}`,
+                category: category as any,
+                cityId: city.id,
+                latitude: place.location?.latitude || cityData.lat,
+                longitude: place.location?.longitude || cityData.lng,
+                address: place.formattedAddress || `${cityData.name}, ${cityData.country}`,
+                images,
+                thumbnailUrl: thumbnailUrl || 'https://via.placeholder.com/400x300',
+                website: place.websiteUri || null,
+                contactPhone: place.internationalPhoneNumber || null,
+                averageRating: rating,
+                totalReviews: place.userRatingCount || 0,
+                isFree: false,
+              },
+            });
+            addedNames.add(name.toLowerCase());
+            cityAdded++;
+            stats.attractionsAdded++;
+          } catch { /* skip duplicates */ }
+        }
+        await delay(200);
+      }
+      stats.citiesProcessed++;
+      await delay(300);
+    }
+
+    // Get totals for Europe
+    const europe = await prisma.continent.findFirst({ where: { name: 'Europe' } });
+    const europeCountries = await prisma.country.findMany({
+      where: { continentId: europe?.id },
+      select: { id: true }
+    });
+    const countryIds = europeCountries.map(c => c.id);
+
+    const totalEurope = await prisma.attraction.count({
+      where: { city: { countryId: { in: countryIds } } }
+    });
+
+    const europeCities = await prisma.city.count({
+      where: { countryId: { in: countryIds } }
+    });
+
+    return {
+      success: true,
+      stats,
+      totals: {
+        europeCities,
+        europeAttractions: totalEurope,
+      },
+    };
+  }
+
   // ============ DASHBOARD STATS ============
 
   async getDashboardStats() {

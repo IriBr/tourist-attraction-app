@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { visitsApi } from '../api';
+import { visitsApi, tokenStorage } from '../api';
 
 interface VisitsState {
   visitedIds: Set<string>;
@@ -18,6 +18,12 @@ export const useVisitsStore = create<VisitsState>((set, get) => ({
   lastUpdated: 0,
 
   fetchVisits: async () => {
+    // Check if user is authenticated before fetching
+    const token = await tokenStorage.getAccessToken();
+    if (!token) {
+      return; // Skip if not authenticated
+    }
+
     // Avoid fetching if recently updated (within 10 seconds)
     const now = Date.now();
     if (now - get().lastUpdated < 10000 && get().visitedIds.size > 0) {
@@ -34,8 +40,8 @@ export const useVisitsStore = create<VisitsState>((set, get) => ({
         }
       });
       set({ visitedIds: visited, lastUpdated: now });
-    } catch (error) {
-      console.error('Failed to fetch visits:', error);
+    } catch {
+      // Silently handle all errors - visits are not critical
     } finally {
       set({ isLoading: false });
     }
@@ -43,6 +49,12 @@ export const useVisitsStore = create<VisitsState>((set, get) => ({
 
   // Force refresh regardless of cache
   refreshVisits: async () => {
+    // Check if user is authenticated before fetching
+    const token = await tokenStorage.getAccessToken();
+    if (!token) {
+      return; // Skip if not authenticated
+    }
+
     set({ isLoading: true });
     try {
       const visitsData = await visitsApi.getUserVisits({ limit: 500 });
@@ -53,8 +65,8 @@ export const useVisitsStore = create<VisitsState>((set, get) => ({
         }
       });
       set({ visitedIds: visited, lastUpdated: Date.now() });
-    } catch (error) {
-      console.error('Failed to refresh visits:', error);
+    } catch {
+      // Silently handle all errors - visits are not critical
     } finally {
       set({ isLoading: false });
     }

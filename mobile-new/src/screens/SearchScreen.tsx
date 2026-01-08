@@ -13,6 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import * as Location from 'expo-location';
 import { attractionsApi, locationsApi } from '../api';
 import { useVisitsStore } from '../store';
 import type { AttractionSummary } from '../types';
@@ -29,15 +30,18 @@ export function SearchScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const [searchQuery, setSearchQuery] = useState('');
-  const [popularAttractions, setPopularAttractions] = useState<AttractionSummary[]>([]);
+  const [nearbyAttractions, setNearbyAttractions] = useState<AttractionSummary[]>([]);
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
+  const [totalAttractions, setTotalAttractions] = useState<number>(0);
+  const [sectionTitle, setSectionTitle] = useState('Popular Attractions');
 
   const { visitedIds, fetchVisits } = useVisitsStore();
 
   useEffect(() => {
-    loadPopularAttractions();
+    loadAttractions();
+    loadTotalCount();
   }, []);
 
   // Fetch visits when screen comes into focus
@@ -58,13 +62,55 @@ export function SearchScreen() {
     }
   }, [searchQuery]);
 
-  const loadPopularAttractions = async () => {
+  const loadTotalCount = async () => {
+    try {
+      const data = await attractionsApi.search({ query: '', limit: 1 });
+      if (data.pagination?.totalItems) {
+        setTotalAttractions(data.pagination.totalItems);
+      }
+    } catch (error) {
+      console.error('Failed to load total count:', error);
+    }
+  };
+
+  const loadAttractions = async () => {
     try {
       setIsLoading(true);
+
+      // Try to get user's location
+      const { status } = await Location.requestForegroundPermissionsAsync();
+
+      if (status === 'granted') {
+        try {
+          const location = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.Balanced,
+          });
+
+          // Fetch nearby attractions (100km radius)
+          const nearby = await attractionsApi.getNearby(
+            location.coords.latitude,
+            location.coords.longitude,
+            100000, // 100km radius
+            undefined,
+            20
+          );
+
+          if (nearby && nearby.length > 0) {
+            setNearbyAttractions(nearby);
+            setSectionTitle('Nearby Attractions');
+            return;
+          }
+        } catch (locationError) {
+          console.log('Could not get precise location, falling back to popular');
+        }
+      }
+
+      // Fallback to popular attractions
       const data = await attractionsApi.getPopular(20);
-      setPopularAttractions(data.items || data);
+      setNearbyAttractions(data.items || data);
+      setSectionTitle('Popular Attractions');
     } catch (error) {
-      console.error('Failed to load popular attractions:', error);
+      console.error('Failed to load attractions:', error);
     } finally {
       setIsLoading(false);
     }
@@ -144,7 +190,9 @@ export function SearchScreen() {
       <View style={[styles.content, { paddingTop: insets.top + 16 }]}>
         {/* Header */}
         <Text style={styles.title}>Explore</Text>
-        <Text style={styles.subtitle}>Discover 730 attractions worldwide</Text>
+        <Text style={styles.subtitle}>
+          Discover {totalAttractions > 0 ? totalAttractions.toLocaleString() : '...'} attractions worldwide
+        </Text>
 
         {/* Search Input */}
         <View style={styles.searchContainer}>
@@ -192,15 +240,15 @@ export function SearchScreen() {
           </View>
         )}
 
-        {/* Popular Attractions */}
+        {/* Nearby/Popular Attractions */}
         {searchQuery.length < 2 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Popular Attractions</Text>
+            <Text style={styles.sectionTitle}>{sectionTitle}</Text>
             {isLoading ? (
               <ActivityIndicator size="large" color={colors.secondary} style={{ marginTop: 40 }} />
             ) : (
               <FlatList
-                data={popularAttractions}
+                data={nearbyAttractions}
                 keyExtractor={(item) => item.id}
                 numColumns={2}
                 columnWrapperStyle={styles.gridRow}
