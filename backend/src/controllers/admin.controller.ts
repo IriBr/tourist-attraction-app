@@ -238,7 +238,9 @@ export class AdminController {
 
   async seedEurope(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await adminService.seedEurope();
+      const startIndex = parseInt(req.query.start as string) || 0;
+      const batchSize = parseInt(req.query.batch as string) || 20;
+      const result = await adminService.seedEurope(startIndex, batchSize);
       res.json(result);
     } catch (error) {
       next(error);

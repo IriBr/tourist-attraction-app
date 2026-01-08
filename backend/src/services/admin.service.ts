@@ -1465,14 +1465,14 @@ export class AdminService {
     };
   }
 
-  async seedEurope() {
+  async seedEurope(startIndex: number = 0, batchSize: number = 20) {
     const GOOGLE_API_KEY = process.env.GOOGLE_PLACES_API_KEY;
     if (!GOOGLE_API_KEY) {
       throw new Error('GOOGLE_PLACES_API_KEY environment variable is required');
     }
 
     // European cities to seed - comprehensive list by country
-    const EUROPE_CITIES: { name: string; country: string; lat: number; lng: number }[] = [
+    const ALL_EUROPE_CITIES: { name: string; country: string; lat: number; lng: number }[] = [
       // United Kingdom
       { name: 'London', country: 'United Kingdom', lat: 51.5074, lng: -0.1278 },
       { name: 'Edinburgh', country: 'United Kingdom', lat: 55.9533, lng: -3.1883 },
@@ -1752,7 +1752,7 @@ export class AdminService {
 
     const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
 
-    const stats = { citiesCreated: 0, citiesProcessed: 0, attractionsAdded: 0 };
+    const stats = { citiesCreated: 0, citiesProcessed: 0, attractionsAdded: 0, startIndex, batchSize, totalCities: ALL_EUROPE_CITIES.length };
 
     const SEARCH_QUERIES = [
       'famous tourist attractions in',
@@ -1762,6 +1762,9 @@ export class AdminService {
       'parks and nature in',
       'monuments in',
     ];
+
+    // Process only the batch
+    const EUROPE_CITIES = ALL_EUROPE_CITIES.slice(startIndex, startIndex + batchSize);
 
     for (const cityData of EUROPE_CITIES) {
       // Find or create country
