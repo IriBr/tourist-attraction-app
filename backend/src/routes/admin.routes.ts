@@ -26,6 +26,7 @@ router.put('/attractions/:attractionId', adminController.updateAttraction.bind(a
 router.delete('/attractions/:attractionId', adminController.deleteAttraction.bind(adminController));
 router.delete('/attractions/category/:category', adminController.deleteAttractionsByCategory.bind(adminController));
 router.delete('/attractions/continent/:continent', adminController.deleteAttractionsByContinent.bind(adminController));
+router.post('/locations/delete-countries', adminController.deleteCountries.bind(adminController));
 
 // ============ LOCATION MANAGEMENT ============
 router.get('/locations/countries', adminController.getAllCountries.bind(adminController));

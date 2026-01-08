@@ -367,6 +367,49 @@ export class AdminService {
     };
   }
 
+  async deleteCountriesByNames(countryNames: string[]) {
+    // Find countries
+    const countries = await prisma.country.findMany({
+      where: { name: { in: countryNames } },
+      include: { cities: { select: { id: true } } },
+    });
+
+    if (countries.length === 0) {
+      return { success: true, message: 'No countries found', deleted: 0 };
+    }
+
+    const cityIds = countries.flatMap((c) => c.cities.map((city) => city.id));
+    const countryIds = countries.map((c) => c.id);
+
+    // Delete attractions in these cities first
+    if (cityIds.length > 0) {
+      const attractions = await prisma.attraction.findMany({
+        where: { cityId: { in: cityIds } },
+        select: { id: true },
+      });
+      const attractionIds = attractions.map((a) => a.id);
+
+      if (attractionIds.length > 0) {
+        await prisma.visit.deleteMany({ where: { attractionId: { in: attractionIds } } });
+        await prisma.favorite.deleteMany({ where: { attractionId: { in: attractionIds } } });
+        await prisma.review.deleteMany({ where: { attractionId: { in: attractionIds } } });
+        await prisma.attraction.deleteMany({ where: { id: { in: attractionIds } } });
+      }
+
+      // Delete cities
+      await prisma.city.deleteMany({ where: { id: { in: cityIds } } });
+    }
+
+    // Delete countries
+    const result = await prisma.country.deleteMany({ where: { id: { in: countryIds } } });
+
+    return {
+      success: true,
+      message: `Deleted ${result.count} countries: ${countryNames.join(', ')}`,
+      deleted: result.count,
+    };
+  }
+
   async deleteAttractionsByContinent(continentName: string) {
     // Find continent and all its city IDs
     const continent = await prisma.continent.findFirst({

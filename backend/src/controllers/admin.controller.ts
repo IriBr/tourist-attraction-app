@@ -148,6 +148,19 @@ export class AdminController {
     }
   }
 
+  async deleteCountries(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { countries } = req.body;
+      if (!countries || !Array.isArray(countries)) {
+        return res.status(400).json({ success: false, error: 'countries array required' });
+      }
+      const result = await adminService.deleteCountriesByNames(countries);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   // ============ LOCATION MANAGEMENT ============
 
   async getAllCountries(req: Request, res: Response, next: NextFunction) {
