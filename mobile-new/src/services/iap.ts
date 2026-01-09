@@ -1,4 +1,18 @@
-import * as InAppPurchases from 'expo-in-app-purchases';
+import {
+  initConnection,
+  endConnection,
+  fetchProducts,
+  requestPurchase,
+  getAvailablePurchases,
+  finishTransaction,
+  purchaseUpdatedListener,
+  purchaseErrorListener,
+  type Purchase,
+  type PurchaseError,
+  type ProductSubscription,
+  type EventSubscription,
+  ErrorCode,
+} from 'react-native-iap';
 import { Platform } from 'react-native';
 import { subscriptionApi } from '../api';
 
@@ -7,6 +21,8 @@ export const PRODUCT_IDS = {
   MONTHLY: 'wandr_premium_monthly',
   ANNUAL: 'wandr_premium_annual',
 };
+
+const SUBSCRIPTION_SKUS = [PRODUCT_IDS.MONTHLY, PRODUCT_IDS.ANNUAL];
 
 export interface IAPProduct {
   productId: string;
@@ -20,35 +36,87 @@ export interface IAPProduct {
 class IAPService {
   private isConnected = false;
   private products: IAPProduct[] = [];
+  private purchaseUpdateSubscription: EventSubscription | null = null;
+  private purchaseErrorSubscription: EventSubscription | null = null;
+  private onPurchaseSuccess: (() => void) | null = null;
+  private onPurchaseError: ((error: string) => void) | null = null;
 
   async connect(): Promise<void> {
     if (this.isConnected) return;
 
     try {
-      await InAppPurchases.connectAsync();
+      const result = await initConnection();
+      console.log('IAP Connection result:', result);
       this.isConnected = true;
 
-      // Set up purchase listener
-      InAppPurchases.setPurchaseListener(({ responseCode, results, errorCode }) => {
-        if (responseCode === InAppPurchases.IAPResponseCode.OK) {
-          results?.forEach(async (purchase) => {
-            if (!purchase.acknowledged) {
-              // Validate receipt with backend
-              await this.validatePurchase(purchase);
-
-              // Finish the transaction
-              await InAppPurchases.finishTransactionAsync(purchase, true);
-            }
-          });
-        } else if (responseCode === InAppPurchases.IAPResponseCode.USER_CANCELED) {
-          console.log('User cancelled the purchase');
-        } else {
-          console.error('Purchase error:', errorCode);
-        }
-      });
+      // Set up purchase listeners
+      this.setupListeners();
     } catch (error) {
       console.error('Failed to connect to IAP:', error);
       throw error;
+    }
+  }
+
+  private setupListeners(): void {
+    // Remove existing listeners if any
+    this.removeListeners();
+
+    // Listen for successful purchases
+    this.purchaseUpdateSubscription = purchaseUpdatedListener(
+      async (purchase: Purchase) => {
+        console.log('Purchase updated:', purchase);
+
+        const receipt = purchase.purchaseToken;
+        if (receipt) {
+          try {
+            // Validate receipt with backend
+            await this.validatePurchase(purchase);
+
+            // Finish the transaction
+            await finishTransaction({ purchase, isConsumable: false });
+            console.log('Transaction finished successfully');
+
+            // Notify success callback
+            if (this.onPurchaseSuccess) {
+              this.onPurchaseSuccess();
+            }
+          } catch (error) {
+            console.error('Error processing purchase:', error);
+            if (this.onPurchaseError) {
+              this.onPurchaseError('Failed to process purchase. Please contact support.');
+            }
+          }
+        }
+      }
+    );
+
+    // Listen for purchase errors
+    this.purchaseErrorSubscription = purchaseErrorListener(
+      (error: PurchaseError) => {
+        console.log('Purchase error:', error);
+
+        if (error.code === ErrorCode.UserCancelled) {
+          // User cancelled - not an error
+          if (this.onPurchaseError) {
+            this.onPurchaseError('Purchase was cancelled.');
+          }
+        } else {
+          if (this.onPurchaseError) {
+            this.onPurchaseError(error.message || 'Purchase failed. Please try again.');
+          }
+        }
+      }
+    );
+  }
+
+  private removeListeners(): void {
+    if (this.purchaseUpdateSubscription) {
+      this.purchaseUpdateSubscription.remove();
+      this.purchaseUpdateSubscription = null;
+    }
+    if (this.purchaseErrorSubscription) {
+      this.purchaseErrorSubscription.remove();
+      this.purchaseErrorSubscription = null;
     }
   }
 
@@ -56,7 +124,8 @@ class IAPService {
     if (!this.isConnected) return;
 
     try {
-      await InAppPurchases.disconnectAsync();
+      this.removeListeners();
+      await endConnection();
       this.isConnected = false;
     } catch (error) {
       console.error('Failed to disconnect from IAP:', error);
@@ -69,41 +138,88 @@ class IAPService {
     }
 
     try {
-      const { responseCode, results } = await InAppPurchases.getProductsAsync([
-        PRODUCT_IDS.MONTHLY,
-        PRODUCT_IDS.ANNUAL,
-      ]);
+      console.log('Fetching subscriptions for SKUs:', SUBSCRIPTION_SKUS);
+      const subscriptions = await fetchProducts({
+        skus: SUBSCRIPTION_SKUS,
+        type: 'subs',
+      });
+      console.log('Received subscriptions:', subscriptions);
 
-      if (responseCode === InAppPurchases.IAPResponseCode.OK && results) {
-        this.products = results.map((product) => ({
-          productId: product.productId,
-          title: product.title,
-          description: product.description,
-          price: product.price,
-          priceAmountMicros: product.priceAmountMicros,
-          priceCurrencyCode: product.priceCurrencyCode,
-        }));
-        return this.products;
+      if (!subscriptions || subscriptions.length === 0) {
+        console.warn('No subscriptions returned from App Store');
+        return [];
       }
 
-      return [];
+      this.products = subscriptions.map((sub) => {
+        const productSub = sub as ProductSubscription;
+        return {
+          productId: productSub.id,
+          title: productSub.title || productSub.id,
+          description: productSub.description || '',
+          price: productSub.displayPrice || '',
+          priceAmountMicros: (productSub.price || 0) * 1000000,
+          priceCurrencyCode: productSub.currency || 'USD',
+        };
+      });
+
+      return this.products;
     } catch (error) {
       console.error('Failed to get products:', error);
       return [];
     }
   }
 
-  async purchaseProduct(productId: string): Promise<boolean> {
+  async purchaseProduct(
+    productId: string,
+    onSuccess?: () => void,
+    onError?: (error: string) => void
+  ): Promise<void> {
     if (!this.isConnected) {
-      await this.connect();
+      try {
+        await this.connect();
+      } catch (connectError) {
+        console.error('IAP connect failed:', connectError);
+        throw new Error('Unable to connect to the App Store. Please try again.');
+      }
     }
 
+    // Store callbacks for listener
+    this.onPurchaseSuccess = onSuccess || null;
+    this.onPurchaseError = onError || null;
+
     try {
-      await InAppPurchases.purchaseItemAsync(productId);
-      return true;
-    } catch (error) {
-      console.error('Purchase failed:', error);
-      return false;
+      console.log('Requesting subscription for:', productId);
+
+      // Use the new requestPurchase API with platform-specific config
+      if (Platform.OS === 'ios') {
+        await requestPurchase({
+          request: {
+            apple: { sku: productId },
+          },
+          type: 'subs',
+        });
+      } else {
+        await requestPurchase({
+          request: {
+            google: { skus: [productId] },
+          },
+          type: 'subs',
+        });
+      }
+
+      console.log('Purchase request initiated');
+      // The actual result will come through the purchaseUpdatedListener
+    } catch (error: any) {
+      console.error('Purchase request failed:', error);
+
+      // Clear callbacks
+      this.onPurchaseSuccess = null;
+      this.onPurchaseError = null;
+
+      if (error?.code === ErrorCode.UserCancelled) {
+        throw new Error('Purchase was cancelled.');
+      }
+      throw new Error(error?.message || 'Purchase failed. Please try again.');
     }
   }
 
@@ -113,11 +229,13 @@ class IAPService {
     }
 
     try {
-      const { responseCode, results } = await InAppPurchases.getPurchaseHistoryAsync();
+      console.log('Restoring purchases...');
+      const purchases = await getAvailablePurchases();
+      console.log('Available purchases:', purchases);
 
-      if (responseCode === InAppPurchases.IAPResponseCode.OK && results) {
+      if (purchases && purchases.length > 0) {
         // Find active subscription
-        for (const purchase of results) {
+        for (const purchase of purchases) {
           const isValid = await this.validatePurchase(purchase);
           if (isValid) {
             return true;
@@ -132,11 +250,17 @@ class IAPService {
     }
   }
 
-  private async validatePurchase(purchase: InAppPurchases.InAppPurchase): Promise<boolean> {
+  private async validatePurchase(purchase: Purchase): Promise<boolean> {
     try {
+      const receipt = purchase.purchaseToken;
+      if (!receipt) {
+        console.warn('No receipt found on purchase');
+        return false;
+      }
+
       // Send receipt to backend for validation
       const response = await subscriptionApi.validateAppleReceipt(
-        purchase.transactionReceipt || '',
+        receipt,
         purchase.productId
       );
 

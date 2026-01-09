@@ -86,8 +86,20 @@ export function PremiumScreen() {
       await iapService.connect();
       const loadedProducts = await iapService.getProducts();
       setProducts(loadedProducts);
+
+      if (loadedProducts.length === 0) {
+        console.warn('No products returned from App Store');
+      }
     } catch (error) {
       console.error('Failed to load products:', error);
+      Alert.alert(
+        'Store Connection Issue',
+        'Unable to load subscription options. Please check your internet connection and try again.',
+        [
+          { text: 'Retry', onPress: loadProducts },
+          { text: 'OK', style: 'cancel' },
+        ]
+      );
     } finally {
       setIsLoading(false);
     }
@@ -101,24 +113,48 @@ export function PremiumScreen() {
   const handleUpgrade = async () => {
     const productId = selectedPlan === 'monthly' ? PRODUCT_IDS.MONTHLY : PRODUCT_IDS.ANNUAL;
 
+    // Check if products were loaded successfully
+    if (products.length === 0) {
+      Alert.alert(
+        'Store Unavailable',
+        'Unable to connect to the App Store. Please check your internet connection and try again.',
+        [
+          { text: 'Retry', onPress: loadProducts },
+          { text: 'Cancel', style: 'cancel' },
+        ]
+      );
+      return;
+    }
+
     setIsProcessing(true);
     try {
-      const success = await iapService.purchaseProduct(productId);
-      if (success) {
-        // Purchase was initiated, the listener will handle the result
-        // Refresh status after a short delay
-        setTimeout(() => {
-          fetchStatus();
-        }, 2000);
-      }
+      await iapService.purchaseProduct(
+        productId,
+        // onSuccess callback
+        () => {
+          setIsProcessing(false);
+          Alert.alert(
+            'Welcome to Premium!',
+            'Your subscription is now active. Enjoy unlimited access to all features!',
+            [{ text: 'OK', onPress: () => fetchStatus() }]
+          );
+        },
+        // onError callback
+        (errorMessage: string) => {
+          setIsProcessing(false);
+          if (errorMessage !== 'Purchase was cancelled.') {
+            Alert.alert('Purchase Issue', errorMessage);
+          }
+        }
+      );
+      // Purchase was initiated - waiting for listener callbacks
     } catch (error: any) {
       console.error('Purchase error:', error);
+      setIsProcessing(false);
       Alert.alert(
         'Purchase Failed',
         error.message || 'Unable to complete purchase. Please try again.'
       );
-    } finally {
-      setIsProcessing(false);
     }
   };
 

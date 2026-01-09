@@ -90,7 +90,7 @@ export function CameraScreen() {
             We need camera access to let you capture your travel memories
           </Text>
           <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
-            <Text style={styles.permissionButtonText}>Grant Permission</Text>
+            <Text style={styles.permissionButtonText}>Continue</Text>
           </TouchableOpacity>
         </View>
       </LinearGradient>

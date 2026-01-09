@@ -1836,6 +1836,19 @@ export class AdminService {
       // Bulgaria
       { name: 'Sofia', country: 'Bulgaria', lat: 42.6977, lng: 23.3219 },
       { name: 'Plovdiv', country: 'Bulgaria', lat: 42.1354, lng: 24.7453 },
+      // Albania
+      { name: 'Tirana', country: 'Albania', lat: 41.3275, lng: 19.8187 },
+      { name: 'Durrës', country: 'Albania', lat: 41.3246, lng: 19.4565 },
+      { name: 'Berat', country: 'Albania', lat: 40.7058, lng: 19.9522 },
+      { name: 'Gjirokastër', country: 'Albania', lat: 40.0758, lng: 20.1389 },
+      { name: 'Shkodër', country: 'Albania', lat: 42.0683, lng: 19.5126 },
+      { name: 'Vlorë', country: 'Albania', lat: 40.4667, lng: 19.4897 },
+      { name: 'Sarandë', country: 'Albania', lat: 39.8664, lng: 20.0050 },
+      { name: 'Korçë', country: 'Albania', lat: 40.6186, lng: 20.7808 },
+      { name: 'Pogradec', country: 'Albania', lat: 40.9025, lng: 20.6528 },
+      { name: 'Krujë', country: 'Albania', lat: 41.5089, lng: 19.7928 },
+      { name: 'Himarë', country: 'Albania', lat: 40.1028, lng: 19.7514 },
+      { name: 'Ksamil', country: 'Albania', lat: 39.7700, lng: 20.0008 },
       // Turkey (European part)
       { name: 'Istanbul', country: 'Turkey', lat: 41.0082, lng: 28.9784 },
       // Malta
