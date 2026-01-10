@@ -11,6 +11,8 @@ const envSchema = z.object({
   JWT_EXPIRES_IN: z.string().default('7d'),
   REFRESH_TOKEN_EXPIRES_IN: z.string().default('30d'),
   GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_IOS_CLIENT_ID: z.string().optional(),
+  GOOGLE_ANDROID_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
   APPLE_CLIENT_ID: z.string().optional(),
   APPLE_TEAM_ID: z.string().optional(),
@@ -54,6 +56,8 @@ export const config = {
   },
   google: {
     clientId: parsed.data.GOOGLE_CLIENT_ID,
+    iosClientId: parsed.data.GOOGLE_IOS_CLIENT_ID,
+    androidClientId: parsed.data.GOOGLE_ANDROID_CLIENT_ID,
     clientSecret: parsed.data.GOOGLE_CLIENT_SECRET,
     mapsApiKey: parsed.data.GOOGLE_MAPS_API_KEY,
   },

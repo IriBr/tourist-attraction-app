@@ -326,9 +326,16 @@ export async function googleLogin(idToken: string): Promise<AuthResponse> {
     throw new BadRequestError('Google login is not configured');
   }
 
+  // Accept tokens from Web, iOS, and Android clients
+  const validAudiences = [
+    config.google.clientId,
+    config.google.iosClientId,
+    config.google.androidClientId,
+  ].filter(Boolean) as string[];
+
   const ticket = await googleClient.verifyIdToken({
     idToken,
-    audience: config.google.clientId,
+    audience: validAudiences,
   });
 
   const payload = ticket.getPayload();
