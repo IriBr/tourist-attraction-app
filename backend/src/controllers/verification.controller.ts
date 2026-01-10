@@ -2,11 +2,12 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { sendSuccess, sendCreated } from '../utils/response.js';
-import { BadRequestError, NotFoundError, RateLimitError } from '../utils/errors.js';
+import { BadRequestError, NotFoundError, ForbiddenError } from '../utils/errors.js';
 import { config } from '../config/index.js';
 import * as visionService from '../services/vision.service.js';
 import * as attractionService from '../services/attraction.service.js';
 import * as visitService from '../services/visit.service.js';
+import { subscriptionService } from '../services/subscription.service.js';
 import { prisma } from '../config/database.js';
 
 // Validation schemas
@@ -21,38 +22,11 @@ const confirmSchema = z.object({
   attractionId: z.string().uuid(),
 });
 
-// Rate limits by subscription tier
-const RATE_LIMITS = {
-  free: 5,
-  premium: 50,
-};
-
 /**
- * Check if user has exceeded daily verification limit
+ * Check if user has premium access for camera scanning
  */
-async function checkRateLimit(userId: string): Promise<{ allowed: boolean; remaining: number }> {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { subscriptionTier: true },
-  });
-
-  const tier = user?.subscriptionTier || 'free';
-  const limit = RATE_LIMITS[tier as keyof typeof RATE_LIMITS] || RATE_LIMITS.free;
-
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
-
-  const todayScans = await prisma.dailyScan.count({
-    where: {
-      userId,
-      scanDate: { gte: startOfDay },
-    },
-  });
-
-  return {
-    allowed: todayScans < limit,
-    remaining: Math.max(0, limit - todayScans),
-  };
+async function checkPremiumAccess(userId: string): Promise<{ allowed: boolean; reason?: string }> {
+  return subscriptionService.canUseFeature(userId, 'camera_scanning');
 }
 
 /**
@@ -89,16 +63,16 @@ function mapAttractionToResponse(attraction: any) {
 
 /**
  * POST /api/v1/verification/verify
- * Verify an attraction from an image
+ * Verify an attraction from an image (Premium feature)
  */
 export const verifyAttraction = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user!.id;
   const data = verifySchema.parse(req.body);
 
-  // Check rate limit
-  const rateLimit = await checkRateLimit(userId);
-  if (!rateLimit.allowed) {
-    throw new RateLimitError();
+  // Check premium access - camera scanning is premium only
+  const premiumAccess = await checkPremiumAccess(userId);
+  if (!premiumAccess.allowed) {
+    throw new ForbiddenError(premiumAccess.reason || 'Camera scanning requires Premium subscription');
   }
 
   // Determine search mode based on location
@@ -133,7 +107,6 @@ export const verifyAttraction = asyncHandler(async (req: Request, res: Response)
         matched: false,
         confidence: 0,
         message: 'No attractions found within the specified area. Try expanding your search radius.',
-        scansRemaining: rateLimit.remaining - 1,
       });
     }
   } else {
@@ -148,7 +121,6 @@ export const verifyAttraction = asyncHandler(async (req: Request, res: Response)
         matched: false,
         confidence: 0,
         message: 'Could not identify a tourist attraction in this image. Please try a clearer photo.',
-        scansRemaining: rateLimit.remaining - 1,
       });
     }
 
@@ -177,7 +149,6 @@ export const verifyAttraction = asyncHandler(async (req: Request, res: Response)
         matched: false,
         confidence: 0,
         message: 'No matching attractions found in our database.',
-        scansRemaining: rateLimit.remaining - 1,
       });
     }
   }
@@ -209,7 +180,6 @@ export const verifyAttraction = asyncHandler(async (req: Request, res: Response)
           id: visitResult.visit.id,
           visitDate: visitResult.visit.visitDate,
         },
-        scansRemaining: rateLimit.remaining - 1,
       });
     } catch (error: any) {
       // Handle duplicate visit
@@ -222,7 +192,6 @@ export const verifyAttraction = asyncHandler(async (req: Request, res: Response)
           attraction: mapAttractionToResponse(attraction),
           alreadyVisited: true,
           message: 'You have already visited this attraction!',
-          scansRemaining: rateLimit.remaining - 1,
         });
       }
       throw error;
@@ -239,7 +208,6 @@ export const verifyAttraction = asyncHandler(async (req: Request, res: Response)
       suggestion: mapAttractionToResponse(attraction),
       message: `Is this ${attraction.name}?`,
       explanation: result.explanation,
-      scansRemaining: rateLimit.remaining - 1,
     });
   }
 
@@ -249,7 +217,6 @@ export const verifyAttraction = asyncHandler(async (req: Request, res: Response)
     confidence: result.confidence,
     message: 'No matching attraction found. Please try a different angle or clearer photo.',
     explanation: result.explanation,
-    scansRemaining: rateLimit.remaining - 1,
   });
 });
 
@@ -296,24 +263,18 @@ export const confirmSuggestion = asyncHandler(async (req: Request, res: Response
 
 /**
  * GET /api/v1/verification/status
- * Get user's verification status (scans remaining, etc.)
+ * Get user's verification status (premium access check)
  */
 export const getVerificationStatus = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user!.id;
-  const rateLimit = await checkRateLimit(userId);
-
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { subscriptionTier: true },
-  });
-
-  const tier = user?.subscriptionTier || 'free';
-  const limit = RATE_LIMITS[tier as keyof typeof RATE_LIMITS] || RATE_LIMITS.free;
+  const status = await subscriptionService.getSubscriptionStatus(userId);
 
   sendSuccess(res, {
-    tier,
-    dailyLimit: limit,
-    scansRemaining: rateLimit.remaining,
-    scansUsed: limit - rateLimit.remaining,
+    tier: status.tier,
+    isPremium: status.isPremium,
+    canUseCameraScanning: status.features.canUseCameraScanning,
+    message: status.features.canUseCameraScanning
+      ? 'Camera scanning is available'
+      : 'Upgrade to Premium to use camera scanning',
   });
 });

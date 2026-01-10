@@ -28,15 +28,18 @@ export const getStatus = asyncHandler(async (req: Request, res: Response) => {
 });
 
 /**
- * Check if user can scan
+ * Check if user can use camera scanning (premium feature)
  */
 export const canScan = asyncHandler(async (req: Request, res: Response) => {
-  const result = await subscriptionService.canUserScan(req.user!.id);
-  sendSuccess(res, result);
+  const result = await subscriptionService.canUseFeature(req.user!.id, 'camera_scanning');
+  sendSuccess(res, {
+    canScan: result.allowed,
+    reason: result.reason,
+  });
 });
 
 /**
- * Record a scan (decrements daily limit for free users)
+ * Record a scan (premium users only)
  */
 export const recordScan = asyncHandler(async (req: Request, res: Response) => {
   const data = recordScanSchema.parse(req.body);
@@ -49,11 +52,15 @@ export const recordScan = asyncHandler(async (req: Request, res: Response) => {
 });
 
 /**
- * Get today's scans
+ * Get today's scans (kept for backwards compatibility)
  */
 export const getTodayScans = asyncHandler(async (req: Request, res: Response) => {
-  const scans = await subscriptionService.getTodayScans(req.user!.id);
-  sendSuccess(res, { scans });
+  // This endpoint now just returns the premium status
+  const status = await subscriptionService.getSubscriptionStatus(req.user!.id);
+  sendSuccess(res, {
+    canUseCameraScanning: status.features.canUseCameraScanning,
+    isPremium: status.isPremium,
+  });
 });
 
 /**
@@ -88,11 +95,19 @@ export const cancelSubscription = asyncHandler(async (req: Request, res: Respons
 });
 
 /**
- * Get free tier limits (public endpoint)
+ * Get premium features info (public endpoint)
  */
 export const getFreeTierLimits = asyncHandler(async (_req: Request, res: Response) => {
-  const limits = subscriptionService.getFreeTierLimits();
-  sendSuccess(res, limits);
+  const features = subscriptionService.getPremiumFeatures();
+  sendSuccess(res, {
+    freeFeatures: {
+      viewAllAttractions: true,
+      searchAttractions: true,
+      markVisited: true,
+      trackProgress: true,
+    },
+    premiumFeatures: features,
+  });
 });
 
 // ============ STRIPE INTEGRATION ============

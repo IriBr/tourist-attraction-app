@@ -1,10 +1,19 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
 import * as attractionService from '../services/attraction.service.js';
+import { subscriptionService } from '../services/subscription.service.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { sendSuccess, sendPaginated } from '../utils/response.js';
 import { calculatePagination } from '../utils/response.js';
 import { AttractionCategory } from '@tourist-app/shared';
+import { ForbiddenError } from '../utils/errors.js';
+
+/**
+ * Check if request uses filter parameters (premium feature)
+ */
+function hasFilterParams(params: any): boolean {
+  return !!(params.category || params.minRating !== undefined || params.isFree !== undefined);
+}
 
 const searchSchema = z.object({
   query: z.string().optional(),
@@ -44,22 +53,22 @@ export const searchAttractions = asyncHandler(
     const params = searchSchema.parse(req.query);
     const { page, limit } = calculatePagination(params.page, params.limit);
 
+    // Check if filters are being used (premium feature)
+    if (hasFilterParams(params) && req.user?.id) {
+      const canFilter = await subscriptionService.canUseFeature(req.user.id, 'filters');
+      if (!canFilter.allowed) {
+        throw new ForbiddenError(canFilter.reason || 'Filters require Premium subscription');
+      }
+    } else if (hasFilterParams(params) && !req.user?.id) {
+      throw new ForbiddenError('Filters require Premium subscription. Please sign in and upgrade.');
+    }
+
     const { items, total } = await attractionService.searchAttractions(
       { ...params, page, limit },
       req.user?.id
     );
 
-    // Apply subscription-based limits
-    const limitedResults = await attractionService.applySubscriptionLimit(
-      items,
-      total,
-      req.user?.id
-    );
-
-    sendPaginated(res, limitedResults.items, page, limit, limitedResults.total, {
-      isLimited: limitedResults.isLimited,
-      subscriptionLimit: limitedResults.limit,
-    });
+    sendPaginated(res, items, page, limit, total);
   }
 );
 
@@ -75,6 +84,16 @@ export const getNearbyAttractions = asyncHandler(
   async (req: Request, res: Response) => {
     const params = nearbySchema.parse(req.query);
 
+    // Check if category filter is being used (premium feature)
+    if (params.category && req.user?.id) {
+      const canFilter = await subscriptionService.canUseFeature(req.user.id, 'filters');
+      if (!canFilter.allowed) {
+        throw new ForbiddenError(canFilter.reason || 'Filters require Premium subscription');
+      }
+    } else if (params.category && !req.user?.id) {
+      throw new ForbiddenError('Filters require Premium subscription. Please sign in and upgrade.');
+    }
+
     const attractions = await attractionService.getNearbyAttractions(
       params.latitude,
       params.longitude,
@@ -84,24 +103,24 @@ export const getNearbyAttractions = asyncHandler(
       req.user?.id
     );
 
-    // Apply subscription-based limits
-    const limitedResults = await attractionService.applySubscriptionLimit(
-      attractions,
-      attractions.length,
-      req.user?.id
-    );
-
-    sendSuccess(res, {
-      items: limitedResults.items,
-      isLimited: limitedResults.isLimited,
-      subscriptionLimit: limitedResults.limit,
-    });
+    sendSuccess(res, { items: attractions });
   }
 );
 
 export const getAttractionsByCategory = asyncHandler(
   async (req: Request, res: Response) => {
     const { category } = categorySchema.parse(req.params);
+
+    // Category filtering is a premium feature
+    if (req.user?.id) {
+      const canFilter = await subscriptionService.canUseFeature(req.user.id, 'filters');
+      if (!canFilter.allowed) {
+        throw new ForbiddenError(canFilter.reason || 'Browsing by category requires Premium subscription');
+      }
+    } else {
+      throw new ForbiddenError('Browsing by category requires Premium subscription. Please sign in and upgrade.');
+    }
+
     const { page, limit } = calculatePagination(
       req.query.page ? Number(req.query.page) : undefined,
       req.query.limit ? Number(req.query.limit) : undefined
@@ -114,17 +133,7 @@ export const getAttractionsByCategory = asyncHandler(
       req.user?.id
     );
 
-    // Apply subscription-based limits
-    const limitedResults = await attractionService.applySubscriptionLimit(
-      items,
-      total,
-      req.user?.id
-    );
-
-    sendPaginated(res, limitedResults.items, page, limit, limitedResults.total, {
-      isLimited: limitedResults.isLimited,
-      subscriptionLimit: limitedResults.limit,
-    });
+    sendPaginated(res, items, page, limit, total);
   }
 );
 
@@ -136,18 +145,7 @@ export const getPopularAttractions = asyncHandler(
       req.user?.id
     );
 
-    // Apply subscription-based limits
-    const limitedResults = await attractionService.applySubscriptionLimit(
-      attractions,
-      attractions.length,
-      req.user?.id
-    );
-
-    sendSuccess(res, {
-      items: limitedResults.items,
-      isLimited: limitedResults.isLimited,
-      subscriptionLimit: limitedResults.limit,
-    });
+    sendSuccess(res, { items: attractions });
   }
 );
 
@@ -161,7 +159,17 @@ const nearbyUnvisitedSchema = z.object({
 export const getNearbyUnvisitedAttractions = asyncHandler(
   async (req: Request, res: Response) => {
     if (!req.user?.id) {
-      return sendSuccess(res, { items: [] });
+      return sendSuccess(res, { items: [], isPremiumFeature: true });
+    }
+
+    // Proximity notifications are a premium feature
+    const canReceive = await subscriptionService.canUseFeature(req.user.id, 'proximity_notifications');
+    if (!canReceive.allowed) {
+      return sendSuccess(res, {
+        items: [],
+        isPremiumFeature: true,
+        message: canReceive.reason,
+      });
     }
 
     const params = nearbyUnvisitedSchema.parse(req.query);

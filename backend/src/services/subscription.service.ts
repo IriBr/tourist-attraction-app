@@ -1,41 +1,29 @@
 import { prisma } from '../config/database.js';
 import { BadRequestError, NotFoundError } from '../utils/errors.js';
 
-// Constants
-const FREE_TIER_DAILY_SCAN_LIMIT = 3;
-const FREE_TIER_ATTRACTIONS_LIMIT = 10; // Free users can only see 10 attractions per location
+// Premium-only features
+export type PremiumFeature = 'camera_scanning' | 'filters' | 'proximity_notifications';
 
 export interface SubscriptionStatus {
   tier: 'free' | 'premium';
   status: 'active' | 'cancelled' | 'expired';
-  scansUsedToday: number;
-  scansRemaining: number;
-  canScan: boolean;
   subscriptionEndDate: string | null;
   isPremium: boolean;
+  features: {
+    canUseCameraScanning: boolean;
+    canUseFilters: boolean;
+    canReceiveProximityNotifications: boolean;
+  };
 }
 
 export interface ScanResult {
   success: boolean;
   scanId: string;
-  scansRemaining: number;
-}
-
-// Get start of day in UTC
-function getStartOfDay(): Date {
-  const now = new Date();
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-}
-
-// Get end of day in UTC
-function getEndOfDay(): Date {
-  const now = new Date();
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59, 999));
 }
 
 export const subscriptionService = {
   /**
-   * Get user's subscription status including scan limits
+   * Get user's subscription status including feature access
    */
   async getSubscriptionStatus(userId: string): Promise<SubscriptionStatus> {
     const user = await prisma.user.findUnique({
@@ -53,62 +41,49 @@ export const subscriptionService = {
 
     const isPremium = user.subscriptionTier === 'premium' && user.subscriptionStatus === 'active';
 
-    // Count today's scans for free users
-    let scansUsedToday = 0;
-    if (!isPremium) {
-      scansUsedToday = await prisma.dailyScan.count({
-        where: {
-          userId,
-          scanDate: {
-            gte: getStartOfDay(),
-            lte: getEndOfDay(),
-          },
-        },
-      });
-    }
-
-    const scansRemaining = isPremium ? -1 : Math.max(0, FREE_TIER_DAILY_SCAN_LIMIT - scansUsedToday);
-
     return {
       tier: user.subscriptionTier as 'free' | 'premium',
       status: user.subscriptionStatus as 'active' | 'cancelled' | 'expired',
-      scansUsedToday,
-      scansRemaining,
-      canScan: isPremium || scansRemaining > 0,
       subscriptionEndDate: user.subscriptionEndDate?.toISOString() ?? null,
       isPremium,
+      features: {
+        canUseCameraScanning: isPremium,
+        canUseFilters: isPremium,
+        canReceiveProximityNotifications: isPremium,
+      },
     };
   },
 
   /**
-   * Check if user can perform a scan
+   * Check if user can use a specific premium feature
    */
-  async canUserScan(userId: string): Promise<{ canScan: boolean; scansRemaining: number; reason?: string }> {
+  async canUseFeature(userId: string, feature: PremiumFeature): Promise<{ allowed: boolean; reason?: string }> {
     const status = await this.getSubscriptionStatus(userId);
 
     if (status.isPremium) {
-      return { canScan: true, scansRemaining: -1 };
+      return { allowed: true };
     }
 
-    if (status.scansRemaining <= 0) {
-      return {
-        canScan: false,
-        scansRemaining: 0,
-        reason: 'Daily scan limit reached. Upgrade to Premium for unlimited scans.',
-      };
-    }
+    const featureNames: Record<PremiumFeature, string> = {
+      camera_scanning: 'Camera scanning',
+      filters: 'Attraction filters',
+      proximity_notifications: 'Proximity notifications',
+    };
 
-    return { canScan: true, scansRemaining: status.scansRemaining };
+    return {
+      allowed: false,
+      reason: `${featureNames[feature]} is a premium feature. Upgrade to Premium to unlock it.`,
+    };
   },
 
   /**
-   * Record a scan and check limits
+   * Record a scan (premium users only)
    */
   async recordScan(userId: string, photoUrl?: string, result?: string): Promise<ScanResult> {
-    const canScanResult = await this.canUserScan(userId);
+    const canUse = await this.canUseFeature(userId, 'camera_scanning');
 
-    if (!canScanResult.canScan) {
-      throw new BadRequestError(canScanResult.reason || 'Cannot perform scan');
+    if (!canUse.allowed) {
+      throw new BadRequestError(canUse.reason || 'Camera scanning requires Premium subscription');
     }
 
     // Record the scan
@@ -121,30 +96,10 @@ export const subscriptionService = {
       },
     });
 
-    // Get updated remaining scans
-    const status = await this.getSubscriptionStatus(userId);
-
     return {
       success: true,
       scanId: scan.id,
-      scansRemaining: status.scansRemaining,
     };
-  },
-
-  /**
-   * Get today's scan history for user
-   */
-  async getTodayScans(userId: string) {
-    return prisma.dailyScan.findMany({
-      where: {
-        userId,
-        scanDate: {
-          gte: getStartOfDay(),
-          lte: getEndOfDay(),
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
   },
 
   /**
@@ -220,20 +175,13 @@ export const subscriptionService = {
   },
 
   /**
-   * Get attraction limit for user
+   * Get premium features list
    */
-  async getAttractionLimit(userId: string): Promise<number | null> {
-    const isPremium = await this.isPremiumUser(userId);
-    return isPremium ? null : FREE_TIER_ATTRACTIONS_LIMIT;
-  },
-
-  /**
-   * Get the free tier limits configuration
-   */
-  getFreeTierLimits() {
+  getPremiumFeatures() {
     return {
-      dailyScanLimit: FREE_TIER_DAILY_SCAN_LIMIT,
-      attractionsLimit: FREE_TIER_ATTRACTIONS_LIMIT,
+      cameraScanning: 'Scan attractions with your camera using AI',
+      filters: 'Filter attractions by category, rating, and more',
+      proximityNotifications: 'Get notified when near attractions',
     };
   },
 };

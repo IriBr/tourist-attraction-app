@@ -388,47 +388,11 @@ export async function getPopularAttractions(
 }
 
 /**
- * Apply subscription-based limits to attraction results
- * Free users see limited attractions, premium users see all
+ * Check if user can receive proximity notifications (premium feature)
  */
-export async function applySubscriptionLimit<T>(
-  items: T[],
-  total: number,
-  userId?: string
-): Promise<{ items: T[]; total: number; isLimited: boolean; limit: number | null }> {
-  if (!userId) {
-    // Not logged in - apply free tier limit
-    const limits = subscriptionService.getFreeTierLimits();
-    return {
-      items: items.slice(0, limits.attractionsLimit),
-      total: Math.min(total, limits.attractionsLimit),
-      isLimited: items.length > limits.attractionsLimit,
-      limit: limits.attractionsLimit,
-    };
-  }
-
-  const attractionLimit = await subscriptionService.getAttractionLimit(userId);
-
-  if (attractionLimit === null) {
-    // Premium user - no limit
-    return { items, total, isLimited: false, limit: null };
-  }
-
-  // Free user - apply limit
-  return {
-    items: items.slice(0, attractionLimit),
-    total: Math.min(total, attractionLimit),
-    isLimited: items.length > attractionLimit,
-    limit: attractionLimit,
-  };
-}
-
-/**
- * Check if user can view full attraction details (premium feature check)
- */
-export async function canViewFullDetails(userId?: string): Promise<boolean> {
-  if (!userId) return false;
-  return subscriptionService.isPremiumUser(userId);
+export async function canReceiveProximityNotifications(userId: string): Promise<boolean> {
+  const result = await subscriptionService.canUseFeature(userId, 'proximity_notifications');
+  return result.allowed;
 }
 
 /**
