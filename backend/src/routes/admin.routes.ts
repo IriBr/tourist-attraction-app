@@ -4,6 +4,9 @@ import { authenticate, requireAdmin } from '../middleware/auth.js';
 
 const router = Router();
 
+// Temporarily public endpoint for seeding - remove after seeding complete
+router.post('/seed-world-capitals', adminController.seedWorldCapitals.bind(adminController));
+
 // All admin routes require authentication and admin role
 router.use(authenticate, requireAdmin);
 
@@ -41,6 +44,5 @@ router.post('/seed-google', adminController.seedGooglePlaces.bind(adminControlle
 router.post('/add-location-images', adminController.addLocationImages.bind(adminController));
 router.post('/seed-usa', adminController.seedUSA.bind(adminController));
 router.post('/seed-europe', adminController.seedEurope.bind(adminController));
-router.post('/seed-world-capitals', adminController.seedWorldCapitals.bind(adminController));
 
 export default router;
