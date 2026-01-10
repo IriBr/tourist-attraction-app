@@ -167,6 +167,7 @@ export const verifyAttraction = asyncHandler(async (req: Request, res: Response)
       const visitResult = await visitService.markVisited(userId, {
         attractionId: result.attractionId,
         notes: `Verified via AI vision (confidence: ${(result.confidence * 100).toFixed(0)}%)`,
+        isVerified: true, // Camera scan verified - counts for leaderboard
       });
 
       const attraction = await attractionService.getAttractionById(result.attractionId, userId);
@@ -238,6 +239,7 @@ export const confirmSuggestion = asyncHandler(async (req: Request, res: Response
     const visitResult = await visitService.markVisited(userId, {
       attractionId,
       notes: 'Verified via AI vision (user confirmed)',
+      isVerified: true, // Camera scan verified - counts for leaderboard
     });
 
     return sendCreated(res, {

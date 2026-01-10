@@ -8,6 +8,7 @@ interface MarkVisitedData {
   photoUrl?: string;
   notes?: string;
   visitDate?: string;
+  isVerified?: boolean; // true = camera scan verified, counts for leaderboard
 }
 
 interface VisitWithAttraction {
@@ -43,6 +44,7 @@ interface MarkVisitedResult {
 
 interface UserStats {
   totalVisits: number;
+  verifiedVisits: number; // Camera scan verified visits (counts for leaderboard)
   countriesVisited: number;
   citiesVisited: number;
   continentsVisited: number;
@@ -66,7 +68,7 @@ export async function markVisited(
   userId: string,
   data: MarkVisitedData
 ): Promise<MarkVisitedResult> {
-  const { attractionId, photoUrl, notes, visitDate } = data;
+  const { attractionId, photoUrl, notes, visitDate, isVerified = false } = data;
 
   // Check if attraction exists with full location hierarchy
   const attraction = await prisma.attraction.findUnique({
@@ -105,6 +107,7 @@ export async function markVisited(
       attractionId,
       photoUrl,
       notes,
+      isVerified,
       visitDate: visitDate ? new Date(visitDate) : new Date(),
     },
   });
@@ -258,15 +261,20 @@ export async function getUserStats(userId: string): Promise<UserStats> {
   const countrySet = new Set<string>();
   const citySet = new Set<string>();
   const continentSet = new Set<string>();
+  let verifiedCount = 0;
 
   for (const visit of visits) {
     citySet.add(visit.attraction.city.name);
     countrySet.add(visit.attraction.city.country.name);
     continentSet.add(visit.attraction.city.country.continent.name);
+    if (visit.isVerified) {
+      verifiedCount++;
+    }
   }
 
   return {
     totalVisits: visits.length,
+    verifiedVisits: verifiedCount,
     countriesVisited: countrySet.size,
     citiesVisited: citySet.size,
     continentsVisited: continentSet.size,

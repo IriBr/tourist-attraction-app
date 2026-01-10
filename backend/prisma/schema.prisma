@@ -311,11 +311,13 @@ model Visit {
   visitDate    DateTime   @default(now())
   photoUrl     String?
   notes        String?
+  isVerified   Boolean    @default(false) // true = camera scan verified, counts for leaderboard
   createdAt    DateTime   @default(now())
 
   @@unique([userId, attractionId])
   @@index([userId])
   @@index([attractionId])
+  @@index([isVerified])
 }
 
 model PasswordResetToken {

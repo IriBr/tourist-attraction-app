@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
 import { visitService } from '../services/index.js';
+import { leaderboardService } from '../services/leaderboard.service.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import {
   sendSuccess,
@@ -75,8 +76,19 @@ export const checkVisit = asyncHandler(async (req: Request, res: Response) => {
 
 export const getUserStats = asyncHandler(
   async (req: Request, res: Response) => {
-    const stats = await visitService.getUserStats(req.user!.id);
-    sendSuccess(res, stats);
+    const [stats, leaderboardStats] = await Promise.all([
+      visitService.getUserStats(req.user!.id),
+      leaderboardService.getUserStats(req.user!.id),
+    ]);
+
+    sendSuccess(res, {
+      ...stats,
+      leaderboard: {
+        rank: leaderboardStats.rank,
+        badge: leaderboardStats.badge,
+        isEligible: leaderboardStats.isEligible,
+      },
+    });
   }
 );
 
