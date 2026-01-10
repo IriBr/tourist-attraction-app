@@ -195,30 +195,28 @@ router.get('/cities/:id/attractions', optionalAuth, async (req: any, res) => {
     });
   }
 
-  // Apply subscription-based filtering
-  let attractions = city.attractions;
-  let isLimited = false;
+  // Get user's visited attractions in this city
   const userId = req.user?.id;
+  let visitedAttractionIds = new Set<string>();
+  let visitedCount = 0;
 
   if (userId) {
-    const isPremium = await subscriptionService.isPremiumUser(userId);
-
-    if (!isPremium) {
-      // Free tier: only show attractions the user has visited
-      const userVisits = await prisma.visit.findMany({
-        where: { userId },
-        select: { attractionId: true }
-      });
-      const visitedAttractionIds = new Set(userVisits.map(v => v.attractionId));
-
-      attractions = city.attractions.filter(a => visitedAttractionIds.has(a.id));
-      isLimited = city.attractions.length > attractions.length;
-    }
-  } else {
-    // Not logged in - show no attractions
-    attractions = [];
-    isLimited = city.attractions.length > 0;
+    const userVisits = await prisma.visit.findMany({
+      where: {
+        userId,
+        attraction: { cityId: id }
+      },
+      select: { attractionId: true }
+    });
+    visitedAttractionIds = new Set(userVisits.map(v => v.attractionId));
+    visitedCount = userVisits.length;
   }
+
+  // Mark which attractions are visited
+  const attractionsWithVisitStatus = city.attractions.map(a => ({
+    ...a,
+    isVisited: visitedAttractionIds.has(a.id)
+  }));
 
   const response: ApiResponse<any> = {
     success: true,
@@ -235,9 +233,12 @@ router.get('/cities/:id/attractions', optionalAuth, async (req: any, res) => {
         },
         continent: city.country.continent
       },
-      attractions,
-      isLimited,
-      totalAttractions: city.attractions.length
+      attractions: attractionsWithVisitStatus,
+      totalAttractions: city.attractions.length,
+      visitedAttractions: visitedCount,
+      progress: city.attractions.length > 0
+        ? Math.round((visitedCount / city.attractions.length) * 100)
+        : 0
     }
   };
 
