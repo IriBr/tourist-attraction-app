@@ -16,8 +16,10 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "app.wandr.explore",
-      buildNumber: "27",
+      buildNumber: "28",
       infoPlist: {
+        CFBundleDevelopmentRegion: "en",
+        CFBundleLocalizations: ["en"],
         NSCameraUsageDescription: "Wandr needs camera access to scan and identify tourist attractions",
         NSLocationWhenInUseUsageDescription: "Wandr needs your location to find nearby attractions",
         NSLocationAlwaysAndWhenInUseUsageDescription: "Wandr uses your location in the background to notify you when you're near an attraction",

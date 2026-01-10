@@ -3,6 +3,7 @@ import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuthStore } from '../store/authStore';
+import { useSubscriptionStore } from '../store/subscriptionStore';
 import { AuthNavigator } from './AuthNavigator';
 import { MainTabNavigator } from './MainTabNavigator';
 import { PremiumScreen, AttractionDetailScreen } from '../screens';
@@ -20,6 +21,7 @@ export const navigationRef = React.createRef<NavigationContainerRef<RootStackPar
 
 export function RootNavigator() {
   const { isAuthenticated, isLoading, checkAuth } = useAuthStore();
+  const { fetchStatus } = useSubscriptionStore();
   const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -27,9 +29,12 @@ export function RootNavigator() {
     checkOnboarding();
   }, []);
 
-  // Set up proximity tracking and notification handling when authenticated
+  // Fetch subscription status and set up tracking when authenticated
   useEffect(() => {
     if (!isAuthenticated) return;
+
+    // Fetch subscription status immediately when authenticated
+    fetchStatus().catch(console.error);
 
     // Start background location tracking
     startProximityTracking().catch(console.error);

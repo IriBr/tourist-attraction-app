@@ -1,7 +1,7 @@
 import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
 import * as TaskManager from 'expo-task-manager';
-import { Platform } from 'react-native';
+import { Platform, Alert, Linking } from 'react-native';
 import { attractionsApi } from '../api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -9,6 +9,10 @@ const LOCATION_TASK_NAME = 'background-location-task';
 const PROXIMITY_RADIUS_METERS = 100;
 const NOTIFICATION_COOLDOWN_MS = 30 * 60 * 1000; // 30 minutes per attraction
 const LAST_NOTIFIED_KEY = 'proximity_last_notified';
+const PERMISSION_PROMPT_KEY = 'proximity_permission_prompted';
+
+// Track if we've already prompted for permissions this session
+let hasPromptedThisSession = false;
 
 // Configure notification behavior
 Notifications.setNotificationHandler({
@@ -105,7 +109,51 @@ async function sendProximityNotification(attraction: { id: string; name: string;
   });
 }
 
+export async function checkPermissions(): Promise<boolean> {
+  // Check notification permissions
+  const { status: notificationStatus } = await Notifications.getPermissionsAsync();
+  if (notificationStatus !== 'granted') {
+    return false;
+  }
+
+  // Check foreground location permission
+  const { status: foregroundStatus } = await Location.getForegroundPermissionsAsync();
+  if (foregroundStatus !== 'granted') {
+    return false;
+  }
+
+  // Check background location permission
+  const { status: backgroundStatus } = await Location.getBackgroundPermissionsAsync();
+  if (backgroundStatus !== 'granted') {
+    return false;
+  }
+
+  return true;
+}
+
 export async function requestPermissions(): Promise<boolean> {
+  // First check if we already have all permissions
+  const alreadyGranted = await checkPermissions();
+  if (alreadyGranted) {
+    console.log('All permissions already granted');
+    return true;
+  }
+
+  // Check if we've already prompted this session - don't spam the user
+  if (hasPromptedThisSession) {
+    console.log('Already prompted for permissions this session');
+    return false;
+  }
+
+  // Check if user has previously dismissed the permission prompt
+  const previouslyPrompted = await AsyncStorage.getItem(PERMISSION_PROMPT_KEY);
+  if (previouslyPrompted === 'dismissed') {
+    console.log('User previously dismissed permission prompt');
+    return false;
+  }
+
+  hasPromptedThisSession = true;
+
   // Request notification permissions
   const { status: notificationStatus } = await Notifications.requestPermissionsAsync();
   if (notificationStatus !== 'granted') {
@@ -121,13 +169,62 @@ export async function requestPermissions(): Promise<boolean> {
   }
 
   // Request background location permission
+  // On iOS 13+, this shows a follow-up dialog after foreground permission is granted
   const { status: backgroundStatus } = await Location.requestBackgroundPermissionsAsync();
+
   if (backgroundStatus !== 'granted') {
     console.log('Background location permission not granted');
+
+    // On iOS, guide user to Settings to enable "Always" permission - but only once
+    if (Platform.OS === 'ios' && previouslyPrompted !== 'shown') {
+      await AsyncStorage.setItem(PERMISSION_PROMPT_KEY, 'shown');
+      Alert.alert(
+        'Enable "Always" Location Access',
+        'To receive notifications when you\'re near attractions, please enable "Always" location access in Settings.\n\nGo to: Settings → Location → Select "Always"',
+        [
+          {
+            text: 'Not Now',
+            style: 'cancel',
+            onPress: () => AsyncStorage.setItem(PERMISSION_PROMPT_KEY, 'dismissed')
+          },
+          {
+            text: 'Open Settings',
+            onPress: () => Linking.openSettings()
+          },
+        ]
+      );
+    }
     return false;
   }
 
+  // Clear the prompt flag since user granted permission
+  await AsyncStorage.removeItem(PERMISSION_PROMPT_KEY);
   return true;
+}
+
+// Function to prompt user to enable Always permission from Settings (for manual trigger)
+export async function promptForAlwaysPermission(): Promise<void> {
+  const { status: backgroundStatus } = await Location.getBackgroundPermissionsAsync();
+
+  if (backgroundStatus !== 'granted') {
+    Alert.alert(
+      'Enable Background Location',
+      'To get notified when you\'re near attractions you haven\'t visited, please enable "Always" location access.\n\nTap "Open Settings", then select Location → Always.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Open Settings',
+          onPress: () => Linking.openSettings()
+        },
+      ]
+    );
+  }
+}
+
+// Reset permission prompt (for testing or when user wants to be prompted again)
+export async function resetPermissionPrompt(): Promise<void> {
+  hasPromptedThisSession = false;
+  await AsyncStorage.removeItem(PERMISSION_PROMPT_KEY);
 }
 
 export async function startProximityTracking(): Promise<boolean> {

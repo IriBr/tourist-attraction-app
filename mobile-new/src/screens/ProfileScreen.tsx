@@ -4,14 +4,18 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
+  Pressable,
   ScrollView,
   Alert,
   ActivityIndicator,
+  Linking,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import * as Location from 'expo-location';
 import { useAuthStore } from '../store/authStore';
 import { useSubscriptionStore } from '../store/subscriptionStore';
 import { useBadgeStore, useStatsStore } from '../store';
@@ -51,14 +55,56 @@ export function ProfileScreen() {
   const { progress, fetchProgress } = useBadgeStore();
   const { userStats, globalStats, fetchStats } = useStatsStore();
 
+  const [locationStatus, setLocationStatus] = useState<'granted' | 'while_using' | 'denied'>('denied');
+
+  // Check location permission status
+  const checkLocationPermission = useCallback(async () => {
+    const { status: bgStatus } = await Location.getBackgroundPermissionsAsync();
+    if (bgStatus === 'granted') {
+      setLocationStatus('granted');
+    } else {
+      const { status: fgStatus } = await Location.getForegroundPermissionsAsync();
+      if (fgStatus === 'granted') {
+        setLocationStatus('while_using');
+      } else {
+        setLocationStatus('denied');
+      }
+    }
+  }, []);
+
   // Fetch stats when screen comes into focus
   useFocusEffect(
     useCallback(() => {
       fetchStatus();
       fetchProgress();
       fetchStats();
-    }, [])
+      checkLocationPermission();
+    }, [checkLocationPermission])
   );
+
+  const handleLocationSettings = () => {
+    if (locationStatus === 'granted') {
+      Alert.alert(
+        'Location Access Enabled',
+        'Background location is enabled. You\'ll receive notifications when near attractions.',
+        [{ text: 'OK' }]
+      );
+    } else {
+      Alert.alert(
+        'Enable Background Location',
+        Platform.OS === 'ios'
+          ? 'To receive notifications when you\'re near attractions (even when the app is closed), please enable "Always" location access.\n\n1. Tap "Open Settings"\n2. Select "Location"\n3. Choose "Always"'
+          : 'To receive notifications when you\'re near attractions, please enable location access in settings.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Open Settings',
+            onPress: () => Linking.openSettings(),
+          },
+        ]
+      );
+    }
+  };
 
   // Use actual visit stats from API
   const visitedStats = {
@@ -211,9 +257,14 @@ export function ProfileScreen() {
               </View>
             )}
 
-            <TouchableOpacity
-              style={[styles.subscriptionButton, isPremium && styles.cancelButton]}
+            <Pressable
+              style={({ pressed }) => [
+                styles.subscriptionButton,
+                isPremium && styles.cancelButton,
+                pressed && styles.buttonPressed,
+              ]}
               onPress={isPremium ? handleCancelSubscription : handleUpgrade}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Ionicons
                 name={isPremium ? 'close-circle-outline' : 'star'}
@@ -223,7 +274,7 @@ export function ProfileScreen() {
               <Text style={[styles.subscriptionButtonText, isPremium && styles.cancelButtonText]}>
                 {isPremium ? 'Cancel Subscription' : 'Upgrade to Premium'}
               </Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </View>
 
@@ -231,10 +282,13 @@ export function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Badges & Progress</Text>
           <View style={styles.badgesContainer}>
-            <TouchableOpacity
-              style={styles.badgeNavCard}
+            <Pressable
+              style={({ pressed }) => [
+                styles.badgeNavCard,
+                pressed && styles.cardPressed,
+              ]}
               onPress={() => navigation.navigate('BadgesScreen')}
-              activeOpacity={0.8}
+              hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
             >
               <View style={[styles.badgeNavIcon, { backgroundColor: 'rgba(255, 215, 0, 0.2)' }]}>
                 <Ionicons name="ribbon" size={28} color="#FFD700" />
@@ -244,12 +298,15 @@ export function ProfileScreen() {
                 <Text style={styles.badgeNavDesc}>View your earned badges</Text>
               </View>
               <Ionicons name="chevron-forward" size={24} color="#888" />
-            </TouchableOpacity>
+            </Pressable>
 
-            <TouchableOpacity
-              style={styles.badgeNavCard}
+            <Pressable
+              style={({ pressed }) => [
+                styles.badgeNavCard,
+                pressed && styles.cardPressed,
+              ]}
               onPress={() => navigation.navigate('ProgressScreen')}
-              activeOpacity={0.8}
+              hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
             >
               <View style={[styles.badgeNavIcon, { backgroundColor: 'rgba(245, 158, 11, 0.2)' }]}>
                 <Ionicons name="trending-up" size={28} color={colors.secondary} />
@@ -259,25 +316,59 @@ export function ProfileScreen() {
                 <Text style={styles.badgeNavDesc}>Track your exploration</Text>
               </View>
               <Ionicons name="chevron-forward" size={24} color="#888" />
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </View>
 
         {/* Menu Items */}
         <View style={styles.menuContainer}>
           {menuItems.map((item) => (
-            <TouchableOpacity
+            <Pressable
               key={item.id}
-              style={styles.menuItem}
+              style={({ pressed }) => [
+                styles.menuItem,
+                pressed && styles.menuItemPressed,
+              ]}
               onPress={() => navigation.navigate(item.screen)}
+              hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
             >
               <View style={styles.menuIconContainer}>
                 <Ionicons name={item.icon} size={22} color={colors.secondary} />
               </View>
               <Text style={styles.menuLabel}>{item.label}</Text>
               <Ionicons name="chevron-forward" size={20} color="#888" />
-            </TouchableOpacity>
+            </Pressable>
           ))}
+
+          {/* Location Settings - Special item with status */}
+          <Pressable
+            style={({ pressed }) => [
+              styles.menuItem,
+              pressed && styles.menuItemPressed,
+            ]}
+            onPress={handleLocationSettings}
+            hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+          >
+            <View style={styles.menuIconContainer}>
+              <Ionicons name="location-outline" size={22} color={colors.secondary} />
+            </View>
+            <Text style={styles.menuLabel}>Location Access</Text>
+            <View style={styles.locationStatusContainer}>
+              <View style={[
+                styles.locationStatusDot,
+                locationStatus === 'granted' && styles.locationStatusGranted,
+                locationStatus === 'while_using' && styles.locationStatusPartial,
+                locationStatus === 'denied' && styles.locationStatusDenied,
+              ]} />
+              <Text style={[
+                styles.locationStatusText,
+                locationStatus === 'granted' && styles.locationStatusTextGranted,
+                locationStatus !== 'granted' && styles.locationStatusTextWarning,
+              ]}>
+                {locationStatus === 'granted' ? 'Always' : locationStatus === 'while_using' ? 'While Using' : 'Off'}
+              </Text>
+            </View>
+          </Pressable>
         </View>
 
         {/* Logout Button */}
@@ -544,5 +635,47 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     color: '#ff4757',
+  },
+  // Pressed states for iPad compatibility
+  buttonPressed: {
+    opacity: 0.7,
+    transform: [{ scale: 0.98 }],
+  },
+  cardPressed: {
+    opacity: 0.8,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+  },
+  menuItemPressed: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  // Location status styles
+  locationStatusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  locationStatusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
+  },
+  locationStatusGranted: {
+    backgroundColor: '#4CAF50',
+  },
+  locationStatusPartial: {
+    backgroundColor: '#FFA500',
+  },
+  locationStatusDenied: {
+    backgroundColor: '#888',
+  },
+  locationStatusText: {
+    fontSize: 13,
+    marginRight: 4,
+  },
+  locationStatusTextGranted: {
+    color: '#4CAF50',
+  },
+  locationStatusTextWarning: {
+    color: '#FFA500',
   },
 });

@@ -2129,6 +2129,83 @@ export class AdminService {
       },
     };
   }
+
+  async cleanupNonAttractions() {
+    // Business-related terms to remove
+    const excludeTerms = [
+      'restaurant', 'bar', 'pub', 'cafe', 'coffee', 'bakery', 'pizzeria', 'bistro',
+      'grill', 'steakhouse', 'sushi', 'burger', 'diner', 'eatery', 'kitchen',
+      'tour guide', 'tours & travels', 'travel agency', 'car rental', 'taxi',
+      'hotel', 'hostel', 'motel', 'inn', 'lodge', 'resort', 'spa',
+      'gym', 'fitness', 'salon', 'barbershop', 'laundry', 'dry cleaning',
+      'bank', 'atm', 'pharmacy', 'clinic', 'hospital', 'dentist', 'doctor',
+      'supermarket', 'grocery', 'convenience store', 'gas station', 'petrol',
+      'nightclub', 'disco', 'karaoke', 'lounge',
+    ];
+
+    // First, delete by category 'restaurant'
+    const restaurantAttractions = await prisma.attraction.findMany({
+      where: { category: 'restaurant' as any },
+      select: { id: true },
+    });
+    const restaurantIds = restaurantAttractions.map(a => a.id);
+
+    // Then find by name patterns
+    const patternAttractions = await prisma.attraction.findMany({
+      where: {
+        OR: excludeTerms.map(term => ({
+          name: { contains: term, mode: 'insensitive' as const }
+        }))
+      },
+      select: { id: true, name: true, category: true },
+    });
+    const patternIds = patternAttractions.map(a => a.id);
+
+    // Combine and dedupe
+    const allIds = [...new Set([...restaurantIds, ...patternIds])];
+
+    if (allIds.length === 0) {
+      return { success: true, message: 'No non-attractions found to remove', deleted: 0 };
+    }
+
+    // Delete related records first
+    await prisma.visit.deleteMany({ where: { attractionId: { in: allIds } } });
+    await prisma.favorite.deleteMany({ where: { attractionId: { in: allIds } } });
+    await prisma.review.deleteMany({ where: { attractionId: { in: allIds } } });
+
+    // Delete attractions
+    const result = await prisma.attraction.deleteMany({
+      where: { id: { in: allIds } }
+    });
+
+    return {
+      success: true,
+      message: `Removed ${result.count} non-attraction entries`,
+      deleted: result.count,
+      breakdown: {
+        byCategory: restaurantIds.length,
+        byNamePattern: patternIds.length,
+      },
+      sampleRemoved: patternAttractions.slice(0, 20).map(a => a.name),
+    };
+  }
+
+  async getAttractionCategoryStats() {
+    const categories = await prisma.attraction.groupBy({
+      by: ['category'],
+      _count: { _all: true },
+      orderBy: { _count: { category: 'desc' } },
+    });
+
+    return {
+      success: true,
+      categories: categories.map(c => ({
+        category: c.category,
+        count: c._count._all,
+      })),
+      total: categories.reduce((sum, c) => sum + c._count._all, 0),
+    };
+  }
 }
 
 export const adminService = new AdminService();

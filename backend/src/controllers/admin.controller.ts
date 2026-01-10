@@ -292,6 +292,24 @@ export class AdminController {
       next(error);
     }
   }
+
+  async cleanupNonAttractions(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await adminService.cleanupNonAttractions();
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getAttractionCategoryStats(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await adminService.getAttractionCategoryStats();
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const adminController = new AdminController();

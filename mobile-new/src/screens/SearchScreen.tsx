@@ -82,8 +82,14 @@ export function SearchScreen() {
     try {
       setIsLoading(true);
 
-      // Try to get user's location
-      const { status } = await Location.requestForegroundPermissionsAsync();
+      // Check if we already have location permission
+      let { status } = await Location.getForegroundPermissionsAsync();
+
+      // Only request if not already granted
+      if (status !== 'granted') {
+        const response = await Location.requestForegroundPermissionsAsync();
+        status = response.status;
+      }
 
       if (status === 'granted') {
         try {

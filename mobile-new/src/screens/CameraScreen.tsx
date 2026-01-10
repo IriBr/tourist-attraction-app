@@ -124,7 +124,12 @@ export function CameraScreen() {
         // Get current location for camera mode
         let location: { lat: number; lng: number } | null = null;
         try {
-          const { status } = await Location.requestForegroundPermissionsAsync();
+          // Check if we already have permission
+          let { status } = await Location.getForegroundPermissionsAsync();
+          if (status !== 'granted') {
+            const response = await Location.requestForegroundPermissionsAsync();
+            status = response.status;
+          }
           if (status === 'granted') {
             const loc = await Location.getCurrentPositionAsync({
               accuracy: Location.Accuracy.Balanced,

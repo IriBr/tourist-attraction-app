@@ -4,10 +4,12 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
+  Pressable,
   ScrollView,
   ActivityIndicator,
   Alert,
   Platform,
+  Linking,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -389,16 +391,30 @@ export function PremiumScreen() {
           )}
         </TouchableOpacity>
 
-        <View style={{ height: 120 }} />
+        {/* Legal Links */}
+        <View style={styles.legalLinksContainer}>
+          <TouchableOpacity onPress={() => Linking.openURL('https://wandr-app.com/terms')}>
+            <Text style={styles.legalLink}>Terms of Service</Text>
+          </TouchableOpacity>
+          <Text style={styles.legalSeparator}>•</Text>
+          <TouchableOpacity onPress={() => Linking.openURL('https://wandr-app.com/privacy')}>
+            <Text style={styles.legalLink}>Privacy Policy</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={{ height: 140 }} />
       </ScrollView>
 
       {/* Fixed Bottom CTA */}
       <View style={[styles.ctaContainer, { paddingBottom: insets.bottom + 16 }]}>
-        <TouchableOpacity
-          style={styles.ctaButton}
+        <Pressable
+          style={({ pressed }) => [
+            styles.ctaButton,
+            pressed && styles.ctaButtonPressed,
+          ]}
           onPress={handleUpgrade}
           disabled={isProcessing || isLoading}
-          activeOpacity={0.8}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <LinearGradient
             colors={colors.gradientSecondary}
@@ -417,10 +433,12 @@ export function PremiumScreen() {
               </>
             )}
           </LinearGradient>
-        </TouchableOpacity>
+        </Pressable>
         <Text style={styles.ctaDisclaimer}>
-          Cancel anytime in App Store settings.{'\n'}
-          Subscription auto-renews until cancelled.
+          Payment will be charged to your Apple ID account at confirmation of purchase.{'\n'}
+          Subscription automatically renews unless canceled at least 24 hours before the end of the current period.{'\n'}
+          Your account will be charged for renewal within 24 hours prior to the end of the current period.{'\n'}
+          Manage subscriptions in your Account Settings after purchase.
         </Text>
       </View>
     </LinearGradient>
@@ -657,6 +675,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textDecorationLine: 'underline',
   },
+  legalLinksContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  legalLink: {
+    color: '#888',
+    fontSize: 13,
+    textDecorationLine: 'underline',
+  },
+  legalSeparator: {
+    color: '#666',
+    fontSize: 13,
+    marginHorizontal: 12,
+  },
   ctaContainer: {
     position: 'absolute',
     bottom: 0,
@@ -750,5 +784,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
+  },
+  // Pressed state for iPad compatibility
+  ctaButtonPressed: {
+    opacity: 0.8,
+    transform: [{ scale: 0.98 }],
   },
 });
