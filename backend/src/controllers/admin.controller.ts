@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { adminService } from '../services/admin.service.js';
 import { seedDatabase } from '../services/seed.service.js';
+import { seedWorldCapitals } from '../services/worldCapitals.service.js';
 import { SubscriptionTier, UserRole } from '@prisma/client';
 import { BadRequestError } from '../utils/errors.js';
 
@@ -274,6 +275,19 @@ export class AdminController {
       const batchSize = parseInt(req.query.batch as string) || 20;
       const result = await adminService.seedEurope(startIndex, batchSize);
       res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async seedWorldCapitals(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await seedWorldCapitals();
+      res.json({
+        success: true,
+        message: 'World capitals seeded successfully',
+        ...result,
+      });
     } catch (error) {
       next(error);
     }

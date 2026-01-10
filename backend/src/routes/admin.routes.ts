@@ -41,5 +41,6 @@ router.post('/seed-google', adminController.seedGooglePlaces.bind(adminControlle
 router.post('/add-location-images', adminController.addLocationImages.bind(adminController));
 router.post('/seed-usa', adminController.seedUSA.bind(adminController));
 router.post('/seed-europe', adminController.seedEurope.bind(adminController));
+router.post('/seed-world-capitals', adminController.seedWorldCapitals.bind(adminController));
 
 export default router;
