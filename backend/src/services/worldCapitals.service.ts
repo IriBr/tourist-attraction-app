@@ -282,7 +282,7 @@ async function searchAttractions(query: string, lat: number, lng: number, apiKey
       }),
     });
     if (!response.ok) return [];
-    const data = await response.json();
+    const data = await response.json() as { places?: any[] };
     return data.places || [];
   } catch {
     return [];
