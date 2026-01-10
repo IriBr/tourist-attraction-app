@@ -4,10 +4,6 @@ import { authenticate, requireAdmin } from '../middleware/auth.js';
 
 const router = Router();
 
-// Temporarily public endpoints for cleanup - remove after cleanup complete
-router.post('/cleanup-non-attractions', adminController.cleanupNonAttractions.bind(adminController));
-router.get('/attraction-category-stats', adminController.getAttractionCategoryStats.bind(adminController));
-
 // All admin routes require authentication and admin role
 router.use(authenticate, requireAdmin);
 
@@ -46,5 +42,7 @@ router.post('/seed-world-capitals', adminController.seedWorldCapitals.bind(admin
 router.post('/add-location-images', adminController.addLocationImages.bind(adminController));
 router.post('/seed-usa', adminController.seedUSA.bind(adminController));
 router.post('/seed-europe', adminController.seedEurope.bind(adminController));
+router.post('/cleanup-non-attractions', adminController.cleanupNonAttractions.bind(adminController));
+router.get('/attraction-category-stats', adminController.getAttractionCategoryStats.bind(adminController));
 
 export default router;
