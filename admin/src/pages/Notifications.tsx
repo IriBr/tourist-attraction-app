@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Bell, Send, Users, Crown, UserIcon, Search } from 'lucide-react';
-import { notificationsApi, NotificationStats, SendNotificationRequest } from '../api/notifications';
+import { notificationsApi } from '../api/notifications';
+import type { NotificationStats, SendNotificationRequest } from '../api/notifications';
 import { adminApi } from '../api/admin';
 import type { User } from '../types';
 
