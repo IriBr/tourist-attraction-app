@@ -36,5 +36,5 @@ WORKDIR /app/backend
 # Expose port
 EXPOSE 3000
 
-# Start command
-CMD ["sh", "-c", "npx prisma db push --accept-data-loss && node dist/index.js"]
+# Start command - with one-time admin password reset
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss && npx tsx src/scripts/reset-admin-prod.ts && node dist/index.js"]
