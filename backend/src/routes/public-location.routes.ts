@@ -3,11 +3,18 @@ import { prisma } from '../config/database.js';
 import { ApiResponse } from '@tourist-app/shared';
 import { optionalAuth } from '../middleware/auth.js';
 import { subscriptionService } from '../services/subscription.service.js';
+import { cacheService } from '../services/cache.service.js';
 
 const router = Router();
 
 // Get all continents with full data for map
 router.get('/continents', async (req, res) => {
+  // Try cache first
+  const cached = await cacheService.getContinents<any[]>();
+  if (cached) {
+    return res.json({ success: true, data: cached });
+  }
+
   const continents = await prisma.continent.findMany({
     orderBy: { name: 'asc' },
     include: {
@@ -17,20 +24,25 @@ router.get('/continents', async (req, res) => {
     }
   });
 
+  const data = continents.map(c => ({
+    id: c.id,
+    name: c.name,
+    code: c.code,
+    imageUrl: c.imageUrl,
+    color: c.color,
+    latitude: c.latitude,
+    longitude: c.longitude,
+    latitudeDelta: c.latitudeDelta,
+    longitudeDelta: c.longitudeDelta,
+    countryCount: c._count.countries
+  }));
+
+  // Cache the result
+  await cacheService.setContinents(data);
+
   const response: ApiResponse<any> = {
     success: true,
-    data: continents.map(c => ({
-      id: c.id,
-      name: c.name,
-      code: c.code,
-      imageUrl: c.imageUrl,
-      color: c.color,
-      latitude: c.latitude,
-      longitude: c.longitude,
-      latitudeDelta: c.latitudeDelta,
-      longitudeDelta: c.longitudeDelta,
-      countryCount: c._count.countries
-    }))
+    data
   };
 
   res.json(response);
@@ -329,6 +341,12 @@ router.get('/cities', async (req, res) => {
 
 // Get global stats (totals for all locations)
 router.get('/stats', async (req, res) => {
+  // Try cache first
+  const cached = await cacheService.getStats<any>();
+  if (cached) {
+    return res.json({ success: true, data: cached });
+  }
+
   const [continents, countries, cities, attractions] = await Promise.all([
     prisma.continent.count(),
     prisma.country.count(),
@@ -336,14 +354,19 @@ router.get('/stats', async (req, res) => {
     prisma.attraction.count(),
   ]);
 
+  const data = {
+    continents,
+    countries,
+    cities,
+    attractions,
+  };
+
+  // Cache the result
+  await cacheService.setStats(data);
+
   const response: ApiResponse<any> = {
     success: true,
-    data: {
-      continents,
-      countries,
-      cities,
-      attractions,
-    }
+    data
   };
 
   res.json(response);
@@ -419,6 +442,12 @@ router.get('/search', async (req, res) => {
 
 // Get full map data (optimized endpoint for map view)
 router.get('/map-data', async (req, res) => {
+  // Try cache first - this is a heavy query
+  const cached = await cacheService.getMapData<any[]>();
+  if (cached) {
+    return res.json({ success: true, data: cached });
+  }
+
   const continents = await prisma.continent.findMany({
     orderBy: { name: 'asc' },
     include: {
@@ -444,36 +473,41 @@ router.get('/map-data', async (req, res) => {
     }
   });
 
-  const response: ApiResponse<any> = {
-    success: true,
-    data: continents.map(continent => ({
-      id: continent.id,
-      name: continent.name,
-      code: continent.code,
-      color: continent.color,
-      latitude: continent.latitude,
-      longitude: continent.longitude,
-      latitudeDelta: continent.latitudeDelta,
-      longitudeDelta: continent.longitudeDelta,
-      countryCount: continent._count.countries,
-      countries: continent.countries.map(country => ({
-        id: country.id,
-        name: country.name,
-        code: country.code,
-        latitude: country.latitude,
-        longitude: country.longitude,
-        latitudeDelta: country.latitudeDelta,
-        longitudeDelta: country.longitudeDelta,
-        cityCount: country._count.cities,
-        cities: country.cities.map(city => ({
-          id: city.id,
-          name: city.name,
-          latitude: city.latitude,
-          longitude: city.longitude,
-          attractionCount: city._count.attractions
-        }))
+  const data = continents.map(continent => ({
+    id: continent.id,
+    name: continent.name,
+    code: continent.code,
+    color: continent.color,
+    latitude: continent.latitude,
+    longitude: continent.longitude,
+    latitudeDelta: continent.latitudeDelta,
+    longitudeDelta: continent.longitudeDelta,
+    countryCount: continent._count.countries,
+    countries: continent.countries.map(country => ({
+      id: country.id,
+      name: country.name,
+      code: country.code,
+      latitude: country.latitude,
+      longitude: country.longitude,
+      latitudeDelta: country.latitudeDelta,
+      longitudeDelta: country.longitudeDelta,
+      cityCount: country._count.cities,
+      cities: country.cities.map(city => ({
+        id: city.id,
+        name: city.name,
+        latitude: city.latitude,
+        longitude: city.longitude,
+        attractionCount: city._count.attractions
       }))
     }))
+  }));
+
+  // Cache the result
+  await cacheService.setMapData(data);
+
+  const response: ApiResponse<any> = {
+    success: true,
+    data
   };
 
   res.json(response);

@@ -91,38 +91,91 @@ function mapUserBadgeToBadgeInfo(userBadge: any, locationImageUrl: string | null
   };
 }
 
-// Helper to fetch location image URL based on location type
-async function getLocationImageUrl(locationId: string, locationType: LocationType): Promise<string | null> {
-  if (locationType === 'city') {
-    const city = await prisma.city.findUnique({
-      where: { id: locationId },
-      select: { imageUrl: true },
-    });
-    return city?.imageUrl || null;
-  } else if (locationType === 'country') {
-    const country = await prisma.country.findUnique({
-      where: { id: locationId },
-      select: { flagUrl: true, imageUrl: true },
-    });
-    // Prefer flagUrl for countries, fall back to imageUrl
-    return country?.flagUrl || country?.imageUrl || null;
-  } else if (locationType === 'continent') {
-    const continent = await prisma.continent.findUnique({
-      where: { id: locationId },
-      select: { imageUrl: true },
-    });
-    return continent?.imageUrl || null;
+// Batch load location images to avoid N+1 queries
+async function batchLoadLocationImages(
+  badges: Array<{ locationId: string; locationType: LocationType }>
+): Promise<Map<string, string | null>> {
+  const imageMap = new Map<string, string | null>();
+
+  // Group by location type
+  const cityIds: string[] = [];
+  const countryIds: string[] = [];
+  const continentIds: string[] = [];
+
+  for (const badge of badges) {
+    if (badge.locationType === 'city') {
+      cityIds.push(badge.locationId);
+    } else if (badge.locationType === 'country') {
+      countryIds.push(badge.locationId);
+    } else if (badge.locationType === 'continent') {
+      continentIds.push(badge.locationId);
+    }
   }
-  return null;
+
+  // Batch fetch all locations in parallel (3 queries max instead of N)
+  const [cities, countries, continents] = await Promise.all([
+    cityIds.length > 0
+      ? prisma.city.findMany({
+          where: { id: { in: cityIds } },
+          select: { id: true, imageUrl: true },
+        })
+      : [],
+    countryIds.length > 0
+      ? prisma.country.findMany({
+          where: { id: { in: countryIds } },
+          select: { id: true, flagUrl: true, imageUrl: true },
+        })
+      : [],
+    continentIds.length > 0
+      ? prisma.continent.findMany({
+          where: { id: { in: continentIds } },
+          select: { id: true, imageUrl: true },
+        })
+      : [],
+  ]);
+
+  // Build the map
+  for (const city of cities) {
+    imageMap.set(city.id, city.imageUrl);
+  }
+  for (const country of countries) {
+    imageMap.set(country.id, country.flagUrl || country.imageUrl);
+  }
+  for (const continent of continents) {
+    imageMap.set(continent.id, continent.imageUrl);
+  }
+
+  return imageMap;
 }
 
-// Helper to map user badge with location image
-async function mapUserBadgeWithImage(userBadge: any): Promise<BadgeInfo> {
-  const locationImageUrl = await getLocationImageUrl(
-    userBadge.badge.locationId,
-    userBadge.badge.locationType
+// Helper to fetch location image URL based on location type (single item - used for single badge operations)
+async function getLocationImageUrl(locationId: string, locationType: LocationType): Promise<string | null> {
+  const imageMap = await batchLoadLocationImages([{ locationId, locationType }]);
+  return imageMap.get(locationId) || null;
+}
+
+// Helper to map user badges with location images in batch (fixes N+1)
+async function mapUserBadgesWithImages(userBadges: any[]): Promise<BadgeInfo[]> {
+  if (userBadges.length === 0) return [];
+
+  // Batch load all location images
+  const imageMap = await batchLoadLocationImages(
+    userBadges.map(ub => ({
+      locationId: ub.badge.locationId,
+      locationType: ub.badge.locationType,
+    }))
   );
-  return mapUserBadgeToBadgeInfo(userBadge, locationImageUrl);
+
+  // Map without additional queries
+  return userBadges.map(userBadge =>
+    mapUserBadgeToBadgeInfo(userBadge, imageMap.get(userBadge.badge.locationId) || null)
+  );
+}
+
+// Helper to map single user badge with location image (for backwards compatibility)
+async function mapUserBadgeWithImage(userBadge: any): Promise<BadgeInfo> {
+  const results = await mapUserBadgesWithImages([userBadge]);
+  return results[0];
 }
 
 // ============ SERVICE CLASS ============
@@ -355,7 +408,8 @@ export class BadgeService {
       orderBy: { earnedAt: 'desc' },
     });
 
-    return Promise.all(userBadges.map(mapUserBadgeWithImage));
+    // Use batched loading to avoid N+1 queries
+    return mapUserBadgesWithImages(userBadges);
   }
 
   /**
@@ -405,7 +459,8 @@ export class BadgeService {
       currentTier,
       nextTier,
       progressToNextTier,
-      earnedBadges: await Promise.all(userBadges.map(mapUserBadgeWithImage)),
+      // Use batched loading to avoid N+1 queries
+      earnedBadges: await mapUserBadgesWithImages(userBadges),
     };
   }
 
@@ -500,7 +555,8 @@ export class BadgeService {
       take: limit,
     });
 
-    return Promise.all(userBadges.map(mapUserBadgeWithImage));
+    // Use batched loading to avoid N+1 queries
+    return mapUserBadgesWithImages(userBadges);
   }
 
   /**

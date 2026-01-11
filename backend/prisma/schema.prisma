@@ -155,6 +155,9 @@ model User {
   @@index([email])
   @@index([subscriptionTier])
   @@index([role])
+  @@index([subscriptionEndDate])        // Subscription expiry checks
+  @@index([createdAt])                  // Analytics & pagination
+  @@index([authProvider, createdAt])    // Provider analytics
 }
 
 model RefreshToken {
@@ -234,6 +237,8 @@ model Attraction {
   @@index([cityId])
   @@index([averageRating])
   @@index([latitude, longitude])
+  @@index([cityId, category])           // Filtered city queries
+  @@index([name])                       // Search functionality
 }
 
 model OpeningHours {
@@ -274,6 +279,8 @@ model Review {
   @@index([attractionId])
   @@index([userId])
   @@index([rating])
+  @@index([attractionId, rating])       // Rating distribution queries
+  @@index([createdAt])                  // Recent reviews
 }
 
 model HelpfulVote {
@@ -318,6 +325,9 @@ model Visit {
   @@index([userId])
   @@index([attractionId])
   @@index([isVerified])
+  @@index([userId, isVerified])         // Leaderboard queries (verified visits per user)
+  @@index([visitDate])                  // Time-based analytics
+  @@index([userId, visitDate])          // User activity history
 }
 
 model PasswordResetToken {
@@ -354,6 +364,7 @@ model DailyScan {
 
   @@index([userId])
   @@index([userId, scanDate])
+  @@index([scanDate])                   // Daily cleanup/analytics
 }
 
 // ============ BADGES ============

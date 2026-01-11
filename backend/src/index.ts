@@ -1,10 +1,14 @@
 import app from './app.js';
 import { config } from './config/index.js';
 import { connectDatabase, disconnectDatabase } from './config/database.js';
+import { cacheService } from './services/cache.service.js';
 
 async function main() {
   // Connect to database
   await connectDatabase();
+
+  // Connect to cache (optional - continues if not configured)
+  await cacheService.connect();
 
   // Start server
   const server = app.listen(config.port, () => {
@@ -19,6 +23,7 @@ async function main() {
 
     server.close(async () => {
       console.log('HTTP server closed');
+      await cacheService.disconnect();
       await disconnectDatabase();
       process.exit(0);
     });
