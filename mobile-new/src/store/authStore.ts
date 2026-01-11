@@ -106,9 +106,18 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       const user = await authApi.checkAuthStatus();
       set({ user, isAuthenticated: !!user, isLoading: false });
-    } catch {
-      await tokenStorage.clearTokens();
-      set({ user: null, isAuthenticated: false, isLoading: false });
+    } catch (error: any) {
+      // Only clear tokens on auth errors (401/403), not network errors
+      const status = error?.response?.status;
+      if (status === 401 || status === 403) {
+        await tokenStorage.clearTokens();
+        set({ user: null, isAuthenticated: false, isLoading: false });
+      } else {
+        // Network error - keep tokens, assume still authenticated
+        // User will retry when network is available
+        const hasToken = await tokenStorage.getAccessToken();
+        set({ user: null, isAuthenticated: !!hasToken, isLoading: false });
+      }
     }
   },
 

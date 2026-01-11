@@ -128,9 +128,14 @@ apiClient.interceptors.response.use(
 
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return apiClient(originalRequest);
-      } catch (refreshError) {
+      } catch (refreshError: any) {
         processQueue(refreshError as Error, null);
-        await tokenStorage.clearTokens();
+        // Only clear tokens on auth errors (401/403), not network errors
+        const status = refreshError?.response?.status;
+        if (status === 401 || status === 403) {
+          await tokenStorage.clearTokens();
+        }
+        // For network errors, keep tokens - user can retry when network is back
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

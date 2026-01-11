@@ -195,19 +195,27 @@ export async function refreshTokens(refreshToken: string): Promise<AuthTokens> {
     throw new UnauthorizedError('Refresh token expired');
   }
 
-  // Delete old token
-  await prisma.refreshToken.delete({ where: { id: storedToken.id } });
-
   const tokens = generateTokens(storedToken.user.id, storedToken.user.email);
 
-  // Store new refresh token
-  await prisma.refreshToken.create({
-    data: {
-      token: tokens.refreshToken,
-      userId: storedToken.user.id,
-      expiresAt: new Date(Date.now() + parseExpiry(config.jwt.refreshExpiresIn)),
-    },
-  });
+  // Use transaction to atomically create new token and delete old one
+  // Keep old token valid for 30 seconds grace period in case of network issues
+  const gracePeriod = 30 * 1000; // 30 seconds
+
+  await prisma.$transaction([
+    // Create new refresh token
+    prisma.refreshToken.create({
+      data: {
+        token: tokens.refreshToken,
+        userId: storedToken.user.id,
+        expiresAt: new Date(Date.now() + parseExpiry(config.jwt.refreshExpiresIn)),
+      },
+    }),
+    // Update old token to expire soon (grace period) instead of immediate delete
+    prisma.refreshToken.update({
+      where: { id: storedToken.id },
+      data: { expiresAt: new Date(Date.now() + gracePeriod) },
+    }),
+  ]);
 
   return tokens;
 }
