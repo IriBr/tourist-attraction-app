@@ -148,6 +148,7 @@ model User {
   visits        Visit[]
   dailyScans    DailyScan[]
   badges        UserBadge[]
+  pushTokens    PushToken[]
 
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
@@ -406,4 +407,21 @@ model UserBadge {
   @@index([userId])
   @@index([badgeId])
   @@index([earnedAt])
+}
+
+// ============ PUSH NOTIFICATIONS ============
+
+model PushToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  platform  String   // "ios" | "android"
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([token])
+  @@index([isActive])
 }

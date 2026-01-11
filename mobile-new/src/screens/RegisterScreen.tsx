@@ -15,6 +15,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
+import { useGoogleAuth, useAppleAuth } from '../hooks';
 import type { AuthStackScreenProps } from '../navigation/types';
 import { colors, BRAND } from '../theme';
 
@@ -26,8 +27,20 @@ export function RegisterScreen({ navigation }: Props) {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const { register, isLoading } = useAuthStore();
+  const {
+    signInWithGoogle,
+    isLoading: isGoogleLoading,
+    error: googleError,
+    isReady: isGoogleReady,
+  } = useGoogleAuth();
+  const {
+    signInWithApple,
+    isLoading: isAppleLoading,
+    error: appleError,
+    isAvailable: isAppleAvailable,
+  } = useAppleAuth();
 
-  const loading = isLoading;
+  const loading = isLoading || isGoogleLoading || isAppleLoading;
 
   const handleRegister = async () => {
     if (!name || !email || !password || !confirmPassword) {
@@ -53,11 +66,25 @@ export function RegisterScreen({ navigation }: Props) {
   };
 
   const handleGoogleLogin = async () => {
-    Alert.alert('Coming Soon', 'Google Sign-In will be available in a future update');
+    if (!isGoogleReady) {
+      Alert.alert('Not Available', 'Google Sign-In is not configured yet');
+      return;
+    }
+    await signInWithGoogle();
+    if (googleError) {
+      Alert.alert('Sign-In Failed', googleError);
+    }
   };
 
   const handleAppleLogin = async () => {
-    Alert.alert('Coming Soon', 'Apple Sign-In will be available in a future update');
+    if (!isAppleAvailable) {
+      Alert.alert('Not Available', 'Apple Sign-In is only available on iOS devices');
+      return;
+    }
+    await signInWithApple();
+    if (appleError) {
+      Alert.alert('Sign-In Failed', appleError);
+    }
   };
 
   return (

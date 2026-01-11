@@ -21,7 +21,6 @@ export interface VerifyResponse {
   confidence: number;
   explanation?: string;
   message?: string;
-  scansRemaining: number;
   // When matched with high confidence
   attraction?: AttractionSummary;
   visit?: {
@@ -47,9 +46,9 @@ export interface ConfirmResponse {
 
 export interface VerificationStatus {
   tier: string;
-  dailyLimit: number;
-  scansRemaining: number;
-  scansUsed: number;
+  isPremium: boolean;
+  canUseCameraScanning: boolean;
+  message: string;
 }
 
 export const verificationApi = {

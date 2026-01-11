@@ -50,6 +50,7 @@ export default {
     },
     plugins: [
       "expo-web-browser",
+      "expo-apple-authentication",
       [
         "expo-location",
         {
@@ -68,7 +69,12 @@ export default {
     extra: {
       eas: {
         projectId: "9b30d187-8bd6-4466-a484-b20607a66e33"
-      }
+      },
+      // Google OAuth Client IDs - get these from Google Cloud Console
+      // https://console.cloud.google.com/apis/credentials
+      googleWebClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '',
+      googleIosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || '',
+      googleAndroidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || '',
     },
     owner: "kaurri"
   }

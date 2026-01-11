@@ -104,4 +104,19 @@ export const authApi = {
     await tokenStorage.setTokens(tokens.accessToken, tokens.refreshToken);
     return response.data.data;
   },
+
+  async verifyEmail(token: string): Promise<{ message: string }> {
+    const response = await apiClient.post<ApiResponse<{ message: string }>>(
+      '/auth/verify-email',
+      { token }
+    );
+    return response.data.data;
+  },
+
+  async resendVerificationEmail(): Promise<{ message: string }> {
+    const response = await apiClient.post<ApiResponse<{ message: string }>>(
+      '/auth/resend-verification'
+    );
+    return response.data.data;
+  },
 };

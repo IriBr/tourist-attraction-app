@@ -13,6 +13,7 @@ import {
   ProfileScreen,
   BadgesScreen,
   ProgressScreen,
+  LeaderboardScreen,
   EditProfileScreen,
   NotificationsScreen,
   PrivacyScreen,
@@ -29,6 +30,7 @@ function ProfileStackNavigator() {
       <ProfileStack.Screen name="ProfileScreen" component={ProfileScreen} />
       <ProfileStack.Screen name="BadgesScreen" component={BadgesScreen} />
       <ProfileStack.Screen name="ProgressScreen" component={ProgressScreen} />
+      <ProfileStack.Screen name="LeaderboardScreen" component={LeaderboardScreen} />
       <ProfileStack.Screen name="EditProfile" component={EditProfileScreen} />
       <ProfileStack.Screen name="Notifications" component={NotificationsScreen} />
       <ProfileStack.Screen name="Privacy" component={PrivacyScreen} />

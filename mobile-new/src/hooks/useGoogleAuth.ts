@@ -1,26 +1,35 @@
 import { useEffect, useState, useCallback } from 'react';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
+import Constants from 'expo-constants';
 import { useAuthStore } from '../store/authStore';
 
 // Ensure web browser can complete the authentication
 WebBrowser.maybeCompleteAuthSession();
 
-// You will need to replace these with your actual client IDs from Google Cloud Console
-const GOOGLE_WEB_CLIENT_ID = 'YOUR_WEB_CLIENT_ID.apps.googleusercontent.com';
-const GOOGLE_IOS_CLIENT_ID = 'YOUR_IOS_CLIENT_ID.apps.googleusercontent.com';
-const GOOGLE_ANDROID_CLIENT_ID = 'YOUR_ANDROID_CLIENT_ID.apps.googleusercontent.com';
+// Get client IDs from app config extra
+const extra = Constants.expoConfig?.extra || {};
+const GOOGLE_WEB_CLIENT_ID = extra.googleWebClientId || process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '';
+const GOOGLE_IOS_CLIENT_ID = extra.googleIosClientId || process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || '';
+const GOOGLE_ANDROID_CLIENT_ID = extra.googleAndroidClientId || process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || '';
+
+// Check if Google Sign-In is configured
+const isConfigured = Boolean(GOOGLE_WEB_CLIENT_ID);
 
 export function useGoogleAuth() {
   const { googleLogin } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    clientId: GOOGLE_WEB_CLIENT_ID,
-    iosClientId: GOOGLE_IOS_CLIENT_ID,
-    androidClientId: GOOGLE_ANDROID_CLIENT_ID,
-  });
+  const [request, response, promptAsync] = Google.useIdTokenAuthRequest(
+    isConfigured
+      ? {
+          clientId: GOOGLE_WEB_CLIENT_ID,
+          iosClientId: GOOGLE_IOS_CLIENT_ID || undefined,
+          androidClientId: GOOGLE_ANDROID_CLIENT_ID || undefined,
+        }
+      : { clientId: 'not-configured' }
+  );
 
   useEffect(() => {
     if (response?.type === 'success') {
@@ -45,6 +54,10 @@ export function useGoogleAuth() {
   };
 
   const signInWithGoogle = useCallback(async () => {
+    if (!isConfigured) {
+      setError('Google Sign-In is not configured');
+      return;
+    }
     try {
       setIsLoading(true);
       setError(null);
@@ -59,6 +72,7 @@ export function useGoogleAuth() {
     signInWithGoogle,
     isLoading,
     error,
-    isReady: !!request,
+    isReady: !!request && isConfigured,
+    isConfigured,
   };
 }

@@ -15,6 +15,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
+import { useGoogleAuth, useAppleAuth } from '../hooks';
 import type { AuthStackScreenProps } from '../navigation/types';
 import { colors, BRAND } from '../theme';
 
@@ -25,6 +26,20 @@ export function LoginScreen({ navigation }: Props) {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const { login, isLoading } = useAuthStore();
+  const {
+    signInWithGoogle,
+    isLoading: isGoogleLoading,
+    error: googleError,
+    isReady: isGoogleReady,
+  } = useGoogleAuth();
+  const {
+    signInWithApple,
+    isLoading: isAppleLoading,
+    error: appleError,
+    isAvailable: isAppleAvailable,
+  } = useAppleAuth();
+
+  const loading = isLoading || isGoogleLoading || isAppleLoading;
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -39,16 +54,26 @@ export function LoginScreen({ navigation }: Props) {
     }
   };
 
-  const handleGoogleLogin = () => {
-    Alert.alert('Coming Soon', 'Google Sign-In will be available in a future update');
+  const handleGoogleLogin = async () => {
+    if (!isGoogleReady) {
+      Alert.alert('Not Available', 'Google Sign-In is not configured yet');
+      return;
+    }
+    await signInWithGoogle();
+    if (googleError) {
+      Alert.alert('Sign-In Failed', googleError);
+    }
   };
 
-  const handleAppleLogin = () => {
-    Alert.alert('Coming Soon', 'Apple Sign-In will be available in a future update');
-  };
-
-  const handlePhoneLogin = () => {
-    Alert.alert('Coming Soon', 'Phone Sign-In will be available in a future update');
+  const handleAppleLogin = async () => {
+    if (!isAppleAvailable) {
+      Alert.alert('Not Available', 'Apple Sign-In is only available on iOS devices');
+      return;
+    }
+    await signInWithApple();
+    if (appleError) {
+      Alert.alert('Sign-In Failed', appleError);
+    }
   };
 
   return (
@@ -95,7 +120,7 @@ export function LoginScreen({ navigation }: Props) {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
-                editable={!isLoading}
+                editable={!loading}
               />
             </View>
 
@@ -109,7 +134,7 @@ export function LoginScreen({ navigation }: Props) {
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
-                editable={!isLoading}
+                editable={!loading}
               />
               <TouchableOpacity
                 onPress={() => setShowPassword(!showPassword)}
@@ -126,7 +151,7 @@ export function LoginScreen({ navigation }: Props) {
             {/* Forgot Password */}
             <TouchableOpacity
               onPress={() => navigation.navigate('ForgotPassword')}
-              disabled={isLoading}
+              disabled={loading}
               style={styles.forgotContainer}
             >
               <Text style={styles.forgotPassword}>Forgot Password?</Text>
@@ -135,7 +160,7 @@ export function LoginScreen({ navigation }: Props) {
             {/* Sign In Button */}
             <TouchableOpacity
               onPress={handleLogin}
-              disabled={isLoading}
+              disabled={loading}
               activeOpacity={0.8}
             >
               <LinearGradient
@@ -144,7 +169,7 @@ export function LoginScreen({ navigation }: Props) {
                 end={{ x: 1, y: 0 }}
                 style={styles.signInButton}
               >
-                {isLoading ? (
+                {loading ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
                   <>
@@ -169,7 +194,7 @@ export function LoginScreen({ navigation }: Props) {
             <TouchableOpacity
               style={styles.socialButton}
               onPress={handleGoogleLogin}
-              disabled={isLoading}
+              disabled={loading}
             >
               <View style={styles.googleIcon}>
                 <Text style={styles.googleG}>G</Text>
@@ -177,29 +202,20 @@ export function LoginScreen({ navigation }: Props) {
               <Text style={styles.socialButtonText}>Continue with Google</Text>
             </TouchableOpacity>
 
-            {/* Apple */}
-            <TouchableOpacity
-              style={[styles.socialButton, styles.appleButton]}
-              onPress={handleAppleLogin}
-              disabled={isLoading}
-            >
-              <Ionicons name="logo-apple" size={20} color="#fff" />
-              <Text style={[styles.socialButtonText, styles.appleButtonText]}>
-                Continue with Apple
-              </Text>
-            </TouchableOpacity>
+            {/* Apple - iOS only */}
+            {Platform.OS === 'ios' && (
+              <TouchableOpacity
+                style={[styles.socialButton, styles.appleButton]}
+                onPress={handleAppleLogin}
+                disabled={loading}
+              >
+                <Ionicons name="logo-apple" size={20} color="#fff" />
+                <Text style={[styles.socialButtonText, styles.appleButtonText]}>
+                  Continue with Apple
+                </Text>
+              </TouchableOpacity>
+            )}
 
-            {/* Phone */}
-            <TouchableOpacity
-              style={[styles.socialButton, styles.phoneButton]}
-              onPress={handlePhoneLogin}
-              disabled={isLoading}
-            >
-              <Ionicons name="call-outline" size={20} color={colors.secondary} />
-              <Text style={[styles.socialButtonText, styles.phoneButtonText]}>
-                Continue with Phone Number
-              </Text>
-            </TouchableOpacity>
           </View>
 
           {/* Footer */}
@@ -207,7 +223,7 @@ export function LoginScreen({ navigation }: Props) {
             <Text style={styles.footerText}>Don't have an account? </Text>
             <TouchableOpacity
               onPress={() => navigation.navigate('Register')}
-              disabled={isLoading}
+              disabled={loading}
             >
               <Text style={styles.footerLink}>Register now</Text>
             </TouchableOpacity>
@@ -365,14 +381,6 @@ const styles = StyleSheet.create({
   },
   appleButtonText: {
     color: '#fff',
-  },
-  phoneButton: {
-    backgroundColor: '#fff',
-    borderWidth: 2,
-    borderColor: colors.secondary,
-  },
-  phoneButtonText: {
-    color: '#1a1a1a',
   },
   footer: {
     flexDirection: 'row',

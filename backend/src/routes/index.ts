@@ -11,6 +11,7 @@ import publicLocationRoutes from './public-location.routes.js';
 import badgeRoutes from './badge.routes.js';
 import verificationRoutes from './verification.routes.js';
 import leaderboardRoutes from './leaderboard.routes.js';
+import notificationRoutes from './notification.routes.js';
 
 const router = Router();
 
@@ -24,6 +25,7 @@ router.use('/verification', verificationRoutes);
 router.use('/locations', publicLocationRoutes);
 router.use('/subscription', subscriptionRoutes);
 router.use('/leaderboard', leaderboardRoutes);
+router.use('/notifications', notificationRoutes);
 router.use('/admin', adminRoutes);
 router.use('/admin/locations', locationRoutes);
 

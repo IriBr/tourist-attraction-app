@@ -17,7 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useSubscriptionStore } from '../store/subscriptionStore';
-import { verificationApi, VerifyResponse, AttractionSummary } from '../api';
+import { verificationApi, VerifyResponse } from '../api';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
 import { colors } from '../theme';
@@ -28,46 +28,25 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 export function CameraScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp>();
-  const { isTablet, maxContentWidth, scale } = useResponsive();
+  const { isTablet } = useResponsive();
   const [facing, setFacing] = useState<CameraType>('back');
   const [permission, requestPermission] = useCameraPermissions();
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [capturedBase64, setCapturedBase64] = useState<string | null>(null);
   const [capturedLocation, setCapturedLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [showResultModal, setShowResultModal] = useState(false);
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [flash, setFlash] = useState<'off' | 'on'>('off');
   const [isProcessing, setIsProcessing] = useState(false);
   const [verificationResult, setVerificationResult] = useState<VerifyResponse | null>(null);
   const cameraRef = useRef<CameraView>(null);
 
   // Subscription state
-  const {
-    isPremium,
-    canScan,
-    scansRemaining,
-    fetchStatus,
-  } = useSubscriptionStore();
-
-  // Local scans remaining (updated from verification response)
-  const [localScansRemaining, setLocalScansRemaining] = useState<number | null>(null);
+  const { isPremium, fetchStatus } = useSubscriptionStore();
 
   // Fetch subscription status on mount
   useEffect(() => {
     fetchStatus();
-    loadVerificationStatus();
   }, []);
-
-  const loadVerificationStatus = async () => {
-    try {
-      const status = await verificationApi.getStatus();
-      setLocalScansRemaining(status.scansRemaining);
-    } catch (error) {
-      console.log('Failed to load verification status:', error);
-    }
-  };
-
-  const displayScansRemaining = localScansRemaining ?? scansRemaining;
 
   if (!permission) {
     return (
@@ -105,19 +84,66 @@ export function CameraScreen() {
     setFlash((current) => (current === 'off' ? 'on' : 'off'));
   };
 
-  const checkScanLimit = (): boolean => {
-    if (isPremium) return true;
-
-    if (!canScan || displayScansRemaining <= 0) {
-      setShowUpgradeModal(true);
-      return false;
-    }
-    return true;
+  // Premium-only feature - show upgrade prompt for free users
+  const handleUpgrade = () => {
+    navigation.navigate('Premium');
   };
 
-  const takePicture = async () => {
-    if (!checkScanLimit()) return;
+  // If user is not premium, show upgrade screen instead of camera
+  if (!isPremium) {
+    return (
+      <LinearGradient colors={colors.gradientDark} style={styles.container}>
+        <View style={[styles.premiumRequiredContainer, { paddingTop: insets.top + 60 }]}>
+          <View style={styles.premiumIconContainer}>
+            <LinearGradient
+              colors={['rgba(255, 215, 0, 0.3)', 'rgba(255, 215, 0, 0.1)']}
+              style={styles.premiumIconGradient}
+            >
+              <Ionicons name="camera" size={64} color="#FFD700" />
+            </LinearGradient>
+          </View>
+          <Text style={styles.premiumTitle}>Premium Feature</Text>
+          <Text style={styles.premiumDescription}>
+            Camera scanning is a premium feature that lets you verify your visits to attractions
+            and compete on the global leaderboard.
+          </Text>
 
+          <View style={styles.premiumFeatures}>
+            <View style={styles.premiumFeatureRow}>
+              <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+              <Text style={styles.premiumFeatureText}>Scan attractions to verify visits</Text>
+            </View>
+            <View style={styles.premiumFeatureRow}>
+              <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+              <Text style={styles.premiumFeatureText}>Compete on the global leaderboard</Text>
+            </View>
+            <View style={styles.premiumFeatureRow}>
+              <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+              <Text style={styles.premiumFeatureText}>Earn exclusive badges</Text>
+            </View>
+            <View style={styles.premiumFeatureRow}>
+              <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+              <Text style={styles.premiumFeatureText}>Use filters to find attractions</Text>
+            </View>
+          </View>
+
+          <TouchableOpacity style={styles.upgradePremiumButton} onPress={handleUpgrade}>
+            <LinearGradient
+              colors={[colors.secondary, '#FF8C00']}
+              style={styles.upgradePremiumGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            >
+              <Ionicons name="star" size={22} color="#fff" />
+              <Text style={styles.upgradePremiumText}>Upgrade to Premium</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      </LinearGradient>
+    );
+  }
+
+  const takePicture = async () => {
     if (cameraRef.current) {
       setIsProcessing(true);
       try {
@@ -164,8 +190,6 @@ export function CameraScreen() {
   };
 
   const pickImage = async () => {
-    if (!checkScanLimit()) return;
-
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
@@ -194,19 +218,26 @@ export function CameraScreen() {
       });
 
       setVerificationResult(response);
-      setLocalScansRemaining(response.scansRemaining);
       setShowResultModal(true);
     } catch (error: any) {
       console.error('Verification error:', error);
-      if (error.response?.status === 429) {
-        setShowUpgradeModal(true);
+      if (error.response?.status === 403) {
+        // Premium feature blocked - shouldn't happen since we check above
+        Alert.alert(
+          'Premium Required',
+          'Camera scanning requires a Premium subscription.',
+          [
+            { text: 'Later', style: 'cancel', onPress: resetCamera },
+            { text: 'Upgrade', onPress: () => { resetCamera(); navigation.navigate('Premium'); } },
+          ]
+        );
       } else {
         Alert.alert(
           'Verification Failed',
           error.response?.data?.error?.message || 'Could not verify the image. Please try again.'
         );
+        resetCamera();
       }
-      resetCamera();
     } finally {
       setIsProcessing(false);
     }
@@ -249,11 +280,7 @@ export function CameraScreen() {
     }
   };
 
-  const handleUpgrade = () => {
-    setShowUpgradeModal(false);
-    navigation.navigate('Premium');
-  };
-
+  
   const resetCamera = () => {
     setCapturedImage(null);
     setCapturedBase64(null);
@@ -389,21 +416,10 @@ export function CameraScreen() {
           </TouchableOpacity>
           <View style={styles.headerCenter}>
             <Text style={styles.headerTitle}>Verify Attraction</Text>
-            {/* Scan Counter for Free Users */}
-            {!isPremium && (
-              <View style={styles.scanCounterContainer}>
-                <Ionicons name="scan" size={14} color={colors.secondary} />
-                <Text style={styles.scanCounterText}>
-                  {displayScansRemaining} scans left today
-                </Text>
-              </View>
-            )}
-            {isPremium && (
-              <View style={styles.premiumBadge}>
-                <Ionicons name="star" size={12} color="#FFD700" />
-                <Text style={styles.premiumBadgeText}>Premium</Text>
-              </View>
-            )}
+            <View style={styles.premiumBadge}>
+              <Ionicons name="star" size={12} color="#FFD700" />
+              <Text style={styles.premiumBadgeText}>Premium</Text>
+            </View>
           </View>
           <TouchableOpacity style={styles.controlButton} onPress={toggleCameraFacing}>
             <Ionicons name="camera-reverse" size={24} color="#fff" />
@@ -477,62 +493,6 @@ export function CameraScreen() {
             )}
 
             {renderResultContent()}
-
-            {!isPremium && (
-              <Text style={styles.scansRemainingText}>
-                {displayScansRemaining} scans remaining today
-              </Text>
-            )}
-          </View>
-        </View>
-      </Modal>
-
-      {/* Upgrade Modal */}
-      <Modal
-        visible={showUpgradeModal}
-        animationType="fade"
-        transparent={true}
-        onRequestClose={() => setShowUpgradeModal(false)}
-      >
-        <View style={styles.upgradeModalOverlay}>
-          <View style={styles.upgradeModalContent}>
-            <View style={styles.upgradeIconContainer}>
-              <Ionicons name="star" size={48} color="#FFD700" />
-            </View>
-            <Text style={styles.upgradeTitle}>Scan Limit Reached</Text>
-            <Text style={styles.upgradeDescription}>
-              You've used all your free scans for today. Upgrade to Premium for 50 scans per day!
-            </Text>
-
-            <View style={styles.upgradeFeatures}>
-              <View style={styles.upgradeFeatureRow}>
-                <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-                <Text style={styles.upgradeFeatureText}>50 daily scans</Text>
-              </View>
-              <View style={styles.upgradeFeatureRow}>
-                <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-                <Text style={styles.upgradeFeatureText}>Access all attractions</Text>
-              </View>
-              <View style={styles.upgradeFeatureRow}>
-                <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-                <Text style={styles.upgradeFeatureText}>Priority support</Text>
-              </View>
-            </View>
-
-            <TouchableOpacity
-              style={styles.upgradeButton}
-              onPress={handleUpgrade}
-            >
-              <Ionicons name="star" size={20} color="#fff" />
-              <Text style={styles.upgradeButtonText}>View Premium Plans</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.upgradeLaterButton}
-              onPress={() => setShowUpgradeModal(false)}
-            >
-              <Text style={styles.upgradeLaterText}>Maybe Later</Text>
-            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -812,28 +772,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  scansRemainingText: {
-    color: '#666',
-    fontSize: 12,
-    textAlign: 'center',
-    marginTop: 16,
-  },
-  // Scan counter styles
-  scanCounterContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(245, 158, 11, 0.2)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginTop: 4,
-  },
-  scanCounterText: {
-    color: colors.secondary,
-    fontSize: 12,
-    fontWeight: '600',
-    marginLeft: 4,
-  },
   premiumBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -849,81 +787,68 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 4,
   },
-  // Upgrade modal styles
-  upgradeModalOverlay: {
+  // Premium required screen styles
+  premiumRequiredContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.85)',
-    justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    paddingHorizontal: 32,
   },
-  upgradeModalContent: {
-    backgroundColor: '#1a1a2e',
-    borderRadius: 24,
-    padding: 24,
-    width: '100%',
-    maxWidth: 340,
-    alignItems: 'center',
+  premiumIconContainer: {
+    marginBottom: 24,
   },
-  upgradeIconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(255, 215, 0, 0.15)',
+  premiumIconGradient: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 20,
   },
-  upgradeTitle: {
-    fontSize: 22,
+  premiumTitle: {
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#fff',
     marginBottom: 12,
     textAlign: 'center',
   },
-  upgradeDescription: {
-    fontSize: 14,
-    color: '#888',
+  premiumDescription: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.7)',
     textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 24,
+    lineHeight: 24,
+    marginBottom: 32,
   },
-  upgradeFeatures: {
+  premiumFeatures: {
     width: '100%',
-    marginBottom: 24,
+    marginBottom: 40,
   },
-  upgradeFeatureRow: {
+  premiumFeatureRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
+    paddingHorizontal: 8,
   },
-  upgradeFeatureText: {
+  premiumFeatureText: {
     color: '#fff',
-    fontSize: 14,
-    marginLeft: 12,
+    fontSize: 16,
+    marginLeft: 14,
+    flex: 1,
   },
-  upgradeButton: {
-    backgroundColor: colors.secondary,
+  upgradePremiumButton: {
+    width: '100%',
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  upgradePremiumGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
+    paddingVertical: 18,
     paddingHorizontal: 32,
-    borderRadius: 12,
-    width: '100%',
-    marginBottom: 12,
+    gap: 10,
   },
-  upgradeButtonText: {
+  upgradePremiumText: {
     color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  upgradeLaterButton: {
-    paddingVertical: 12,
-  },
-  upgradeLaterText: {
-    color: '#888',
-    fontSize: 14,
+    fontSize: 18,
+    fontWeight: '700',
   },
 });

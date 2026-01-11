@@ -90,7 +90,7 @@ export function PremiumScreen() {
       setProducts(loadedProducts);
 
       if (loadedProducts.length === 0) {
-        console.warn('No products returned from App Store');
+        console.warn(`No products returned from ${Platform.OS === 'ios' ? 'App Store' : 'Play Store'}`);
       }
     } catch (error) {
       console.error('Failed to load products:', error);
@@ -119,7 +119,7 @@ export function PremiumScreen() {
     if (products.length === 0) {
       Alert.alert(
         'Store Unavailable',
-        'Unable to connect to the App Store. Please check your internet connection and try again.',
+        `Unable to connect to the ${Platform.OS === 'ios' ? 'App Store' : 'Play Store'}. Please check your internet connection and try again.`,
         [
           { text: 'Retry', onPress: loadProducts },
           { text: 'Cancel', style: 'cancel' },
@@ -178,11 +178,11 @@ export function PremiumScreen() {
   };
 
   const handleManageSubscription = () => {
-    // Open iOS subscription management
+    // Open platform-specific subscription management
     if (Platform.OS === 'ios') {
-      import('react-native').then(({ Linking }) => {
-        Linking.openURL('https://apps.apple.com/account/subscriptions');
-      });
+      Linking.openURL('https://apps.apple.com/account/subscriptions');
+    } else {
+      Linking.openURL('https://play.google.com/store/account/subscriptions');
     }
   };
 
@@ -435,10 +435,14 @@ export function PremiumScreen() {
           </LinearGradient>
         </Pressable>
         <Text style={styles.ctaDisclaimer}>
-          Payment will be charged to your Apple ID account at confirmation of purchase.{'\n'}
+          {Platform.OS === 'ios'
+            ? 'Payment will be charged to your Apple ID account at confirmation of purchase.'
+            : 'Payment will be charged to your Google Play account at confirmation of purchase.'}{'\n'}
           Subscription automatically renews unless canceled at least 24 hours before the end of the current period.{'\n'}
           Your account will be charged for renewal within 24 hours prior to the end of the current period.{'\n'}
-          Manage subscriptions in your Account Settings after purchase.
+          {Platform.OS === 'ios'
+            ? 'Manage subscriptions in your Account Settings after purchase.'
+            : 'Manage subscriptions in Google Play Store settings after purchase.'}
         </Text>
       </View>
     </LinearGradient>

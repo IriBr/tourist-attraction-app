@@ -1,13 +1,21 @@
 import { apiClient } from './config';
 
+export interface SubscriptionFeatures {
+  canUseCameraScanning: boolean;
+  canUseFilters: boolean;
+  canReceiveProximityNotifications: boolean;
+}
+
 export interface SubscriptionStatus {
   tier: 'free' | 'premium';
   status: 'active' | 'cancelled' | 'expired';
-  scansUsedToday: number;
-  scansRemaining: number;
-  canScan: boolean;
-  subscriptionEndDate: string | null;
   isPremium: boolean;
+  features: SubscriptionFeatures;
+  subscriptionEndDate: string | null;
+  // Legacy fields (deprecated - use features instead)
+  scansUsedToday?: number;
+  scansRemaining?: number;
+  canScan?: boolean;
 }
 
 export interface CanScanResult {
@@ -197,6 +205,41 @@ export const subscriptionApi = {
   }> {
     const response = await apiClient.post('/subscription/apple/restore', {
       receipt,
+    });
+    return response.data.data;
+  },
+
+  // ============ GOOGLE PLAY ENDPOINTS ============
+
+  /**
+   * Validate Google Play purchase and activate subscription
+   */
+  async validateGooglePurchase(purchaseToken: string, productId: string): Promise<{
+    valid: boolean;
+    subscription?: {
+      tier: string;
+      expiresAt: string;
+    };
+  }> {
+    const response = await apiClient.post('/subscription/google/validate', {
+      purchaseToken,
+      productId,
+    });
+    return response.data.data;
+  },
+
+  /**
+   * Restore Google Play purchases
+   */
+  async restoreGooglePurchases(purchaseToken: string): Promise<{
+    restored: boolean;
+    subscription?: {
+      tier: string;
+      expiresAt: string;
+    };
+  }> {
+    const response = await apiClient.post('/subscription/google/restore', {
+      purchaseToken,
     });
     return response.data.data;
   },

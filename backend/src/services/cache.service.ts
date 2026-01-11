@@ -1,4 +1,4 @@
-import Redis from 'ioredis';
+import { Redis } from 'ioredis';
 
 // Cache TTL values in seconds
 const TTL = {
@@ -35,7 +35,7 @@ class CacheService {
     try {
       this.client = new Redis(redisUrl, {
         maxRetriesPerRequest: 3,
-        retryStrategy: (times) => {
+        retryStrategy: (times: number) => {
           if (times > 3) return null;
           return Math.min(times * 100, 3000);
         },
@@ -47,7 +47,7 @@ class CacheService {
         console.log('[Cache] Connected to Redis');
       });
 
-      this.client.on('error', (err) => {
+      this.client.on('error', (err: Error) => {
         console.error('[Cache] Redis error:', err.message);
         this.isConnected = false;
       });

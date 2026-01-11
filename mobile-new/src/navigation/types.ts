@@ -46,6 +46,7 @@ export type ProfileStackParamList = {
   Settings: undefined;
   BadgesScreen: undefined;
   ProgressScreen: undefined;
+  LeaderboardScreen: undefined;
   Notifications: undefined;
   Privacy: undefined;
   Help: undefined;
@@ -55,6 +56,7 @@ export type ProfileStackParamList = {
 // Root Navigator
 export type RootStackParamList = {
   Auth: NavigatorScreenParams<AuthStackParamList>;
+  EmailVerification: undefined;
   Main: NavigatorScreenParams<MainTabParamList>;
   Premium: undefined;
   AttractionDetail: { id: string };

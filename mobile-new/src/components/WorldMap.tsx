@@ -66,6 +66,8 @@ export function WorldMap({ onContinentSelect, onAttractionPress }: WorldMapProps
   const [isLoadingMap, setIsLoadingMap] = useState(true);
   const [globalStats, setGlobalStats] = useState({ continents: 0, countries: 0, cities: 0, attractions: 0 });
   const [mapReady, setMapReady] = useState(false);
+  const [markersReady, setMarkersReady] = useState(false);
+  const [markerKey, setMarkerKey] = useState(0);
   const [hasError, setHasError] = useState(false);
 
   // Category filter state
@@ -104,6 +106,22 @@ export function WorldMap({ onContinentSelect, onAttractionPress }: WorldMapProps
       setMapReady(true);
     }, 100);
     return () => clearTimeout(timer);
+  }, []);
+
+  // On Android, markers need special handling - delay rendering and force re-render
+  const handleMapReady = useCallback(() => {
+    if (Platform.OS === 'android') {
+      // Give the map a moment to fully initialize, then render markers
+      setTimeout(() => {
+        setMarkersReady(true);
+        // Force a re-render of markers by changing the key
+        setTimeout(() => {
+          setMarkerKey(prev => prev + 1);
+        }, 500);
+      }, 300);
+    } else {
+      setMarkersReady(true);
+    }
   }, []);
 
   // Fetch map data on mount
@@ -415,20 +433,38 @@ export function WorldMap({ onContinentSelect, onAttractionPress }: WorldMapProps
     setSelectedCategory('all');
   }, [selectedCity?.id]);
 
+  // Force marker re-render on Android when level changes
+  useEffect(() => {
+    if (Platform.OS === 'android' && markersReady) {
+      // Increment key to force re-render of markers
+      setMarkerKey(prev => prev + 1);
+    }
+  }, [level, selectedContinent?.id, selectedCountry?.id, selectedCity?.id]);
+
   const renderMarkers = () => {
     if (isLoadingMap) return null;
+
+    // On Android, wait for markers to be ready
+    if (Platform.OS === 'android' && !markersReady) return null;
+
+    // On Android, custom marker views need tracksViewChanges={true} to render properly
+    const isAndroid = Platform.OS === 'android';
 
     if (level === 'world') {
       return mapData.map((continent) => (
         <Marker
-          key={continent.id}
+          key={`${continent.id}-${markerKey}`}
           coordinate={{ latitude: continent.latitude, longitude: continent.longitude }}
           onPress={() => handleContinentPress(continent)}
-          pinColor={continent.color}
-          tracksViewChanges={false}
+          tracksViewChanges={isAndroid}
+          anchor={{ x: 0.5, y: 0.5 }}
         >
-          <View style={[styles.continentMarker, { backgroundColor: continent.color || '#4CAF50' }]}>
-            <Text style={styles.continentMarkerText}>{continent.name}</Text>
+          <View style={styles.markerWrapper} collapsable={false} renderToHardwareTextureAndroid={true}>
+            <View
+              style={[styles.continentMarker, { backgroundColor: continent.color || '#4CAF50' }]}
+            >
+              <Text style={styles.continentMarkerText}>{continent.name}</Text>
+            </View>
           </View>
         </Marker>
       ));
@@ -437,13 +473,18 @@ export function WorldMap({ onContinentSelect, onAttractionPress }: WorldMapProps
     if (level === 'continent' && selectedContinent) {
       return selectedContinent.countries.map((country) => (
         <Marker
-          key={country.id}
+          key={`${country.id}-${markerKey}`}
           coordinate={{ latitude: country.latitude, longitude: country.longitude }}
           onPress={() => handleCountryPress(country)}
-          tracksViewChanges={false}
+          tracksViewChanges={isAndroid}
+          anchor={{ x: 0.5, y: 0.5 }}
         >
-          <View style={[styles.countryMarker, { backgroundColor: selectedContinent.color || '#4CAF50' }]}>
-            <Text style={styles.countryMarkerText}>{country.code}</Text>
+          <View style={styles.markerWrapper} collapsable={false} renderToHardwareTextureAndroid={true}>
+            <View
+              style={[styles.countryMarker, { backgroundColor: selectedContinent.color || '#4CAF50' }]}
+            >
+              <Text style={styles.countryMarkerText}>{country.code}</Text>
+            </View>
           </View>
         </Marker>
       ));
@@ -452,14 +493,17 @@ export function WorldMap({ onContinentSelect, onAttractionPress }: WorldMapProps
     if (level === 'country' && selectedCountry) {
       return selectedCountry.cities.map((city) => (
         <Marker
-          key={city.id}
+          key={`${city.id}-${markerKey}`}
           coordinate={{ latitude: city.latitude, longitude: city.longitude }}
           onPress={() => handleCityPress(city)}
-          tracksViewChanges={false}
+          tracksViewChanges={isAndroid}
+          anchor={{ x: 0.5, y: 1 }}
         >
-          <View style={styles.cityMarker}>
-            <Ionicons name="location" size={24} color="#e91e63" />
-            <Text style={styles.cityMarkerText}>{city.name}</Text>
+          <View style={styles.markerWrapper} collapsable={false} renderToHardwareTextureAndroid={true}>
+            <View style={styles.cityMarker}>
+              <Ionicons name="location" size={28} color="#e91e63" />
+              <Text style={styles.cityMarkerText}>{city.name}</Text>
+            </View>
           </View>
         </Marker>
       ));
@@ -468,15 +512,18 @@ export function WorldMap({ onContinentSelect, onAttractionPress }: WorldMapProps
     if (level === 'city' && selectedCity) {
       return selectedCity.attractions.map((attraction) => (
         <Marker
-          key={attraction.id}
+          key={`${attraction.id}-${markerKey}`}
           coordinate={{ latitude: attraction.latitude, longitude: attraction.longitude }}
           title={attraction.name}
           description={attraction.shortDescription}
           onPress={() => onAttractionPress?.(attraction.name, selectedCity.name)}
-          tracksViewChanges={false}
+          tracksViewChanges={isAndroid}
+          anchor={{ x: 0.5, y: 0.5 }}
         >
-          <View style={styles.attractionMarker}>
-            <Ionicons name="star" size={20} color="#FFD700" />
+          <View style={styles.markerWrapper} collapsable={false} renderToHardwareTextureAndroid={true}>
+            <View style={styles.attractionMarker}>
+              <Ionicons name="star" size={22} color="#FFD700" />
+            </View>
           </View>
         </Marker>
       ));
@@ -623,6 +670,7 @@ export function WorldMap({ onContinentSelect, onAttractionPress }: WorldMapProps
         style={styles.map}
         initialRegion={worldRegion}
         mapType="standard"
+        onMapReady={handleMapReady}
       >
         {renderMarkers()}
       </MapView>
@@ -1332,24 +1380,45 @@ const styles = StyleSheet.create({
   map: {
     flex: 1,
   },
-  continentMarker: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    minWidth: 80,
+  markerWrapper: {
     alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'visible',
+    padding: 4,
+  },
+  continentMarker: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 20,
+    minWidth: 90,
+    minHeight: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'visible',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
   },
   continentMarkerText: {
     color: '#fff',
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: 'bold',
+    textAlign: 'center',
   },
   countryMarker: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'visible',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
   },
   countryMarkerText: {
     color: '#fff',
@@ -1358,22 +1427,33 @@ const styles = StyleSheet.create({
   },
   cityMarker: {
     alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 60,
+    minHeight: 40,
+    overflow: 'visible',
   },
   cityMarkerText: {
     color: '#e91e63',
     fontSize: 10,
     fontWeight: 'bold',
     marginTop: 2,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 4,
+    overflow: 'hidden',
   },
   attractionMarker: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,215,0,0.2)',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,215,0,0.3)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
     borderColor: '#FFD700',
+    overflow: 'visible',
+    elevation: 3,
   },
   attractionSheetCard: {
     flex: 1,
@@ -1529,7 +1609,7 @@ const styles = StyleSheet.create({
   // World level bottom bar styles
   worldBottomBar: {
     position: 'absolute',
-    bottom: 16,
+    bottom: Platform.OS === 'android' ? 100 : 16,
     left: 0,
     right: 0,
     flexDirection: 'row',

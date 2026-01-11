@@ -179,7 +179,7 @@ class IAPService {
         await this.connect();
       } catch (connectError) {
         console.error('IAP connect failed:', connectError);
-        throw new Error('Unable to connect to the App Store. Please try again.');
+        throw new Error(`Unable to connect to the ${Platform.OS === 'ios' ? 'App Store' : 'Play Store'}. Please try again.`);
       }
     }
 
@@ -258,11 +258,19 @@ class IAPService {
         return false;
       }
 
-      // Send receipt to backend for validation
-      const response = await subscriptionApi.validateAppleReceipt(
-        receipt,
-        purchase.productId
-      );
+      // Send receipt to backend for validation (platform-specific)
+      let response;
+      if (Platform.OS === 'ios') {
+        response = await subscriptionApi.validateAppleReceipt(
+          receipt,
+          purchase.productId
+        );
+      } else {
+        response = await subscriptionApi.validateGooglePurchase(
+          receipt,
+          purchase.productId
+        );
+      }
 
       return response.valid;
     } catch (error) {

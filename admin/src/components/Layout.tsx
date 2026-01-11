@@ -8,6 +8,7 @@ import {
   Menu,
   X,
   Globe,
+  Bell,
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 
@@ -16,6 +17,7 @@ const navItems = [
   { path: '/users', icon: Users, label: 'Users' },
   { path: '/attractions', icon: MapPin, label: 'Attractions' },
   { path: '/locations', icon: Globe, label: 'Locations' },
+  { path: '/notifications', icon: Bell, label: 'Notifications' },
 ];
 
 export function Layout() {

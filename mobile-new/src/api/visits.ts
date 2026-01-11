@@ -15,14 +15,22 @@ export interface Visit {
   };
 }
 
+export interface LeaderboardInfo {
+  rank: number | null;
+  badge: string | null;
+  isEligible: boolean;
+}
+
 export interface UserStats {
   totalVisits: number;
+  verifiedVisits: number;
   countriesVisited: number;
   citiesVisited: number;
   continentsVisited: number;
   countries: string[];
   cities: string[];
   continents: string[];
+  leaderboard?: LeaderboardInfo;
 }
 
 export interface LocationStats {

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { User, AuthProvider } from '../types';
 import { authApi, tokenStorage } from '../api';
+import { unregisterPushNotifications } from '../services/pushNotifications';
 
 // Dev mode - set to true to bypass authentication
 const DEV_MODE = false;
@@ -79,6 +80,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   logout: async () => {
     set({ isLoading: true });
     try {
+      // Unregister push notifications before logout
+      await unregisterPushNotifications();
       await authApi.logout();
     } finally {
       set({ user: null, isAuthenticated: false, isLoading: false });

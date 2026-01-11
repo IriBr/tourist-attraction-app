@@ -8,7 +8,16 @@ export { subscriptionApi } from './subscription';
 export { badgesApi } from './badges';
 export { locationsApi } from './locations';
 export { verificationApi } from './verification';
+export { leaderboardApi } from './leaderboard';
+export { notificationsApi } from './notifications';
 export type { UserStats, LocationStats, Visit, NewBadgeInfo, MarkVisitedResponse } from './visits';
-export type { SubscriptionStatus, CanScanResult, FreeTierLimits } from './subscription';
+export type { SubscriptionStatus, SubscriptionFeatures, CanScanResult, FreeTierLimits } from './subscription';
+export type {
+  LeaderboardEntry,
+  LeaderboardBadge,
+  UserLeaderboardStats,
+  LeaderboardResponse,
+  BadgeInfo,
+} from './leaderboard';
 export type { GlobalStats, MapContinent, MapCountry, MapCity, MapAttraction } from './locations';
 export type { VerifyRequest, VerifyResponse, ConfirmResponse, VerificationStatus, AttractionSummary } from './verification';

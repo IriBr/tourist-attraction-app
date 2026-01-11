@@ -6,12 +6,16 @@ import { useAuthStore } from '../store/authStore';
 import { useSubscriptionStore } from '../store/subscriptionStore';
 import { AuthNavigator } from './AuthNavigator';
 import { MainTabNavigator } from './MainTabNavigator';
-import { PremiumScreen, AttractionDetailScreen } from '../screens';
+import { PremiumScreen, AttractionDetailScreen, EmailVerificationScreen } from '../screens';
 import { OnboardingScreen, isOnboardingComplete } from '../screens/OnboardingScreen';
 import {
   startProximityTracking,
   setupNotificationHandler,
 } from '../services/proximityNotifications';
+import {
+  registerForPushNotifications,
+  setupPushNotificationHandler,
+} from '../services/pushNotifications';
 import type { RootStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -20,7 +24,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 export const navigationRef = React.createRef<NavigationContainerRef<RootStackParamList>>();
 
 export function RootNavigator() {
-  const { isAuthenticated, isLoading, checkAuth } = useAuthStore();
+  const { isAuthenticated, isLoading, checkAuth, user } = useAuthStore();
   const { fetchStatus } = useSubscriptionStore();
   const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
 
@@ -29,26 +33,47 @@ export function RootNavigator() {
     checkOnboarding();
   }, []);
 
-  // Fetch subscription status and set up tracking when authenticated
+  // Check if email verification is needed
+  const needsEmailVerification = isAuthenticated && user && !user.emailVerified;
+
+  // Fetch subscription status and set up tracking when authenticated and verified
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || needsEmailVerification) return;
 
     // Fetch subscription status immediately when authenticated
     fetchStatus().catch(console.error);
 
+    // Register for push notifications
+    registerForPushNotifications().catch(console.error);
+
     // Start background location tracking
     startProximityTracking().catch(console.error);
 
-    // Handle notification taps - navigate to Camera tab
-    const cleanup = setupNotificationHandler((attractionId) => {
-      // Navigate to Camera tab
+    // Handle proximity notification taps - navigate to Camera tab
+    const cleanupProximity = setupNotificationHandler((attractionId) => {
       if (navigationRef.current) {
         navigationRef.current.navigate('Main', { screen: 'Camera' });
       }
     });
 
-    return cleanup;
-  }, [isAuthenticated]);
+    // Handle push notification responses
+    const cleanupPush = setupPushNotificationHandler(
+      undefined, // onNotificationReceived - handled by Expo's handler
+      (response) => {
+        // Handle tap on push notification
+        const data = response.notification.request.content.data;
+        if (data?.screen && navigationRef.current) {
+          // Navigate to specified screen if provided in notification data
+          navigationRef.current.navigate(data.screen as keyof RootStackParamList);
+        }
+      }
+    );
+
+    return () => {
+      cleanupProximity();
+      cleanupPush();
+    };
+  }, [isAuthenticated, needsEmailVerification]);
 
   const checkOnboarding = async () => {
     const complete = await isOnboardingComplete();
@@ -75,24 +100,28 @@ export function RootNavigator() {
     <NavigationContainer ref={navigationRef}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {isAuthenticated ? (
-          <>
-            <Stack.Screen name="Main" component={MainTabNavigator} />
-            <Stack.Screen
-              name="Premium"
-              component={PremiumScreen}
-              options={{
-                presentation: 'modal',
-                animation: 'slide_from_bottom',
-              }}
-            />
-            <Stack.Screen
-              name="AttractionDetail"
-              component={AttractionDetailScreen}
-              options={{
-                animation: 'slide_from_right',
-              }}
-            />
-          </>
+          needsEmailVerification ? (
+            <Stack.Screen name="EmailVerification" component={EmailVerificationScreen} />
+          ) : (
+            <>
+              <Stack.Screen name="Main" component={MainTabNavigator} />
+              <Stack.Screen
+                name="Premium"
+                component={PremiumScreen}
+                options={{
+                  presentation: 'modal',
+                  animation: 'slide_from_bottom',
+                }}
+              />
+              <Stack.Screen
+                name="AttractionDetail"
+                component={AttractionDetailScreen}
+                options={{
+                  animation: 'slide_from_right',
+                }}
+              />
+            </>
+          )
         ) : (
           <Stack.Screen name="Auth" component={AuthNavigator} />
         )}

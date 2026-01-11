@@ -126,6 +126,5 @@ const styles = StyleSheet.create({
   },
   mapContainer: {
     flex: 1,
-    marginBottom: 80,
   },
 });

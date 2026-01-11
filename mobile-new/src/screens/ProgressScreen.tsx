@@ -12,9 +12,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useBadgeStore } from '../store';
+import { useSubscriptionStore } from '../store/subscriptionStore';
 import { AppHeader } from '../components';
 import { BadgeProgress, BadgeTier, LocationType, BADGE_THRESHOLDS } from '../types';
-import { locationsApi, GlobalStats } from '../api';
+import { locationsApi, GlobalStats, visitsApi, UserStats } from '../api';
 import { colors } from '../theme';
 
 const TIER_COLORS: Record<BadgeTier, string> = {
@@ -239,16 +240,110 @@ function OverallStats({
   );
 }
 
+// Badge display config for leaderboard
+const LEADERBOARD_BADGE_CONFIG: Record<string, { emoji: string; color: string }> = {
+  gold_champion: { emoji: '🥇', color: '#FFD700' },
+  silver_explorer: { emoji: '🥈', color: '#C0C0C0' },
+  bronze_voyager: { emoji: '🥉', color: '#CD7F32' },
+  elite_traveler: { emoji: '⭐', color: '#9B59B6' },
+  rising_star: { emoji: '✨', color: '#3498DB' },
+};
+
+function LeaderboardCard({
+  userStats,
+  isPremium,
+  onNavigate,
+}: {
+  userStats: UserStats | null;
+  isPremium: boolean;
+  onNavigate: () => void;
+}) {
+  const badgeConfig = userStats?.leaderboard?.badge
+    ? LEADERBOARD_BADGE_CONFIG[userStats.leaderboard.badge]
+    : null;
+
+  return (
+    <TouchableOpacity
+      style={styles.leaderboardCard}
+      onPress={onNavigate}
+      activeOpacity={0.8}
+    >
+      <LinearGradient
+        colors={['rgba(245, 158, 11, 0.15)', 'rgba(245, 158, 11, 0.05)']}
+        style={styles.leaderboardGradient}
+      >
+        <View style={styles.leaderboardHeader}>
+          <View style={styles.leaderboardTitleRow}>
+            <Ionicons name="trophy" size={20} color={colors.secondary} />
+            <Text style={styles.leaderboardTitle}>Leaderboard</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.5)" />
+        </View>
+
+        {userStats ? (
+          <View style={styles.leaderboardStats}>
+            <View style={styles.leaderboardStatItem}>
+              <Text style={styles.leaderboardStatValue}>
+                {userStats.verifiedVisits || 0}
+              </Text>
+              <Text style={styles.leaderboardStatLabel}>Verified</Text>
+            </View>
+
+            <View style={styles.leaderboardDivider} />
+
+            <View style={styles.leaderboardStatItem}>
+              <Text style={styles.leaderboardStatValue}>
+                {userStats.totalVisits || 0}
+              </Text>
+              <Text style={styles.leaderboardStatLabel}>Total</Text>
+            </View>
+
+            <View style={styles.leaderboardDivider} />
+
+            <View style={styles.leaderboardStatItem}>
+              <Text style={styles.leaderboardStatValue}>
+                {userStats.leaderboard?.rank ? `#${userStats.leaderboard.rank}` : '-'}
+              </Text>
+              <Text style={styles.leaderboardStatLabel}>Rank</Text>
+            </View>
+
+            {badgeConfig && (
+              <>
+                <View style={styles.leaderboardDivider} />
+                <View style={styles.leaderboardStatItem}>
+                  <Text style={styles.leaderboardBadgeEmoji}>{badgeConfig.emoji}</Text>
+                  <Text style={styles.leaderboardStatLabel}>Badge</Text>
+                </View>
+              </>
+            )}
+          </View>
+        ) : (
+          <View style={styles.leaderboardEmpty}>
+            <Text style={styles.leaderboardEmptyText}>
+              {isPremium
+                ? 'Scan attractions to compete!'
+                : 'Upgrade to Premium to compete'}
+            </Text>
+          </View>
+        )}
+      </LinearGradient>
+    </TouchableOpacity>
+  );
+}
+
 export function ProgressScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
+  const { isPremium } = useSubscriptionStore();
   const { progress, isLoading, error, fetchProgress } = useBadgeStore();
   const [activeTab, setActiveTab] = useState<TabType>('continents');
   const [globalStats, setGlobalStats] = useState<GlobalStats | null>(null);
+  const [userStats, setUserStats] = useState<UserStats | null>(null);
 
   useEffect(() => {
     fetchProgress();
     locationsApi.getStats().then(setGlobalStats).catch(console.error);
+    visitsApi.getUserStats().then(setUserStats).catch(console.error);
   }, []);
 
   // Calculate visited counts from progress data
@@ -298,6 +393,13 @@ export function ProgressScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
+        {/* Leaderboard Card */}
+        <LeaderboardCard
+          userStats={userStats}
+          isPremium={isPremium}
+          onNavigate={() => (navigation as any).navigate('LeaderboardScreen')}
+        />
+
         {/* Overall Stats */}
         <OverallStats globalStats={globalStats} visitedStats={visitedStats} />
 
@@ -673,6 +775,68 @@ const styles = StyleSheet.create({
   },
   nextTierText: {
     fontSize: 12,
+    color: 'rgba(255,255,255,0.5)',
+  },
+  // Leaderboard card styles
+  leaderboardCard: {
+    marginBottom: 20,
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.2)',
+  },
+  leaderboardGradient: {
+    padding: 16,
+  },
+  leaderboardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  leaderboardTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  leaderboardTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  leaderboardStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+  },
+  leaderboardStatItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  leaderboardStatValue: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  leaderboardStatLabel: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.5)',
+    marginTop: 4,
+  },
+  leaderboardDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  leaderboardBadgeEmoji: {
+    fontSize: 22,
+  },
+  leaderboardEmpty: {
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  leaderboardEmptyText: {
+    fontSize: 14,
     color: 'rgba(255,255,255,0.5)',
   },
 });
