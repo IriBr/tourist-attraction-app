@@ -22,6 +22,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
 import { colors } from '../theme';
 import { useResponsive } from '../hooks';
+import { PremiumRequired } from '../components/ui';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -94,50 +95,17 @@ export function CameraScreen() {
     return (
       <LinearGradient colors={colors.gradientDark} style={styles.container}>
         <View style={[styles.premiumRequiredContainer, { paddingTop: insets.top + 60 }]}>
-          <View style={styles.premiumIconContainer}>
-            <LinearGradient
-              colors={['rgba(255, 215, 0, 0.3)', 'rgba(255, 215, 0, 0.1)']}
-              style={styles.premiumIconGradient}
-            >
-              <Ionicons name="camera" size={64} color="#FFD700" />
-            </LinearGradient>
-          </View>
-          <Text style={styles.premiumTitle}>Premium Feature</Text>
-          <Text style={styles.premiumDescription}>
-            Camera scanning is a premium feature that lets you verify your visits to attractions
-            and compete on the global leaderboard.
-          </Text>
-
-          <View style={styles.premiumFeatures}>
-            <View style={styles.premiumFeatureRow}>
-              <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
-              <Text style={styles.premiumFeatureText}>Scan attractions to verify visits</Text>
-            </View>
-            <View style={styles.premiumFeatureRow}>
-              <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
-              <Text style={styles.premiumFeatureText}>Compete on the global leaderboard</Text>
-            </View>
-            <View style={styles.premiumFeatureRow}>
-              <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
-              <Text style={styles.premiumFeatureText}>Earn exclusive badges</Text>
-            </View>
-            <View style={styles.premiumFeatureRow}>
-              <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
-              <Text style={styles.premiumFeatureText}>Use filters to find attractions</Text>
-            </View>
-          </View>
-
-          <TouchableOpacity style={styles.upgradePremiumButton} onPress={handleUpgrade}>
-            <LinearGradient
-              colors={[colors.secondary, '#FF8C00']}
-              style={styles.upgradePremiumGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-            >
-              <Ionicons name="star" size={22} color="#fff" />
-              <Text style={styles.upgradePremiumText}>Upgrade to Premium</Text>
-            </LinearGradient>
-          </TouchableOpacity>
+          <PremiumRequired
+            icon="camera"
+            description="Camera scanning is a premium feature that lets you verify your visits to attractions and compete on the global leaderboard."
+            features={[
+              'Scan attractions to verify visits',
+              'Compete on the global leaderboard',
+              'Earn exclusive badges',
+              'Use filters to find attractions',
+            ]}
+            onUpgrade={handleUpgrade}
+          />
         </View>
       </LinearGradient>
     );

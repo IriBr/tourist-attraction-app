@@ -21,6 +21,10 @@ let pushToken: string | null = null;
  * Request notification permissions and get the Expo push token
  */
 export async function registerForPushNotifications(): Promise<string | null> {
+  console.log('[PushNotifications] Starting registration...');
+  console.log('[PushNotifications] Device.isDevice:', Device.isDevice);
+  console.log('[PushNotifications] Platform:', Platform.OS);
+
   // Push notifications only work on physical devices
   if (!Device.isDevice) {
     console.log('[PushNotifications] Must use physical device for Push Notifications');
@@ -29,22 +33,26 @@ export async function registerForPushNotifications(): Promise<string | null> {
 
   // Check existing permissions
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
+  console.log('[PushNotifications] Existing permission status:', existingStatus);
   let finalStatus = existingStatus;
 
   // Request permissions if not already granted
   if (existingStatus !== 'granted') {
+    console.log('[PushNotifications] Requesting permissions...');
     const { status } = await Notifications.requestPermissionsAsync();
     finalStatus = status;
+    console.log('[PushNotifications] New permission status:', finalStatus);
   }
 
   if (finalStatus !== 'granted') {
-    console.log('[PushNotifications] Permission not granted');
+    console.log('[PushNotifications] Permission not granted, status:', finalStatus);
     return null;
   }
 
   try {
     // Get the Expo push token
     const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+    console.log('[PushNotifications] Project ID:', projectId);
 
     const tokenData = await Notifications.getExpoPushTokenAsync({
       projectId: projectId || undefined,
@@ -55,12 +63,14 @@ export async function registerForPushNotifications(): Promise<string | null> {
 
     // Register with backend
     const platform = Platform.OS as 'ios' | 'android';
-    await notificationsApi.registerToken(pushToken, platform);
-    console.log('[PushNotifications] Token registered with backend');
+    console.log('[PushNotifications] Registering token with backend...');
+    const response = await notificationsApi.registerToken(pushToken, platform);
+    console.log('[PushNotifications] Backend response:', JSON.stringify(response));
 
     return pushToken;
-  } catch (error) {
+  } catch (error: any) {
     console.error('[PushNotifications] Error registering for push notifications:', error);
+    console.error('[PushNotifications] Error details:', error?.response?.data || error?.message);
     return null;
   }
 }

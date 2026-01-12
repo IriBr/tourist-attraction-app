@@ -147,6 +147,7 @@ class NotificationService {
   private async sendMessages(
     messages: ExpoPushMessage[]
   ): Promise<{ sent: number; failed: number }> {
+    console.log('[NotificationService] Sending', messages.length, 'messages');
     const chunks = expo.chunkPushNotifications(messages);
     let sent = 0;
     let failed = 0;
@@ -154,14 +155,19 @@ class NotificationService {
 
     for (const chunk of chunks) {
       try {
+        console.log('[NotificationService] Sending chunk of', chunk.length, 'messages');
+        console.log('[NotificationService] Tokens:', chunk.map(m => m.to));
         const ticketChunk: ExpoPushTicket[] = await expo.sendPushNotificationsAsync(chunk);
+        console.log('[NotificationService] Received tickets:', JSON.stringify(ticketChunk));
 
         for (let i = 0; i < ticketChunk.length; i++) {
           const ticket = ticketChunk[i];
           if (ticket.status === 'ok') {
             sent++;
+            console.log('[NotificationService] Ticket OK for token', chunk[i].to);
           } else {
             failed++;
+            console.log('[NotificationService] Ticket FAILED for token', chunk[i].to, '- Error:', JSON.stringify(ticket));
             // If the token is invalid, mark it for deactivation
             if (
               ticket.status === 'error' &&
@@ -170,25 +176,28 @@ class NotificationService {
             ) {
               const token = chunk[i].to;
               if (typeof token === 'string') {
+                console.log('[NotificationService] Marking token as invalid:', token);
                 invalidTokens.push(token);
               }
             }
           }
         }
       } catch (error) {
-        console.error('Error sending push notifications:', error);
+        console.error('[NotificationService] Error sending push notifications:', error);
         failed += chunk.length;
       }
     }
 
     // Deactivate invalid tokens
     if (invalidTokens.length > 0) {
+      console.log('[NotificationService] Deactivating', invalidTokens.length, 'invalid tokens');
       await prisma.pushToken.updateMany({
         where: { token: { in: invalidTokens } },
         data: { isActive: false },
       });
     }
 
+    console.log('[NotificationService] Result: sent=', sent, 'failed=', failed);
     return { sent, failed };
   }
 

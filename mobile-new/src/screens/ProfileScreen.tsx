@@ -22,6 +22,7 @@ import { useBadgeStore, useStatsStore } from '../store';
 import { locationsApi, visitsApi } from '../api';
 import { colors } from '../theme';
 import { useResponsive } from '../hooks';
+import { MenuItem, SectionHeader, Card } from '../components/ui';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList, ProfileStackParamList } from '../navigation/types';
 import type { CompositeNavigationProp } from '@react-navigation/native';
@@ -208,7 +209,7 @@ export function ProfileScreen() {
 
         {/* Subscription Section */}
         <View style={styles.subscriptionSection}>
-          <Text style={styles.sectionTitle}>Subscription</Text>
+          <SectionHeader title="Subscription" />
           <View style={[styles.subscriptionCard, isPremium && styles.subscriptionCardPremium]}>
             <View style={styles.subscriptionHeader}>
               <View style={styles.subscriptionBadge}>
@@ -280,7 +281,7 @@ export function ProfileScreen() {
 
         {/* Badges & Progress */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Badges & Progress</Text>
+          <SectionHeader title="Badges & Progress" />
           <View style={styles.badgesContainer}>
             <Pressable
               style={({ pressed }) => [
@@ -323,52 +324,38 @@ export function ProfileScreen() {
         {/* Menu Items */}
         <View style={styles.menuContainer}>
           {menuItems.map((item) => (
-            <Pressable
+            <MenuItem
               key={item.id}
-              style={({ pressed }) => [
-                styles.menuItem,
-                pressed && styles.menuItemPressed,
-              ]}
+              icon={item.icon}
+              label={item.label}
               onPress={() => navigation.navigate(item.screen)}
-              hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
-            >
-              <View style={styles.menuIconContainer}>
-                <Ionicons name={item.icon} size={22} color={colors.secondary} />
-              </View>
-              <Text style={styles.menuLabel}>{item.label}</Text>
-              <Ionicons name="chevron-forward" size={20} color="#888" />
-            </Pressable>
+            />
           ))}
 
           {/* Location Settings - Special item with status */}
-          <Pressable
-            style={({ pressed }) => [
-              styles.menuItem,
-              pressed && styles.menuItemPressed,
-            ]}
+          <MenuItem
+            icon="location-outline"
+            label="Location Access"
             onPress={handleLocationSettings}
-            hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
-          >
-            <View style={styles.menuIconContainer}>
-              <Ionicons name="location-outline" size={22} color={colors.secondary} />
-            </View>
-            <Text style={styles.menuLabel}>Location Access</Text>
-            <View style={styles.locationStatusContainer}>
-              <View style={[
-                styles.locationStatusDot,
-                locationStatus === 'granted' && styles.locationStatusGranted,
-                locationStatus === 'while_using' && styles.locationStatusPartial,
-                locationStatus === 'denied' && styles.locationStatusDenied,
-              ]} />
-              <Text style={[
-                styles.locationStatusText,
-                locationStatus === 'granted' && styles.locationStatusTextGranted,
-                locationStatus !== 'granted' && styles.locationStatusTextWarning,
-              ]}>
-                {locationStatus === 'granted' ? 'Always' : locationStatus === 'while_using' ? 'While Using' : 'Off'}
-              </Text>
-            </View>
-          </Pressable>
+            showArrow={false}
+            rightContent={
+              <View style={styles.locationStatusContainer}>
+                <View style={[
+                  styles.locationStatusDot,
+                  locationStatus === 'granted' && styles.locationStatusGranted,
+                  locationStatus === 'while_using' && styles.locationStatusPartial,
+                  locationStatus === 'denied' && styles.locationStatusDenied,
+                ]} />
+                <Text style={[
+                  styles.locationStatusText,
+                  locationStatus === 'granted' && styles.locationStatusTextGranted,
+                  locationStatus !== 'granted' && styles.locationStatusTextWarning,
+                ]}>
+                  {locationStatus === 'granted' ? 'Always' : locationStatus === 'while_using' ? 'While Using' : 'Off'}
+                </Text>
+              </View>
+            }
+          />
         </View>
 
         {/* Logout Button */}

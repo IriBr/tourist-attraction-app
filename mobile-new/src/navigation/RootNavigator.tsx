@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, AppState, AppStateStatus } from 'react-native';
 import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuthStore } from '../store/authStore';
@@ -69,9 +69,19 @@ export function RootNavigator() {
       }
     );
 
+    // Re-register push token when app comes to foreground
+    // This ensures existing users get registered and handles token refresh
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+      if (nextAppState === 'active') {
+        registerForPushNotifications().catch(console.error);
+      }
+    };
+    const appStateSubscription = AppState.addEventListener('change', handleAppStateChange);
+
     return () => {
       cleanupProximity();
       cleanupPush();
+      appStateSubscription.remove();
     };
   }, [isAuthenticated, needsEmailVerification]);
 
