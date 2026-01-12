@@ -8,8 +8,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const LOCATION_TASK_NAME = 'background-location-task';
 const PROXIMITY_RADIUS_METERS = 100;
 const NOTIFICATION_COOLDOWN_MS = 30 * 60 * 1000; // 30 minutes per attraction
+const API_THROTTLE_MS = 60 * 1000; // Minimum 60 seconds between API calls
 const LAST_NOTIFIED_KEY = 'proximity_last_notified';
 const PERMISSION_PROMPT_KEY = 'proximity_permission_prompted';
+
+// Track last API call to prevent hammering the server
+let lastApiCallTime = 0;
 
 // Track if we've already prompted for permissions this session
 let hasPromptedThisSession = false;
@@ -87,6 +91,14 @@ TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
 });
 
 async function checkNearbyAttractions(latitude: number, longitude: number) {
+  // Throttle API calls to prevent server overload
+  const now = Date.now();
+  if (now - lastApiCallTime < API_THROTTLE_MS) {
+    console.log('[ProximityNotifications] Throttled - skipping API call');
+    return;
+  }
+  lastApiCallTime = now;
+
   try {
     console.log('[ProximityNotifications] Fetching nearby unvisited attractions...');
     const nearbyAttractions = await attractionsApi.getNearbyUnvisited(
@@ -110,8 +122,9 @@ async function checkNearbyAttractions(latitude: number, longitude: number) {
       }
     }
   } catch (error: any) {
+    // Don't let API errors crash the background task
     console.error('[ProximityNotifications] Failed to check nearby attractions:', error?.message || error);
-    console.error('[ProximityNotifications] Error details:', error?.response?.data || error);
+    // Don't log full error details in production to avoid noise
   }
 }
 
@@ -263,10 +276,10 @@ export async function startProximityTracking(): Promise<boolean> {
   // Start background location updates
   await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
     accuracy: Location.Accuracy.Balanced,
-    timeInterval: 60000, // Check every 60 seconds
-    distanceInterval: 30, // Or when moved 30 meters
-    deferredUpdatesInterval: 60000,
-    deferredUpdatesDistance: 30,
+    timeInterval: 120000, // Check every 2 minutes
+    distanceInterval: 50, // Or when moved 50 meters
+    deferredUpdatesInterval: 120000,
+    deferredUpdatesDistance: 50,
     showsBackgroundLocationIndicator: true,
     foregroundService: Platform.OS === 'android' ? {
       notificationTitle: 'Wandr',
