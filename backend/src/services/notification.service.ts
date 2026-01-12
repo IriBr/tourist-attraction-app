@@ -167,23 +167,33 @@ class NotificationService {
             console.log('[NotificationService] Ticket OK for token', chunk[i].to);
           } else {
             failed++;
-            console.log('[NotificationService] Ticket FAILED for token', chunk[i].to, '- Error:', JSON.stringify(ticket));
-            // If the token is invalid, mark it for deactivation
+            console.log('[NotificationService] Ticket FAILED for token', chunk[i].to);
+            console.log('[NotificationService] Error details:', JSON.stringify(ticket));
+
+            // Log all error information for debugging
+            if (ticket.status === 'error') {
+              console.log('[NotificationService] Error type:', ticket.details?.error);
+              console.log('[NotificationService] Error message:', ticket.message);
+            }
+
+            // Only mark as invalid for DeviceNotRegistered errors
+            // InvalidCredentials might be a temporary Expo issue, so we'll keep those
             if (
               ticket.status === 'error' &&
-              (ticket.details?.error === 'DeviceNotRegistered' ||
-                ticket.details?.error === 'InvalidCredentials')
+              ticket.details?.error === 'DeviceNotRegistered'
             ) {
               const token = chunk[i].to;
               if (typeof token === 'string') {
-                console.log('[NotificationService] Marking token as invalid:', token);
+                console.log('[NotificationService] Marking token as invalid (DeviceNotRegistered):', token);
                 invalidTokens.push(token);
               }
             }
           }
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('[NotificationService] Error sending push notifications:', error);
+        console.error('[NotificationService] Error stack:', error?.stack);
+        console.error('[NotificationService] Error response:', error?.response?.data);
         failed += chunk.length;
       }
     }

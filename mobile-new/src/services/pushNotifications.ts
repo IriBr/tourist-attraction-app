@@ -4,6 +4,9 @@ import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { notificationsApi } from '../api';
 
+// Hardcoded projectId as fallback - this is the EAS project ID
+const EAS_PROJECT_ID = '9b30d187-8bd6-4466-a484-b20607a66e33';
+
 // Configure notification behavior
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -18,12 +21,32 @@ Notifications.setNotificationHandler({
 let pushToken: string | null = null;
 
 /**
+ * Get the EAS project ID with multiple fallback options
+ */
+function getProjectId(): string {
+  // Try multiple sources for the projectId
+  const fromExpoConfig = Constants.expoConfig?.extra?.eas?.projectId;
+  const fromEasConfig = (Constants as any).easConfig?.projectId;
+  const fromManifest = (Constants as any).manifest?.extra?.eas?.projectId;
+
+  console.log('[PushNotifications] ProjectId sources:', {
+    fromExpoConfig,
+    fromEasConfig,
+    fromManifest,
+    fallback: EAS_PROJECT_ID,
+  });
+
+  return fromExpoConfig || fromEasConfig || fromManifest || EAS_PROJECT_ID;
+}
+
+/**
  * Request notification permissions and get the Expo push token
  */
 export async function registerForPushNotifications(): Promise<string | null> {
   console.log('[PushNotifications] Starting registration...');
   console.log('[PushNotifications] Device.isDevice:', Device.isDevice);
   console.log('[PushNotifications] Platform:', Platform.OS);
+  console.log('[PushNotifications] Constants.appOwnership:', Constants.appOwnership);
 
   // Push notifications only work on physical devices
   if (!Device.isDevice) {
@@ -50,12 +73,12 @@ export async function registerForPushNotifications(): Promise<string | null> {
   }
 
   try {
-    // Get the Expo push token
-    const projectId = Constants.expoConfig?.extra?.eas?.projectId;
-    console.log('[PushNotifications] Project ID:', projectId);
+    // Get the Expo push token with the correct projectId
+    const projectId = getProjectId();
+    console.log('[PushNotifications] Using Project ID:', projectId);
 
     const tokenData = await Notifications.getExpoPushTokenAsync({
-      projectId: projectId || undefined,
+      projectId,
     });
 
     pushToken = tokenData.data;
