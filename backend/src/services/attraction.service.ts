@@ -406,6 +406,16 @@ export async function getNearbyUnvisitedAttractions(
   userId: string,
   limit = 5
 ): Promise<AttractionSummary[]> {
+  // Calculate bounding box for initial filtering (rough approximation)
+  // 1 degree of latitude ≈ 111km, 1 degree of longitude varies by latitude
+  const latDelta = radiusMeters / 111000;
+  const lonDelta = radiusMeters / (111000 * Math.cos((latitude * Math.PI) / 180));
+
+  const minLat = latitude - latDelta;
+  const maxLat = latitude + latDelta;
+  const minLon = longitude - lonDelta;
+  const maxLon = longitude + lonDelta;
+
   // Get user's visited attraction IDs
   const visits = await prisma.visit.findMany({
     where: { userId },
@@ -413,8 +423,13 @@ export async function getNearbyUnvisitedAttractions(
   });
   const visitedIds = new Set(visits.map((v) => v.attractionId));
 
-  // Get all attractions (we'll filter by distance in memory)
+  // Get attractions within bounding box (much faster than loading all)
   const attractions = await prisma.attraction.findMany({
+    where: {
+      latitude: { gte: minLat, lte: maxLat },
+      longitude: { gte: minLon, lte: maxLon },
+      id: { notIn: Array.from(visitedIds) },
+    },
     include: {
       city: {
         include: {
@@ -427,15 +442,16 @@ export async function getNearbyUnvisitedAttractions(
       },
       openingHours: true,
     },
+    take: limit * 2, // Get a few extra to account for distance filtering
   });
 
-  // Filter by distance and exclude visited
+  // Filter by exact distance (bounding box is a rough approximation)
   const nearbyUnvisited = attractions
     .map((attr) => ({
       attraction: attr as AttractionWithRelations,
       distance: calculateDistance(latitude, longitude, attr.latitude, attr.longitude),
     }))
-    .filter((item) => item.distance <= radiusMeters && !visitedIds.has(item.attraction.id))
+    .filter((item) => item.distance <= radiusMeters)
     .sort((a, b) => a.distance - b.distance)
     .slice(0, limit);
 
