@@ -516,25 +516,25 @@ export class BadgeService {
       });
     }
 
-    // Calculate progress for each location
-    const cities: BadgeProgress[] = [];
-    const countries: BadgeProgress[] = [];
-    const continents: BadgeProgress[] = [];
-
-    for (const city of cityMap.values()) {
-      const progress = await this.getBadgeProgress(userId, 'city', city.id);
-      cities.push(progress);
-    }
-
-    for (const country of countryMap.values()) {
-      const progress = await this.getBadgeProgress(userId, 'country', country.id);
-      countries.push(progress);
-    }
-
-    for (const continent of continentMap.values()) {
-      const progress = await this.getBadgeProgress(userId, 'continent', continent.id);
-      continents.push(progress);
-    }
+    // Calculate progress for all locations IN PARALLEL using Promise.all
+    // This reduces N+1 queries to batch queries
+    const [cities, countries, continents] = await Promise.all([
+      Promise.all(
+        Array.from(cityMap.values()).map((city) =>
+          this.getBadgeProgressWithName(userId, 'city', city.id, city.name)
+        )
+      ),
+      Promise.all(
+        Array.from(countryMap.values()).map((country) =>
+          this.getBadgeProgressWithName(userId, 'country', country.id, country.name)
+        )
+      ),
+      Promise.all(
+        Array.from(continentMap.values()).map((continent) =>
+          this.getBadgeProgressWithName(userId, 'continent', continent.id, continent.name)
+        )
+      ),
+    ]);
 
     // Sort by progress descending
     cities.sort((a, b) => b.progressPercent - a.progressPercent);
@@ -542,6 +542,46 @@ export class BadgeService {
     continents.sort((a, b) => b.progressPercent - a.progressPercent);
 
     return { cities, countries, continents };
+  }
+
+  /**
+   * Get badge progress with location name already provided (avoids extra query)
+   */
+  private async getBadgeProgressWithName(
+    userId: string,
+    locationType: LocationType,
+    locationId: string,
+    locationName: string
+  ): Promise<BadgeProgress> {
+    // Calculate progress and get earned badges in parallel
+    const [progress, userBadges] = await Promise.all([
+      this.calculateProgress(userId, locationId, locationType),
+      prisma.userBadge.findMany({
+        where: {
+          userId,
+          badge: { locationId },
+        },
+        include: { badge: true },
+        orderBy: { earnedAt: 'desc' },
+      }),
+    ]);
+
+    const currentTier = getTierFromProgress(progress.progressPercent);
+    const nextTier = getNextTier(currentTier);
+    const progressToNextTier = getProgressToNextTier(progress.progressPercent, currentTier);
+
+    return {
+      locationId,
+      locationName,
+      locationType,
+      totalAttractions: progress.totalAttractions,
+      visitedAttractions: progress.visitedAttractions,
+      progressPercent: progress.progressPercent,
+      currentTier,
+      nextTier,
+      progressToNextTier,
+      earnedBadges: await mapUserBadgesWithImages(userBadges),
+    };
   }
 
   /**

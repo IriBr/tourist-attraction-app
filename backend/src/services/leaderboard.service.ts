@@ -68,8 +68,12 @@ export const leaderboardService = {
    * Only premium users with verified visits are ranked
    */
   async getLeaderboard(limit = 100, userId?: string): Promise<LeaderboardResponse> {
-    // Get all premium users with their verified visit counts
-    const usersWithVerifiedVisits = await prisma.user.findMany({
+    // Cap limit to prevent abuse
+    const MAX_LIMIT = 100;
+    const safeLimit = Math.min(limit, MAX_LIMIT);
+
+    // Get top users with their verified visit counts - LIMITED query
+    const topUsers = await prisma.user.findMany({
       where: {
         subscriptionTier: 'premium',
         subscriptionStatus: 'active',
@@ -99,15 +103,24 @@ export const leaderboardService = {
           _count: 'desc',
         },
       },
+      take: safeLimit, // CRITICAL: Limit results at database level
     });
 
-    // Sort by verified visit count (Prisma orderBy on _count may not work perfectly)
-    const sorted = usersWithVerifiedVisits.sort(
-      (a, b) => b._count.visits - a._count.visits
-    );
+    // Get total participant count separately (cheap count query)
+    const totalParticipants = await prisma.user.count({
+      where: {
+        subscriptionTier: 'premium',
+        subscriptionStatus: 'active',
+        visits: {
+          some: {
+            isVerified: true,
+          },
+        },
+      },
+    });
 
-    // Assign ranks
-    const leaderboard: LeaderboardEntry[] = sorted.slice(0, limit).map((user, index) => ({
+    // Assign ranks (already sorted by database)
+    const leaderboard: LeaderboardEntry[] = topUsers.map((user, index) => ({
       rank: index + 1,
       userId: user.id,
       name: getDisplayName(user.name, user.email),
@@ -119,34 +132,29 @@ export const leaderboardService = {
     // Get current user's stats if provided
     let currentUser: UserLeaderboardStats | null = null;
     if (userId) {
-      currentUser = await this.getUserStats(userId, sorted);
+      currentUser = await this.getUserStats(userId);
     }
 
     return {
       leaderboard,
       currentUser,
-      totalParticipants: sorted.length,
+      totalParticipants,
     };
   },
 
   /**
    * Get a specific user's leaderboard stats
    */
-  async getUserStats(
-    userId: string,
-    precomputedRanking?: { id: string; _count: { visits: number } }[]
-  ): Promise<UserLeaderboardStats> {
-    // Get user info
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        subscriptionTier: true,
-        subscriptionStatus: true,
-      },
-    });
-
-    // Get visit counts
-    const [totalVisits, verifiedVisits] = await Promise.all([
+  async getUserStats(userId: string): Promise<UserLeaderboardStats> {
+    // Get user info and visit counts in parallel
+    const [user, totalVisits, verifiedVisits] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          subscriptionTier: true,
+          subscriptionStatus: true,
+        },
+      }),
       prisma.visit.count({ where: { userId } }),
       prisma.visit.count({ where: { userId, isVerified: true } }),
     ]);
@@ -164,44 +172,20 @@ export const leaderboardService = {
       };
     }
 
-    // Calculate rank
-    let rank: number;
-
-    if (precomputedRanking) {
-      // Use precomputed ranking if available
-      const userIndex = precomputedRanking.findIndex(u => u.id === userId);
-      rank = userIndex >= 0 ? userIndex + 1 : precomputedRanking.length + 1;
-    } else {
-      // Count how many users have more verified visits
-      const usersAhead = await prisma.user.count({
-        where: {
-          subscriptionTier: 'premium',
-          subscriptionStatus: 'active',
-          visits: {
-            some: {
-              isVerified: true,
-            },
-          },
-          id: { not: userId },
-          // This is tricky - we need users with MORE verified visits
-        },
-      });
-
-      // More accurate: count users with higher verified visit count
-      const usersWithMoreVisits = await prisma.$queryRaw<{ count: bigint }[]>`
-        SELECT COUNT(DISTINCT u.id) as count
+    // Count users with MORE verified visits than current user (efficient single query)
+    const usersAhead = await prisma.$queryRaw<{ count: bigint }[]>`
+      SELECT COUNT(*) as count FROM (
+        SELECT u.id
         FROM "User" u
-        JOIN "Visit" v ON v."userId" = u.id
+        JOIN "Visit" v ON v."userId" = u.id AND v."isVerified" = true
         WHERE u."subscriptionTier" = 'premium'
           AND u."subscriptionStatus" = 'active'
-          AND v."isVerified" = true
-          AND u.id != ${userId}
         GROUP BY u.id
         HAVING COUNT(v.id) > ${verifiedVisits}
-      `;
+      ) subquery
+    `;
 
-      rank = (usersWithMoreVisits.length || 0) + 1;
-    }
+    const rank = Number(usersAhead[0]?.count || 0) + 1;
 
     return {
       rank,

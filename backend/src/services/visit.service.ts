@@ -173,7 +173,10 @@ export async function getUserVisits(
   params: { page?: number; limit?: number; sortBy?: string; sortOrder?: 'asc' | 'desc' } = {}
 ): Promise<{ items: VisitWithAttraction[]; total: number }> {
   const { page = 1, limit = 20, sortBy = 'recent', sortOrder = 'desc' } = params;
-  const skip = (page - 1) * limit;
+  // Cap limit to prevent abuse
+  const MAX_LIMIT = 100;
+  const safeLimit = Math.min(limit, MAX_LIMIT);
+  const skip = (page - 1) * safeLimit;
 
   const orderBy: Prisma.VisitOrderByWithRelationInput =
     sortBy === 'name'
@@ -185,15 +188,30 @@ export async function getUserVisits(
       where: { userId },
       orderBy,
       skip,
-      take: limit,
-      include: {
+      take: safeLimit,
+      select: {
+        id: true,
+        attractionId: true,
+        visitDate: true,
+        photoUrl: true,
+        notes: true,
         attraction: {
-          include: {
+          select: {
+            id: true,
+            name: true,
+            cityId: true,
+            thumbnailUrl: true,
             city: {
-              include: {
+              select: {
+                name: true,
                 country: {
-                  include: {
-                    continent: true,
+                  select: {
+                    name: true,
+                    continent: {
+                      select: {
+                        name: true,
+                      },
+                    },
                   },
                 },
               },
@@ -239,16 +257,24 @@ export async function isVisited(
 }
 
 export async function getUserStats(userId: string): Promise<UserStats> {
+  // Use select to only fetch the fields we need - much more efficient
   const visits = await prisma.visit.findMany({
     where: { userId },
-    include: {
+    select: {
+      isVerified: true,
       attraction: {
-        include: {
+        select: {
           city: {
-            include: {
+            select: {
+              name: true,
               country: {
-                include: {
-                  continent: true,
+                select: {
+                  name: true,
+                  continent: {
+                    select: {
+                      name: true,
+                    },
+                  },
                 },
               },
             },

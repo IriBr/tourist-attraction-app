@@ -56,6 +56,26 @@ interface AttractionWithRelations {
   visits?: { id: string }[];
 }
 
+// Lighter type for summary queries (uses select instead of include)
+interface AttractionSummaryData {
+  id: string;
+  name: string;
+  shortDescription: string;
+  category: string;
+  thumbnailUrl: string;
+  latitude: number;
+  longitude: number;
+  averageRating: number;
+  totalReviews: number;
+  city: {
+    name: string;
+    country: {
+      name: string;
+    };
+  };
+  favorites?: { id: string }[];
+}
+
 function mapToAttraction(
   attr: AttractionWithRelations,
   userId?: string
@@ -128,6 +148,26 @@ function mapToSummary(
   };
 }
 
+// Lightweight mapping for select-based queries
+function mapSummaryData(
+  attr: AttractionSummaryData,
+  userId?: string,
+  distance?: number
+): AttractionSummary {
+  return {
+    id: attr.id,
+    name: attr.name,
+    shortDescription: attr.shortDescription,
+    category: attr.category as AttractionCategory,
+    thumbnailUrl: attr.thumbnailUrl,
+    location: { city: attr.city.name, country: attr.city.country.name },
+    averageRating: attr.averageRating,
+    totalReviews: attr.totalReviews,
+    isFavorited: userId ? (attr.favorites?.length ?? 0) > 0 : undefined,
+    distance,
+  };
+}
+
 // Haversine formula to calculate distance between two points
 function calculateDistance(
   lat1: number,
@@ -166,6 +206,10 @@ export async function searchAttractions(
     limit = 20,
   } = params;
 
+  // Cap limit to prevent abuse
+  const MAX_LIMIT = 100;
+  const safeLimit = Math.min(limit, MAX_LIMIT);
+
   const where: Prisma.AttractionWhereInput = {};
 
   if (query) {
@@ -197,25 +241,35 @@ export async function searchAttractions(
   else if (sortBy === 'reviews') orderBy.totalReviews = sortOrder;
   else if (sortBy === 'name') orderBy.name = sortOrder;
 
-  const skip = (page - 1) * limit;
+  const skip = (page - 1) * safeLimit;
 
   const [attractions, total] = await Promise.all([
     prisma.attraction.findMany({
       where,
       orderBy,
       skip,
-      take: limit,
-      include: {
+      take: safeLimit,
+      // Use select for list queries - much lighter than include with openingHours
+      select: {
+        id: true,
+        name: true,
+        shortDescription: true,
+        category: true,
+        thumbnailUrl: true,
+        latitude: true,
+        longitude: true,
+        averageRating: true,
+        totalReviews: true,
         city: {
-          include: {
+          select: {
+            name: true,
             country: {
-              include: {
-                continent: true,
+              select: {
+                name: true,
               },
             },
           },
         },
-        openingHours: true,
         favorites: userId ? { where: { userId }, select: { id: true } } : false,
       },
     }),
@@ -227,7 +281,7 @@ export async function searchAttractions(
       latitude !== undefined && longitude !== undefined
         ? calculateDistance(latitude, longitude, attr.latitude, attr.longitude)
         : undefined;
-    return mapToSummary(attr as AttractionWithRelations, userId, distance);
+    return mapSummaryData(attr as AttractionSummaryData, userId, distance);
   });
 
   // Filter by radius if location provided
@@ -284,40 +338,62 @@ export async function getNearbyAttractions(
   limit = 10,
   userId?: string
 ): Promise<AttractionSummary[]> {
-  const where: Prisma.AttractionWhereInput = {};
+  // Cap limit to prevent abuse
+  const MAX_LIMIT = 100;
+  const safeLimit = Math.min(limit, MAX_LIMIT);
+
+  // Calculate bounding box for initial filtering (much faster than loading all)
+  const latDelta = radiusMeters / 111000;
+  const lonDelta = radiusMeters / (111000 * Math.cos((latitude * Math.PI) / 180));
+
+  const where: Prisma.AttractionWhereInput = {
+    latitude: { gte: latitude - latDelta, lte: latitude + latDelta },
+    longitude: { gte: longitude - lonDelta, lte: longitude + lonDelta },
+  };
 
   if (category) {
     where.category = category;
   }
 
+  // Use select for summary data - no openingHours needed
   const attractions = await prisma.attraction.findMany({
     where,
-    include: {
+    select: {
+      id: true,
+      name: true,
+      shortDescription: true,
+      category: true,
+      thumbnailUrl: true,
+      latitude: true,
+      longitude: true,
+      averageRating: true,
+      totalReviews: true,
       city: {
-        include: {
+        select: {
+          name: true,
           country: {
-            include: {
-              continent: true,
+            select: {
+              name: true,
             },
           },
         },
       },
-      openingHours: true,
       favorites: userId ? { where: { userId }, select: { id: true } } : false,
     },
+    take: safeLimit * 2, // Get extra to account for distance filtering
   });
 
   const withDistance = attractions
     .map((attr) => ({
-      attraction: attr as AttractionWithRelations,
+      attraction: attr as AttractionSummaryData,
       distance: calculateDistance(latitude, longitude, attr.latitude, attr.longitude),
     }))
     .filter((item) => item.distance <= radiusMeters)
     .sort((a, b) => a.distance - b.distance)
-    .slice(0, limit);
+    .slice(0, safeLimit);
 
   return withDistance.map((item) =>
-    mapToSummary(item.attraction, userId, item.distance)
+    mapSummaryData(item.attraction, userId, item.distance)
   );
 }
 
@@ -327,25 +403,38 @@ export async function getAttractionsByCategory(
   limit = 20,
   userId?: string
 ): Promise<{ items: AttractionSummary[]; total: number }> {
-  const skip = (page - 1) * limit;
+  // Cap limit to prevent abuse
+  const MAX_LIMIT = 100;
+  const safeLimit = Math.min(limit, MAX_LIMIT);
+  const skip = (page - 1) * safeLimit;
 
   const [attractions, total] = await Promise.all([
     prisma.attraction.findMany({
       where: { category },
       orderBy: { averageRating: 'desc' },
       skip,
-      take: limit,
-      include: {
+      take: safeLimit,
+      // Use select for summary data - no openingHours needed
+      select: {
+        id: true,
+        name: true,
+        shortDescription: true,
+        category: true,
+        thumbnailUrl: true,
+        latitude: true,
+        longitude: true,
+        averageRating: true,
+        totalReviews: true,
         city: {
-          include: {
+          select: {
+            name: true,
             country: {
-              include: {
-                continent: true,
+              select: {
+                name: true,
               },
             },
           },
         },
-        openingHours: true,
         favorites: userId ? { where: { userId }, select: { id: true } } : false,
       },
     }),
@@ -354,7 +443,7 @@ export async function getAttractionsByCategory(
 
   return {
     items: attractions.map((attr) =>
-      mapToSummary(attr as AttractionWithRelations, userId)
+      mapSummaryData(attr as AttractionSummaryData, userId)
     ),
     total,
   };
@@ -364,26 +453,40 @@ export async function getPopularAttractions(
   limit = 10,
   userId?: string
 ): Promise<AttractionSummary[]> {
+  // Cap limit to prevent abuse
+  const MAX_LIMIT = 100;
+  const safeLimit = Math.min(limit, MAX_LIMIT);
+
   const attractions = await prisma.attraction.findMany({
     orderBy: [{ averageRating: 'desc' }, { totalReviews: 'desc' }],
-    take: limit,
-    include: {
+    take: safeLimit,
+    // Use select for summary data - no openingHours needed
+    select: {
+      id: true,
+      name: true,
+      shortDescription: true,
+      category: true,
+      thumbnailUrl: true,
+      latitude: true,
+      longitude: true,
+      averageRating: true,
+      totalReviews: true,
       city: {
-        include: {
+        select: {
+          name: true,
           country: {
-            include: {
-              continent: true,
+            select: {
+              name: true,
             },
           },
         },
       },
-      openingHours: true,
       favorites: userId ? { where: { userId }, select: { id: true } } : false,
     },
   });
 
   return attractions.map((attr) =>
-    mapToSummary(attr as AttractionWithRelations, userId)
+    mapSummaryData(attr as AttractionSummaryData, userId)
   );
 }
 
