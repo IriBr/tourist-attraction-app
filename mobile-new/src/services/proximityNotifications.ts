@@ -62,22 +62,33 @@ function markAttractionNotified(attractionId: string) {
 
 // Define the background task
 TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
+  console.log('[ProximityNotifications] Background task triggered');
+
   if (error) {
-    console.error('Background location error:', error);
+    console.error('[ProximityNotifications] Background location error:', error);
     return;
   }
 
   if (data) {
     const { locations } = data as { locations: Location.LocationObject[] };
+    console.log('[ProximityNotifications] Received locations:', locations?.length || 0);
+
     if (locations && locations.length > 0) {
       const location = locations[0];
-      await checkNearbyAttractions(location.coords.latitude, location.coords.longitude);
+      console.log('[ProximityNotifications] Checking location:', location.coords.latitude, location.coords.longitude);
+
+      try {
+        await checkNearbyAttractions(location.coords.latitude, location.coords.longitude);
+      } catch (err) {
+        console.error('[ProximityNotifications] Error checking nearby attractions:', err);
+      }
     }
   }
 });
 
 async function checkNearbyAttractions(latitude: number, longitude: number) {
   try {
+    console.log('[ProximityNotifications] Fetching nearby unvisited attractions...');
     const nearbyAttractions = await attractionsApi.getNearbyUnvisited(
       latitude,
       longitude,
@@ -85,15 +96,22 @@ async function checkNearbyAttractions(latitude: number, longitude: number) {
       5
     );
 
+    console.log('[ProximityNotifications] Found', nearbyAttractions.length, 'nearby unvisited attractions');
+
     for (const attraction of nearbyAttractions) {
+      console.log('[ProximityNotifications] Checking attraction:', attraction.name, attraction.id);
       if (shouldNotifyForAttraction(attraction.id)) {
+        console.log('[ProximityNotifications] Sending notification for:', attraction.name);
         await sendProximityNotification(attraction);
         markAttractionNotified(attraction.id);
         break; // Only send one notification at a time
+      } else {
+        console.log('[ProximityNotifications] Skipping (cooldown):', attraction.name);
       }
     }
-  } catch (error) {
-    console.error('Failed to check nearby attractions:', error);
+  } catch (error: any) {
+    console.error('[ProximityNotifications] Failed to check nearby attractions:', error?.message || error);
+    console.error('[ProximityNotifications] Error details:', error?.response?.data || error);
   }
 }
 
