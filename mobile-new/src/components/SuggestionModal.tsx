@@ -12,7 +12,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { suggestionsApi, SuggestionType } from '../api';
 
 interface SuggestionModalProps {
@@ -66,7 +66,6 @@ export function SuggestionModal({
   onClose,
   onSuccess,
 }: SuggestionModalProps) {
-  const insets = useSafeAreaInsets();
   const [selectedType, setSelectedType] = useState<SuggestionType | null>(null);
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -114,6 +113,7 @@ export function SuggestionModal({
       transparent
       animationType="slide"
       onRequestClose={handleClose}
+      statusBarTranslucent
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -124,7 +124,8 @@ export function SuggestionModal({
           activeOpacity={1}
           onPress={handleClose}
         />
-        <View style={styles.container}>
+        <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+          <View style={styles.container}>
           <View style={styles.header}>
             <Text style={styles.title}>Submit Feedback</Text>
             <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
@@ -197,7 +198,7 @@ export function SuggestionModal({
             )}
           </ScrollView>
 
-          <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+          <View style={styles.footer}>
             <TouchableOpacity style={styles.cancelButton} onPress={handleClose}>
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
@@ -216,7 +217,8 @@ export function SuggestionModal({
               )}
             </TouchableOpacity>
           </View>
-        </View>
+          </View>
+        </SafeAreaView>
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -231,11 +233,14 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
-  container: {
+  safeArea: {
     backgroundColor: '#1a1a2e',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: '85%',
+  },
+  container: {
+    flex: 1,
   },
   header: {
     flexDirection: 'row',
