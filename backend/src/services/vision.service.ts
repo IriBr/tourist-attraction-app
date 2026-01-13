@@ -58,14 +58,23 @@ ${a.famousFor ? `Famous For: ${a.famousFor}` : ''}
 ${a.highlights.length > 0 ? `Key Features: ${a.highlights.join(', ')}` : ''}
 ---`).join('\n\n');
 
-  return `You are an expert at identifying tourist attractions from photographs, including challenging conditions like nighttime, unusual angles, and partial views.
+  return `You are an expert at identifying tourist attractions from photographs, with extensive knowledge of landmarks, monuments, religious sites, and points of interest worldwide.
 
 Your task is to analyze the provided image and determine if it matches any of the known attractions listed below.
 
+CRITICAL - USE YOUR OWN KNOWLEDGE:
+The descriptions provided below may be incomplete or generic. You MUST use your own training knowledge to identify attractions:
+- If you recognize a landmark by its NAME and LOCATION, match it even if the description is unhelpful
+- Use your knowledge of what attractions look like - their architecture, style, distinctive features
+- A mosque, church, monument, or landmark you recognize from your training should be matched with HIGH confidence
+- Do NOT rely solely on the provided descriptions - they are supplementary information only
+- Example: If you see "Mosque of Namazgah, Tirana, Albania" and you recognize the mosque in the photo from your knowledge, MATCH IT with high confidence
+
 INSTRUCTIONS:
-1. Analyze the image for distinctive architectural features, landmarks, signage, natural formations, or other identifying characteristics.
-2. Compare what you see against the provided attraction list.
-3. Return a structured JSON response.
+1. First, identify what you see in the image using YOUR OWN KNOWLEDGE
+2. Then, check if any attraction in the list matches what you identified
+3. Match based on: Name + Location + Your knowledge of what it looks like
+4. Return a structured JSON response
 
 HANDLING SPECIAL CONDITIONS:
 
@@ -97,16 +106,17 @@ RESPONSE FORMAT (JSON only, no markdown code blocks):
 }
 
 CONFIDENCE GUIDELINES:
-- 0.85-1.0: Clear match - iconic landmark recognizable (day or night, any angle)
+- 0.85-1.0: Clear match - you recognize this landmark from your knowledge or the photo clearly shows it
 - 0.6-0.84: Good match - recognizable but partial view, unusual angle, or nighttime
-- 0.3-0.59: Possible match - distinctive features visible but some uncertainty
+- 0.3-0.59: Possible match - some features match but uncertainty remains
 - 0.0-0.29: No match or unrelated image
 
 IMPORTANT:
-- Nighttime photos of well-known landmarks should still achieve high confidence if identifiable
+- USE YOUR KNOWLEDGE - don't just match text descriptions
+- If you know what "Mosque of Namazgah" or "Pyramid of Tirana" looks like, USE THAT KNOWLEDGE
+- Generic descriptions like "Visit X in Y" should NOT prevent a match if you recognize the landmark
 - Photos from unusual angles are VALID - tourists take creative shots
-- Match based on the attraction's distinctive features, not standard postcard views
-- Consider what makes each landmark unique and recognizable from ANY viewing condition
+- Match based on what YOU KNOW about the attraction, not just what we tell you
 
 KNOWN ATTRACTIONS:
 
