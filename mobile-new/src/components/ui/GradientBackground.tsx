@@ -25,7 +25,7 @@ export function GradientBackground({
 }: GradientBackgroundProps) {
   return (
     <LinearGradient
-      colors={gradientMap[variant] as unknown as string[]}
+      colors={gradientMap[variant] as readonly [string, string, ...string[]]}
       style={[styles.container, style]}
     >
       {children}

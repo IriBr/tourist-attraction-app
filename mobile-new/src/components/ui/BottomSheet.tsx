@@ -10,6 +10,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -30,6 +31,7 @@ export function BottomSheet({
   height = 'half',
   style,
 }: BottomSheetProps) {
+  const insets = useSafeAreaInsets();
   const containerHeight =
     height === 'full' ? SCREEN_HEIGHT * 0.9 :
     height === 'half' ? SCREEN_HEIGHT * 0.6 :
@@ -51,6 +53,7 @@ export function BottomSheet({
         <View style={[
           styles.container,
           containerHeight ? { height: containerHeight } : undefined,
+          { paddingBottom: Math.max(insets.bottom, 20) },
           style,
         ]}>
           <View style={styles.handle} />
@@ -82,7 +85,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#1a1a2e',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    paddingBottom: 34,
   },
   handle: {
     width: 40,

@@ -48,11 +48,12 @@ export function ProfileScreen() {
   const {
     status,
     isPremium,
-    scansRemaining,
     isLoading,
     fetchStatus,
     cancelSubscription,
   } = useSubscriptionStore();
+  // scansRemaining feature not yet implemented - default to 3 for UI display
+  const scansRemaining = 3;
   const { progress, fetchProgress } = useBadgeStore();
   const { userStats, globalStats, fetchStats } = useStatsStore();
 

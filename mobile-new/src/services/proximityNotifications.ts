@@ -7,8 +7,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const LOCATION_TASK_NAME = 'background-location-task';
 const PROXIMITY_RADIUS_METERS = 100;
-const NOTIFICATION_COOLDOWN_MS = 30 * 60 * 1000; // 30 minutes per attraction
-const API_THROTTLE_MS = 60 * 1000; // Minimum 60 seconds between API calls
+const NOTIFICATION_COOLDOWN_MS = 10 * 60 * 1000; // 10 minutes per attraction (reduced from 30)
+const API_THROTTLE_MS = 30 * 1000; // Minimum 30 seconds between API calls (reduced from 60)
+const MAX_NOTIFICATIONS_PER_CHECK = 3; // Maximum notifications to send per location check
 const LAST_NOTIFIED_KEY = 'proximity_last_notified';
 const PERMISSION_PROMPT_KEY = 'proximity_permission_prompted';
 
@@ -110,17 +111,30 @@ async function checkNearbyAttractions(latitude: number, longitude: number) {
 
     console.log('[ProximityNotifications] Found', nearbyAttractions.length, 'nearby unvisited attractions');
 
+    let notificationsSent = 0;
     for (const attraction of nearbyAttractions) {
+      // Limit notifications per check to avoid spamming the user
+      if (notificationsSent >= MAX_NOTIFICATIONS_PER_CHECK) {
+        console.log('[ProximityNotifications] Reached max notifications for this check');
+        break;
+      }
+
       console.log('[ProximityNotifications] Checking attraction:', attraction.name, attraction.id);
       if (shouldNotifyForAttraction(attraction.id)) {
         console.log('[ProximityNotifications] Sending notification for:', attraction.name);
         await sendProximityNotification(attraction);
         markAttractionNotified(attraction.id);
-        break; // Only send one notification at a time
+        notificationsSent++;
+        // Small delay between notifications to avoid overwhelming the user
+        if (notificationsSent < MAX_NOTIFICATIONS_PER_CHECK) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
       } else {
         console.log('[ProximityNotifications] Skipping (cooldown):', attraction.name);
       }
     }
+
+    console.log('[ProximityNotifications] Sent', notificationsSent, 'notifications');
   } catch (error: any) {
     // Don't let API errors crash the background task
     console.error('[ProximityNotifications] Failed to check nearby attractions:', error?.message || error);

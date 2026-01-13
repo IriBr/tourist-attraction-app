@@ -8,6 +8,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -26,6 +27,8 @@ export function MapBottomSheet({
   children,
   height = 'tall',
 }: MapBottomSheetProps) {
+  const insets = useSafeAreaInsets();
+
   return (
     <Modal
       visible={visible}
@@ -42,6 +45,7 @@ export function MapBottomSheet({
         <View style={[
           styles.container,
           height === 'tall' && styles.containerTall,
+          { paddingBottom: Math.max(insets.bottom, 20) },
         ]}>
           <View style={styles.handle} />
           <View style={styles.header}>
@@ -73,7 +77,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#1a1a2e',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    paddingBottom: 40,
   },
   containerTall: {
     maxHeight: SCREEN_HEIGHT * 0.7,

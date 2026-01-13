@@ -11,6 +11,7 @@ import { OnboardingScreen, isOnboardingComplete } from '../screens/OnboardingScr
 import {
   startProximityTracking,
   setupNotificationHandler,
+  checkPermissions,
 } from '../services/proximityNotifications';
 import {
   registerForPushNotifications,
@@ -22,6 +23,34 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 // Navigation ref for navigating from notification handler
 export const navigationRef = React.createRef<NavigationContainerRef<RootStackParamList>>();
+
+// Queue for pending navigation actions (when notification is tapped before navigation is ready)
+let pendingNavigation: (() => void) | null = null;
+
+// Set up notification handlers immediately at module load (before auth)
+// This ensures we catch notification taps even if the app was cold-started from a notification
+const proximityCleanup = setupNotificationHandler((attractionId) => {
+  const navigate = () => {
+    if (navigationRef.current?.isReady()) {
+      navigationRef.current.navigate('Main', { screen: 'Camera' });
+    }
+  };
+
+  // If navigation is ready, navigate immediately; otherwise queue it
+  if (navigationRef.current?.isReady()) {
+    navigate();
+  } else {
+    pendingNavigation = navigate;
+  }
+});
+
+// Also try to start proximity tracking early if permissions are already granted
+// This helps resume tracking after app restart without waiting for auth UI
+checkPermissions().then((hasPermissions) => {
+  if (hasPermissions) {
+    startProximityTracking().catch(console.error);
+  }
+});
 
 export function RootNavigator() {
   const { isAuthenticated, isLoading, checkAuth, user } = useAuthStore();
@@ -46,15 +75,11 @@ export function RootNavigator() {
     // Register for push notifications
     registerForPushNotifications().catch(console.error);
 
-    // Start background location tracking
+    // Start background location tracking (may already be started at module load if permissions were granted)
     startProximityTracking().catch(console.error);
 
-    // Handle proximity notification taps - navigate to Camera tab
-    const cleanupProximity = setupNotificationHandler((attractionId) => {
-      if (navigationRef.current) {
-        navigationRef.current.navigate('Main', { screen: 'Camera' });
-      }
-    });
+    // Note: Proximity notification handler is now set up at module load (before auth)
+    // to ensure we catch notification taps even on cold start
 
     // Handle push notification responses
     const cleanupPush = setupPushNotificationHandler(
@@ -64,7 +89,8 @@ export function RootNavigator() {
         const data = response.notification.request.content.data;
         if (data?.screen && navigationRef.current) {
           // Navigate to specified screen if provided in notification data
-          navigationRef.current.navigate(data.screen as keyof RootStackParamList);
+          // @ts-ignore - dynamic screen navigation from push notification
+          navigationRef.current.navigate(data.screen);
         }
       }
     );
@@ -79,7 +105,6 @@ export function RootNavigator() {
     const appStateSubscription = AppState.addEventListener('change', handleAppStateChange);
 
     return () => {
-      cleanupProximity();
       cleanupPush();
       appStateSubscription.remove();
     };
@@ -106,8 +131,16 @@ export function RootNavigator() {
     return <OnboardingScreen onComplete={handleOnboardingComplete} />;
   }
 
+  // Handle pending navigation from notification taps that occurred before navigation was ready
+  const handleNavigationReady = () => {
+    if (pendingNavigation) {
+      pendingNavigation();
+      pendingNavigation = null;
+    }
+  };
+
   return (
-    <NavigationContainer ref={navigationRef}>
+    <NavigationContainer ref={navigationRef} onReady={handleNavigationReady}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {isAuthenticated ? (
           needsEmailVerification ? (

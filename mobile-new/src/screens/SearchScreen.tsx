@@ -118,7 +118,7 @@ export function SearchScreen() {
 
       // Fallback to popular attractions
       const data = await attractionsApi.getPopular(20);
-      setNearbyAttractions(data.items || data);
+      setNearbyAttractions(data);
       setSectionTitle('Popular Attractions');
     } catch (error) {
       console.error('Failed to load attractions:', error);

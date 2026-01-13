@@ -15,6 +15,7 @@ import {
 import MapView, { Marker, Region } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { visitsApi, locationsApi, LocationStats } from '../api';
 import { useStatsStore, useSubscriptionStore } from '../store';
 import type { MapContinent, MapCountry, MapCity, MapAttraction } from '../api/locations';
@@ -60,6 +61,7 @@ export function WorldMap({ onContinentSelect, onAttractionPress }: WorldMapProps
   const mapRef = useRef<MapView>(null);
   const navigation = useNavigation<any>();
   const { isPremium } = useSubscriptionStore();
+  const insets = useSafeAreaInsets();
 
   // Map data from API
   const [mapData, setMapData] = useState<ContinentWithAttractions[]>([]);
@@ -537,7 +539,7 @@ export function WorldMap({ onContinentSelect, onAttractionPress }: WorldMapProps
 
     if (level === 'city' && selectedCity && selectedContinent) {
       return (
-        <View style={styles.worldBottomBar}>
+        <View style={[styles.worldBottomBar, { bottom: insets.bottom + 70 }]}>
           <TouchableOpacity
             style={styles.worldActionButton}
             onPress={() => setShowCityStatsSheet(true)}
@@ -564,7 +566,7 @@ export function WorldMap({ onContinentSelect, onAttractionPress }: WorldMapProps
 
     if (level === 'country' && selectedCountry && selectedContinent) {
       return (
-        <View style={styles.worldBottomBar}>
+        <View style={[styles.worldBottomBar, { bottom: insets.bottom + 70 }]}>
           <TouchableOpacity
             style={styles.worldActionButton}
             onPress={() => setShowCountryStatsSheet(true)}
@@ -591,7 +593,7 @@ export function WorldMap({ onContinentSelect, onAttractionPress }: WorldMapProps
 
     if (level === 'continent' && selectedContinent) {
       return (
-        <View style={styles.worldBottomBar}>
+        <View style={[styles.worldBottomBar, { bottom: insets.bottom + 70 }]}>
           <TouchableOpacity
             style={styles.worldActionButton}
             onPress={() => setShowContinentStatsSheet(true)}
@@ -618,7 +620,7 @@ export function WorldMap({ onContinentSelect, onAttractionPress }: WorldMapProps
 
     // World level - Show action buttons
     return (
-      <View style={styles.worldBottomBar}>
+      <View style={[styles.worldBottomBar, { bottom: insets.bottom + 70 }]}>
         <TouchableOpacity
           style={styles.worldActionButton}
           onPress={() => setShowStatsSheet(true)}
@@ -1609,7 +1611,6 @@ const styles = StyleSheet.create({
   // World level bottom bar styles
   worldBottomBar: {
     position: 'absolute',
-    bottom: Platform.OS === 'android' ? 100 : 16,
     left: 0,
     right: 0,
     flexDirection: 'row',

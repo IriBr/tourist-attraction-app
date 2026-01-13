@@ -1,5 +1,6 @@
 import React from 'react';
-import { SafeAreaView, StyleSheet, ViewStyle, StyleProp } from 'react-native';
+import { StyleSheet, ViewStyle, StyleProp } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { GradientBackground } from './GradientBackground';
 
 type GradientVariant = 'dark' | 'primary' | 'secondary' | 'accent';
@@ -19,7 +20,7 @@ export function ScreenContainer({
 }: ScreenContainerProps) {
   return (
     <GradientBackground variant={gradient}>
-      <SafeAreaView style={[styles.container, style]} edges={edges as any}>
+      <SafeAreaView style={[styles.container, style]} edges={edges}>
         {children}
       </SafeAreaView>
     </GradientBackground>
