@@ -81,10 +81,10 @@ export const config = {
     apiKey: parsed.data.ANTHROPIC_API_KEY,
   },
   vision: {
-    maxAttractions: 20,
+    maxAttractions: 30, // Increased from 20 to include more candidates
     confidenceThresholds: {
-      autoMatch: 0.85,
-      suggest: 0.60,
+      autoMatch: 0.80, // Lowered from 0.85
+      suggest: 0.45,   // Lowered from 0.60 to catch more potential matches
       showHint: 0.30,
     },
   },

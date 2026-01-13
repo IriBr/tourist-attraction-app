@@ -221,7 +221,18 @@ export async function verifyAttractionImage(
       throw new Error('No text response from Claude');
     }
 
-    return parseClaudeResponse(textContent.text);
+    const result = parseClaudeResponse(textContent.text);
+
+    // Log the result for debugging
+    console.log('[Vision] Claude response:', {
+      matched: result.matched,
+      confidence: result.confidence,
+      attractionId: result.attractionId,
+      explanation: result.explanation,
+      candidateCount: attractions.length,
+    });
+
+    return result;
   } catch (error: any) {
     console.error('Claude Vision API error:', error);
 
