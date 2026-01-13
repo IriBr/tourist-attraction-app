@@ -1,5 +1,15 @@
 import api from './client';
-import type { User, Attraction, Pagination, DashboardStats, LocationStats } from '../types';
+import type {
+  User,
+  Attraction,
+  Pagination,
+  DashboardStats,
+  LocationStats,
+  Suggestion,
+  SuggestionStats,
+  SuggestionStatus,
+  SuggestionType,
+} from '../types';
 
 export const adminApi = {
   // Dashboard
@@ -88,6 +98,58 @@ export const adminApi = {
     attractionId: string
   ): Promise<{ success: boolean; message: string }> => {
     const response = await api.delete(`/admin/attractions/${attractionId}`);
+    return response.data;
+  },
+
+  setAttractionVerified: async (
+    attractionId: string,
+    isVerified: boolean
+  ): Promise<Attraction> => {
+    const response = await api.patch(`/admin/attractions/${attractionId}/verify`, {
+      isVerified,
+    });
+    return response.data.data;
+  },
+
+  // Suggestions
+  getSuggestions: async (
+    page = 1,
+    limit = 20,
+    status?: SuggestionStatus,
+    type?: SuggestionType
+  ): Promise<{ suggestions: Suggestion[]; pagination: Pagination }> => {
+    const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+    if (status) params.append('status', status);
+    if (type) params.append('type', type);
+    const response = await api.get(`/admin/suggestions?${params}`);
+    return {
+      suggestions: response.data.data.items,
+      pagination: {
+        page: response.data.data.page,
+        limit: response.data.data.limit,
+        total: response.data.data.total,
+        totalPages: response.data.data.totalPages,
+      },
+    };
+  },
+
+  getSuggestionStats: async (): Promise<SuggestionStats> => {
+    const response = await api.get('/admin/suggestions/stats');
+    return response.data.data;
+  },
+
+  updateSuggestion: async (
+    suggestionId: string,
+    data: { status: SuggestionStatus; adminNotes?: string }
+  ): Promise<Suggestion> => {
+    const response = await api.patch(`/admin/suggestions/${suggestionId}`, data);
+    return response.data.data;
+  },
+
+  deleteSuggestion: async (
+    suggestionId: string
+  ): Promise<{ success: boolean; message: string }> => {
+    const response = await api.delete(`/admin/suggestions/${suggestionId}`);
     return response.data;
   },
 };

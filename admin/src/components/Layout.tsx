@@ -9,6 +9,7 @@ import {
   X,
   Globe,
   Bell,
+  MessageSquareMore,
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 
@@ -16,6 +17,7 @@ const navItems = [
   { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
   { path: '/users', icon: Users, label: 'Users' },
   { path: '/attractions', icon: MapPin, label: 'Attractions' },
+  { path: '/suggestions', icon: MessageSquareMore, label: 'Suggestions' },
   { path: '/locations', icon: Globe, label: 'Locations' },
   { path: '/notifications', icon: Bell, label: 'Notifications' },
 ];

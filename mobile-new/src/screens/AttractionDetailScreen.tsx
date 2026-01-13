@@ -18,6 +18,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { attractionsApi, favoritesApi, visitsApi, NewBadgeInfo } from '../api';
 import { useStatsStore, useVisitsStore } from '../store';
 import { BadgeAwardModal } from '../components/BadgeAwardModal';
+import { SuggestionModal } from '../components/SuggestionModal';
 import type { Attraction } from '../types';
 
 const { width } = Dimensions.get('window');
@@ -69,6 +70,7 @@ export function AttractionDetailScreen() {
   const [isMarkingVisited, setIsMarkingVisited] = useState(false);
   const [showBadgeModal, setShowBadgeModal] = useState(false);
   const [newBadges, setNewBadges] = useState<NewBadgeInfo[]>([]);
+  const [showSuggestionModal, setShowSuggestionModal] = useState(false);
   const { refreshStats } = useStatsStore();
   const { addVisit: addToVisitsStore } = useVisitsStore();
 
@@ -121,6 +123,11 @@ export function AttractionDetailScreen() {
       const url = `https://maps.google.com/?q=${attraction.location.latitude},${attraction.location.longitude}`;
       Linking.openURL(url);
     }
+  };
+
+  const handleSuggestionSuccess = () => {
+    setShowSuggestionModal(false);
+    Alert.alert('Thank you!', 'Your feedback has been submitted and will be reviewed by our team.');
   };
 
   if (isLoading) {
@@ -205,8 +212,16 @@ export function AttractionDetailScreen() {
         <View style={styles.content}>
           {/* Header */}
           <View style={styles.header}>
-            <View style={styles.categoryBadge}>
-              <Text style={styles.categoryText}>{attraction.category}</Text>
+            <View style={styles.badgeRow}>
+              <View style={styles.categoryBadge}>
+                <Text style={styles.categoryText}>{attraction.category}</Text>
+              </View>
+              {attraction.isVerified && (
+                <View style={styles.verifiedBadge}>
+                  <Ionicons name="shield-checkmark" size={14} color="#3B82F6" />
+                  <Text style={styles.verifiedText}>Verified</Text>
+                </View>
+              )}
             </View>
             <Text style={styles.title}>{attraction.name}</Text>
             <View style={styles.locationRow}>
@@ -313,6 +328,15 @@ export function AttractionDetailScreen() {
               <Ionicons name="navigate-outline" size={22} color="#e91e63" />
               <Text style={styles.directionsButtonText}>Get Directions</Text>
             </TouchableOpacity>
+            {!attraction.isVerified && (
+              <TouchableOpacity
+                style={styles.feedbackButton}
+                onPress={() => setShowSuggestionModal(true)}
+              >
+                <Ionicons name="chatbubble-ellipses-outline" size={22} color="#888" />
+                <Text style={styles.feedbackButtonText}>Submit Feedback</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           <View style={{ height: 100 }} />
@@ -324,6 +348,15 @@ export function AttractionDetailScreen() {
         visible={showBadgeModal}
         badges={newBadges}
         onClose={() => setShowBadgeModal(false)}
+      />
+
+      {/* Suggestion Modal */}
+      <SuggestionModal
+        visible={showSuggestionModal}
+        attractionId={attraction.id}
+        attractionName={attraction.name}
+        onClose={() => setShowSuggestionModal(false)}
+        onSuccess={handleSuggestionSuccess}
       />
     </LinearGradient>
   );
@@ -392,19 +425,37 @@ const styles = StyleSheet.create({
   header: {
     marginBottom: 16,
   },
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 8,
+  },
   categoryBadge: {
-    alignSelf: 'flex-start',
     backgroundColor: 'rgba(233, 30, 99, 0.2)',
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
-    marginBottom: 12,
   },
   categoryText: {
     color: '#e91e63',
     fontSize: 12,
     fontWeight: '600',
     textTransform: 'capitalize',
+  },
+  verifiedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  verifiedText: {
+    color: '#3B82F6',
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 4,
   },
   title: {
     fontSize: 24,
@@ -550,6 +601,22 @@ const styles = StyleSheet.create({
   },
   directionsButtonText: {
     color: '#e91e63',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  feedbackButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    paddingVertical: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  feedbackButtonText: {
+    color: '#888',
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,

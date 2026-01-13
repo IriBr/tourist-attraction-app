@@ -280,6 +280,11 @@ export function SearchScreen() {
                           style={[styles.attractionImage, { height: cardImageHeight }]}
                           resizeMode="cover"
                         />
+                        {item.isVerified && (
+                          <View style={styles.verifiedBadge}>
+                            <Ionicons name="shield-checkmark" size={12} color="#fff" />
+                          </View>
+                        )}
                         {isVisited && (
                           <View style={styles.visitedBadge}>
                             <Ionicons name="checkmark" size={12} color="#fff" />
@@ -407,6 +412,17 @@ const styles = StyleSheet.create({
   attractionImage: {
     width: '100%',
     backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  verifiedBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    backgroundColor: '#3B82F6',
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   visitedBadge: {
     position: 'absolute',

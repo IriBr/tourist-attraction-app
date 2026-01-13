@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { adminController } from '../controllers/admin.controller.js';
 import { notificationController } from '../controllers/notification.controller.js';
+import { suggestionController } from '../controllers/index.js';
 import { authenticate, requireAdmin } from '../middleware/auth.js';
 
 const router = Router();
@@ -45,6 +46,16 @@ router.post('/seed-usa', adminController.seedUSA.bind(adminController));
 router.post('/seed-europe', adminController.seedEurope.bind(adminController));
 router.post('/cleanup-non-attractions', adminController.cleanupNonAttractions.bind(adminController));
 router.get('/attraction-category-stats', adminController.getAttractionCategoryStats.bind(adminController));
+
+// ============ SUGGESTION MANAGEMENT ============
+router.get('/suggestions', suggestionController.getAllSuggestions);
+router.get('/suggestions/stats', suggestionController.getSuggestionStats);
+router.get('/suggestions/:id', suggestionController.getSuggestionById);
+router.patch('/suggestions/:id', suggestionController.updateSuggestion);
+router.delete('/suggestions/:id', suggestionController.deleteSuggestion);
+
+// ============ ATTRACTION VERIFICATION ============
+router.patch('/attractions/:id/verify', suggestionController.setAttractionVerified);
 
 // ============ NOTIFICATION MANAGEMENT ============
 router.post('/notifications/send', notificationController.sendNotification.bind(notificationController));

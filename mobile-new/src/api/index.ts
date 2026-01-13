@@ -10,6 +10,7 @@ export { locationsApi } from './locations';
 export { verificationApi } from './verification';
 export { leaderboardApi } from './leaderboard';
 export { notificationsApi } from './notifications';
+export { suggestionsApi } from './suggestions';
 export type { UserStats, LocationStats, Visit, NewBadgeInfo, MarkVisitedResponse } from './visits';
 export type { SubscriptionStatus, SubscriptionFeatures, CanScanResult, FreeTierLimits } from './subscription';
 export type {
@@ -21,3 +22,4 @@ export type {
 } from './leaderboard';
 export type { GlobalStats, MapContinent, MapCountry, MapCity, MapAttraction } from './locations';
 export type { VerifyRequest, VerifyResponse, ConfirmResponse, VerificationStatus, AttractionSummary } from './verification';
+export type { Suggestion, SuggestionWithDetails, CreateSuggestionRequest, SuggestionType, SuggestionStatus } from './suggestions';

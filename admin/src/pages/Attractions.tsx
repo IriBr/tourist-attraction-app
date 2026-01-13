@@ -9,6 +9,7 @@ import {
   MapPin,
   Star,
   X,
+  ShieldCheck,
 } from 'lucide-react';
 import { adminApi } from '../api/admin';
 import { locationsApi } from '../api/locations';
@@ -23,6 +24,7 @@ export function AttractionsPage() {
   const [pagination, setPagination] = useState<Pagination | null>(null);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
+  const [verifiedFilter, setVerifiedFilter] = useState<'all' | 'verified' | 'unverified'>('all');
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [editingAttraction, setEditingAttraction] = useState<Attraction | null>(null);
@@ -48,7 +50,7 @@ export function AttractionsPage() {
 
   useEffect(() => {
     fetchAttractions();
-  }, [category]);
+  }, [category, verifiedFilter]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,11 +72,39 @@ export function AttractionsPage() {
     }
   };
 
+  const handleToggleVerified = async (attraction: Attraction) => {
+    setActionLoading(attraction.id);
+    try {
+      await adminApi.setAttractionVerified(attraction.id, !attraction.isVerified);
+      await fetchAttractions(pagination?.page || 1);
+    } catch (error) {
+      console.error('Failed to toggle verified status:', error);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // Filter attractions based on verified filter
+  const filteredAttractions = attractions.filter((a) => {
+    if (verifiedFilter === 'verified') return a.isVerified;
+    if (verifiedFilter === 'unverified') return !a.isVerified;
+    return true;
+  });
+
   return (
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Attractions</h1>
         <div className="flex items-center gap-4">
+          <select
+            value={verifiedFilter}
+            onChange={(e) => setVerifiedFilter(e.target.value as 'all' | 'verified' | 'unverified')}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+          >
+            <option value="all">All Status</option>
+            <option value="verified">Verified Only</option>
+            <option value="unverified">Unverified Only</option>
+          </select>
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
@@ -126,6 +156,9 @@ export function AttractionsPage() {
                   Category
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Verified
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                   Rating
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
@@ -139,20 +172,20 @@ export function AttractionsPage() {
             <tbody className="divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center">
+                  <td colSpan={7} className="px-6 py-12 text-center">
                     <div className="flex items-center justify-center">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500"></div>
                     </div>
                   </td>
                 </tr>
-              ) : attractions.length === 0 ? (
+              ) : filteredAttractions.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
                     No attractions found
                   </td>
                 </tr>
               ) : (
-                attractions.map((attraction) => (
+                filteredAttractions.map((attraction) => (
                   <tr key={attraction.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
@@ -190,6 +223,20 @@ export function AttractionsPage() {
                       <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">
                         {attraction.category}
                       </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <button
+                        onClick={() => handleToggleVerified(attraction)}
+                        disabled={actionLoading === attraction.id}
+                        className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                          attraction.isVerified
+                            ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                            : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                        } disabled:opacity-50`}
+                      >
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        {attraction.isVerified ? 'Verified' : 'Unverified'}
+                      </button>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-1">

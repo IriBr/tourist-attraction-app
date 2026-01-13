@@ -58,6 +58,19 @@ enum LocationType {
   continent
 }
 
+enum SuggestionType {
+  suggest_remove
+  suggest_verify
+  comment
+}
+
+enum SuggestionStatus {
+  pending
+  approved
+  rejected
+  resolved
+}
+
 // ============ LOCATION HIERARCHY ============
 
 model Continent {
@@ -149,6 +162,7 @@ model User {
   dailyScans    DailyScan[]
   badges        UserBadge[]
   pushTokens    PushToken[]
+  suggestions   Suggestion[]
 
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
@@ -226,10 +240,14 @@ model Attraction {
   averageRating    Float              @default(0)
   totalReviews     Int                @default(0)
 
+  // Verification status
+  isVerified       Boolean            @default(false)
+
   openingHours     OpeningHours[]
   reviews          Review[]
   favorites        Favorite[]
   visits           Visit[]
+  suggestions      Suggestion[]
 
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
@@ -240,6 +258,7 @@ model Attraction {
   @@index([latitude, longitude])
   @@index([cityId, category])           // Filtered city queries
   @@index([name])                       // Search functionality
+  @@index([isVerified])                 // Filter by verification status
 }
 
 model OpeningHours {
@@ -424,4 +443,33 @@ model PushToken {
   @@index([userId])
   @@index([token])
   @@index([isActive])
+}
+
+// ============ USER SUGGESTIONS ============
+
+model Suggestion {
+  id           String           @id @default(uuid())
+  attractionId String
+  attraction   Attraction       @relation(fields: [attractionId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type         SuggestionType
+  status       SuggestionStatus @default(pending)
+  comment      String?
+
+  // Admin review fields
+  adminNotes   String?
+  reviewedBy   String?          // Admin user ID who reviewed
+  reviewedAt   DateTime?
+
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@unique([attractionId, userId, type]) // One suggestion per type per user per attraction
+  @@index([attractionId])
+  @@index([userId])
+  @@index([status])
+  @@index([type])
+  @@index([createdAt])
 }

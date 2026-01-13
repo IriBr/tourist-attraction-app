@@ -52,6 +52,7 @@ export interface Attraction {
   website?: string;
   averageRating: number;
   totalReviews: number;
+  isVerified?: boolean; // True for verified tourist attractions
   isFavorited?: boolean; // Populated based on current user
   isVisited?: boolean; // Populated based on current user
   distance?: number; // Populated when searching by location (in meters)
@@ -68,6 +69,7 @@ export interface AttractionSummary {
   location: Pick<Location, 'city' | 'country'>;
   averageRating: number;
   totalReviews: number;
+  isVerified?: boolean;
   isFavorited?: boolean;
   distance?: number;
 }

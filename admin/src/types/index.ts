@@ -1,6 +1,48 @@
 // Re-export shared types for consistency
 export { AttractionCategory } from '@tourist-app/shared';
 
+export type SuggestionType = 'suggest_remove' | 'suggest_verify' | 'comment';
+export type SuggestionStatus = 'pending' | 'approved' | 'rejected' | 'resolved';
+
+export interface Suggestion {
+  id: string;
+  attractionId: string;
+  userId: string;
+  type: SuggestionType;
+  status: SuggestionStatus;
+  comment: string | null;
+  adminNotes: string | null;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  attraction: {
+    id: string;
+    name: string;
+    city: string;
+    country: string;
+    isVerified: boolean;
+  };
+}
+
+export interface SuggestionStats {
+  total: number;
+  pending: number;
+  approved: number;
+  rejected: number;
+  resolved: number;
+  byType: {
+    suggest_remove: number;
+    suggest_verify: number;
+    comment: number;
+  };
+}
+
 export interface User {
   id: string;
   email: string;
@@ -58,6 +100,7 @@ export interface Attraction {
   childPrice?: number;
   seniorPrice?: number;
   isFree: boolean;
+  isVerified: boolean;
   averageRating: number;
   totalReviews: number;
   openingHours?: OpeningHours[];

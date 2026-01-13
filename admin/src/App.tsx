@@ -5,6 +5,7 @@ import { LoginPage } from './pages/Login';
 import { DashboardPage } from './pages/Dashboard';
 import { UsersPage } from './pages/Users';
 import { AttractionsPage } from './pages/Attractions';
+import { SuggestionsPage } from './pages/Suggestions';
 import { LocationsPage } from './pages/Locations';
 import { NotificationsPage } from './pages/Notifications';
 import { useAuthStore } from './store/authStore';
@@ -49,6 +50,7 @@ function App() {
           <Route index element={<DashboardPage />} />
           <Route path="users" element={<UsersPage />} />
           <Route path="attractions" element={<AttractionsPage />} />
+          <Route path="suggestions" element={<SuggestionsPage />} />
           <Route path="locations" element={<LocationsPage />} />
           <Route path="notifications" element={<NotificationsPage />} />
         </Route>

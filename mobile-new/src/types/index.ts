@@ -121,6 +121,7 @@ export interface Attraction {
   thumbnailUrl: string;
   averageRating: number;
   totalReviews: number;
+  isVerified?: boolean;
   isFree?: boolean;
   adultPrice?: number;
   childPrice?: number;
@@ -145,6 +146,7 @@ export interface AttractionSummary {
   thumbnailUrl: string;
   averageRating: number;
   totalReviews: number;
+  isVerified?: boolean;
   isFavorited?: boolean;
 }
 

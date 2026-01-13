@@ -4,3 +4,4 @@ export * from './review.js';
 export * from './favorite.js';
 export * from './api.js';
 export * from './badge.js';
+export * from './suggestion.js';

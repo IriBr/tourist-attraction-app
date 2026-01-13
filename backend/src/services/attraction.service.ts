@@ -44,6 +44,7 @@ interface AttractionWithRelations {
   isFree: boolean;
   averageRating: number;
   totalReviews: number;
+  isVerified: boolean;
   createdAt: Date;
   updatedAt: Date;
   openingHours: {
@@ -67,6 +68,7 @@ interface AttractionSummaryData {
   longitude: number;
   averageRating: number;
   totalReviews: number;
+  isVerified: boolean;
   city: {
     name: string;
     country: {
@@ -122,6 +124,7 @@ function mapToAttraction(
     website: attr.website ?? undefined,
     averageRating: attr.averageRating,
     totalReviews: attr.totalReviews,
+    isVerified: attr.isVerified,
     isFavorited: userId ? (attr.favorites?.length ?? 0) > 0 : undefined,
     isVisited: userId ? (attr.visits?.length ?? 0) > 0 : undefined,
     createdAt: attr.createdAt.toISOString(),
@@ -143,6 +146,7 @@ function mapToSummary(
     location: { city: attr.city.name, country: attr.city.country.name },
     averageRating: attr.averageRating,
     totalReviews: attr.totalReviews,
+    isVerified: attr.isVerified,
     isFavorited: userId ? (attr.favorites?.length ?? 0) > 0 : undefined,
     distance,
   };
@@ -163,6 +167,7 @@ function mapSummaryData(
     location: { city: attr.city.name, country: attr.city.country.name },
     averageRating: attr.averageRating,
     totalReviews: attr.totalReviews,
+    isVerified: attr.isVerified,
     isFavorited: userId ? (attr.favorites?.length ?? 0) > 0 : undefined,
     distance,
   };
@@ -260,6 +265,7 @@ export async function searchAttractions(
         longitude: true,
         averageRating: true,
         totalReviews: true,
+        isVerified: true,
         city: {
           select: {
             name: true,
@@ -368,6 +374,7 @@ export async function getNearbyAttractions(
       longitude: true,
       averageRating: true,
       totalReviews: true,
+      isVerified: true,
       city: {
         select: {
           name: true,
@@ -425,6 +432,7 @@ export async function getAttractionsByCategory(
         longitude: true,
         averageRating: true,
         totalReviews: true,
+        isVerified: true,
         city: {
           select: {
             name: true,
@@ -471,6 +479,7 @@ export async function getPopularAttractions(
       longitude: true,
       averageRating: true,
       totalReviews: true,
+      isVerified: true,
       city: {
         select: {
           name: true,
