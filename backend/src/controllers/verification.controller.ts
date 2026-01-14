@@ -5,6 +5,7 @@ import { sendSuccess, sendCreated } from '../utils/response.js';
 import { BadRequestError, NotFoundError, ForbiddenError } from '../utils/errors.js';
 import { config } from '../config/index.js';
 import * as visionService from '../services/vision.service.js';
+import * as googleVisionService from '../services/googleVision.service.js';
 import * as attractionService from '../services/attraction.service.js';
 import * as visitService from '../services/visit.service.js';
 import { subscriptionService } from '../services/subscription.service.js';
@@ -86,14 +87,41 @@ export const verifyAttraction = asyncHandler(async (req: Request, res: Response)
     });
   }
 
-  // Step 1: Get all nearby attractions from the user's current area
-  console.log('[Verification] Step 1: Getting nearby attractions...');
+  // Step 1: Use Google Vision to identify the landmark from the image
+  console.log('[Verification] Step 1: Identifying landmark with Google Vision...');
+  const googleResult = await googleVisionService.detectLandmark(data.image);
+  const searchKeywords = googleVisionService.getSearchKeywords(googleResult);
+
+  // If Google Vision couldn't identify anything
+  if (searchKeywords.length === 0) {
+    await recordScan(userId, {
+      matched: false,
+      confidence: 0,
+      attractionId: null,
+      explanation: 'Google Vision could not identify any landmark in this image'
+    });
+    return sendSuccess(res, {
+      matched: false,
+      confidence: 0,
+      message: 'Could not identify a tourist attraction in this image. Please try a clearer photo.',
+      explanation: googleResult.description,
+    });
+  }
+
+  console.log('[Verification] Google Vision identified:', {
+    landmarks: googleResult.landmarks.map(l => l.name),
+    bestGuess: googleResult.bestGuessLabels[0] || 'none',
+    keywords: searchKeywords.slice(0, 5),
+  });
+
+  // Step 2: Get nearby attractions from user's location
+  console.log('[Verification] Step 2: Getting nearby attractions...');
   const nearbyAttractions = await attractionService.getNearbyAttractions(
     data.latitude!,
     data.longitude!,
     data.radiusMeters, // User's radius (default 50km)
     undefined, // no category filter
-    config.vision.maxAttractions, // Get up to maxAttractions (30)
+    config.vision.maxAttractions, // Get up to maxAttractions
     userId
   );
 
@@ -102,79 +130,80 @@ export const verifyAttraction = asyncHandler(async (req: Request, res: Response)
       matched: false,
       confidence: 0,
       message: 'No attractions found in your area. Try expanding your search radius.',
+      explanation: googleResult.description,
     });
   }
 
-  // Convert to AttractionContext format
-  const attractions: visionService.AttractionContext[] = nearbyAttractions.map(a => ({
-    id: a.id,
-    name: a.name,
-    city: a.location?.city || '',
-    country: a.location?.country || '',
-    category: a.category,
-    description: a.shortDescription,
-    shortDescription: a.shortDescription,
-    famousFor: null,
-    highlights: [],
-  }));
+  console.log('[Verification] Found', nearbyAttractions.length, 'nearby attractions');
 
-  console.log('[Verification] Found', attractions.length, 'nearby attractions');
+  // Step 3: Match Google Vision results against nearby attractions
+  let result: visionService.VerificationResult = {
+    matched: false,
+    confidence: 0,
+    attractionId: null,
+    explanation: googleResult.description,
+  };
 
-  // Step 2: Ask Claude to identify the attraction (without any list)
-  console.log('[Verification] Step 2: Identifying attraction from image...');
-  const identification = await visionService.identifyAttraction(data.image);
+  // Try to find matches from keywords against nearby attraction names
+  for (const keyword of searchKeywords) {
+    const keywordLower = keyword.toLowerCase();
 
-  // If Claude couldn't identify anything meaningful
-  if (!identification.identified || identification.confidence < 0.3) {
-    await recordScan(userId, {
-      matched: false,
-      confidence: identification.confidence,
-      attractionId: null,
-      explanation: identification.description || 'Could not identify attraction in image'
-    });
-    return sendSuccess(res, {
-      matched: false,
-      confidence: identification.confidence,
-      message: 'Could not identify a tourist attraction in this image. Please try a clearer photo.',
-      explanation: identification.description,
-    });
+    for (const attraction of nearbyAttractions) {
+      const attractionNameLower = attraction.name.toLowerCase();
+
+      // Check for name match
+      const isMatch =
+        attractionNameLower.includes(keywordLower) ||
+        keywordLower.includes(attractionNameLower) ||
+        // Handle variations without spaces
+        attractionNameLower.replace(/\s+/g, '').includes(keywordLower.replace(/\s+/g, '')) ||
+        keywordLower.replace(/\s+/g, '').includes(attractionNameLower.replace(/\s+/g, ''));
+
+      if (isMatch) {
+        // Determine confidence based on source
+        let confidence = 0.7; // Default for web entity match
+
+        // Higher confidence for landmark detection
+        const landmarkMatch = googleResult.landmarks.find(
+          l => l.name.toLowerCase().includes(keywordLower) || keywordLower.includes(l.name.toLowerCase())
+        );
+        if (landmarkMatch) {
+          confidence = Math.max(confidence, landmarkMatch.confidence);
+        }
+
+        // Higher confidence for best guess match
+        if (googleResult.bestGuessLabels.some(label =>
+          label.toLowerCase().includes(keywordLower) || keywordLower.includes(label.toLowerCase())
+        )) {
+          confidence = Math.max(confidence, 0.8);
+        }
+
+        console.log('[Verification] Match found:', {
+          keyword,
+          attraction: attraction.name,
+          confidence,
+        });
+
+        result = {
+          matched: true,
+          confidence,
+          attractionId: attraction.id,
+          explanation: `Matched "${keyword}" to "${attraction.name}" via Google Vision`,
+        };
+        break;
+      }
+    }
+
+    if (result.matched) break;
   }
 
-  console.log('[Verification] Claude identified:', {
-    name: identification.name,
-    city: identification.city,
-    country: identification.country,
-    confidence: identification.confidence,
-  });
-
-  // Step 3: Match Claude's identification with nearby attractions
-  let result: visionService.VerificationResult;
-
-  // Try to find a direct match by name among nearby attractions
-  const identifiedNameLower = (identification.name || '').toLowerCase();
-  const directMatch = attractions.find(a => {
-    const attractionNameLower = a.name.toLowerCase();
-    // Check if names match closely
-    return attractionNameLower.includes(identifiedNameLower) ||
-           identifiedNameLower.includes(attractionNameLower) ||
-           // Handle common variations (remove spaces for comparison)
-           attractionNameLower.replace(/\s+/g, '').includes(identifiedNameLower.replace(/\s+/g, '')) ||
-           identifiedNameLower.replace(/\s+/g, '').includes(attractionNameLower.replace(/\s+/g, ''));
-  });
-
-  if (directMatch && identification.confidence >= 0.6) {
-    // Direct match found with good confidence
-    console.log('[Verification] Direct match found:', directMatch.name);
-    result = {
-      matched: true,
-      confidence: identification.confidence,
-      attractionId: directMatch.id,
-      explanation: identification.description,
-    };
-  } else {
-    // No direct match or low confidence - use Claude Vision to verify against nearby candidates
-    console.log('[Verification] Step 3b: Verifying against', attractions.length, 'nearby candidates...');
-    result = await visionService.verifyAttractionImage(data.image, attractions);
+  // If no match found, provide helpful message
+  if (!result.matched) {
+    const identifiedAs = googleResult.landmarks[0]?.name ||
+                         googleResult.bestGuessLabels[0] ||
+                         googleResult.webEntities[0]?.description ||
+                         'unknown';
+    result.explanation = `Identified as "${identifiedAs}" but no matching attraction found nearby`;
   }
 
   // Record the scan
