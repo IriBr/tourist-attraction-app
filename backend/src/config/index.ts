@@ -61,7 +61,7 @@ export const config = {
     androidClientId: parsed.data.GOOGLE_ANDROID_CLIENT_ID,
     clientSecret: parsed.data.GOOGLE_CLIENT_SECRET,
     mapsApiKey: parsed.data.GOOGLE_MAPS_API_KEY,
-    cloudVisionApiKey: parsed.data.GOOGLE_CLOUD_VISION_API_KEY,
+    cloudVisionApiKey: parsed.data.GOOGLE_CLOUD_VISION_API_KEY || parsed.data.GOOGLE_MAPS_API_KEY,
   },
   apple: {
     clientId: parsed.data.APPLE_CLIENT_ID,
