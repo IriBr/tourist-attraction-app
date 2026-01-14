@@ -23,6 +23,7 @@ const envSchema = z.object({
   AWS_REGION: z.string().default('us-east-1'),
   AWS_S3_BUCKET: z.string().optional(),
   GOOGLE_MAPS_API_KEY: z.string().optional(),
+  GOOGLE_PLACES_API_KEY: z.string().optional(),
   GOOGLE_CLOUD_VISION_API_KEY: z.string().optional(),
   ANTHROPIC_API_KEY: z.string().optional(),
   RATE_LIMIT_WINDOW_MS: z.string().default('900000'),
@@ -61,7 +62,7 @@ export const config = {
     androidClientId: parsed.data.GOOGLE_ANDROID_CLIENT_ID,
     clientSecret: parsed.data.GOOGLE_CLIENT_SECRET,
     mapsApiKey: parsed.data.GOOGLE_MAPS_API_KEY,
-    cloudVisionApiKey: parsed.data.GOOGLE_CLOUD_VISION_API_KEY || parsed.data.GOOGLE_MAPS_API_KEY,
+    cloudVisionApiKey: parsed.data.GOOGLE_CLOUD_VISION_API_KEY || parsed.data.GOOGLE_PLACES_API_KEY || parsed.data.GOOGLE_MAPS_API_KEY,
   },
   apple: {
     clientId: parsed.data.APPLE_CLIENT_ID,
