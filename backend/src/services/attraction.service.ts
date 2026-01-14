@@ -387,7 +387,9 @@ export async function getNearbyAttractions(
       },
       favorites: userId ? { where: { userId }, select: { id: true } } : false,
     },
-    take: safeLimit * 2, // Get extra to account for distance filtering
+    // Fetch all attractions in bounding box, then filter/sort by actual distance
+    // This ensures we don't miss attractions due to arbitrary DB ordering
+    take: 500,
   });
 
   const withDistance = attractions
