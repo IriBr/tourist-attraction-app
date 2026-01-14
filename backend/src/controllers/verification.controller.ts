@@ -75,86 +75,107 @@ export const verifyAttraction = asyncHandler(async (req: Request, res: Response)
     throw new ForbiddenError(premiumAccess.reason || 'Camera scanning requires Premium subscription');
   }
 
-  // Determine search mode based on location
+  // Location is required for camera scanning
   const hasLocation = data.latitude !== undefined && data.longitude !== undefined;
-  let attractions: visionService.AttractionContext[];
 
-  if (hasLocation) {
-    // Camera mode: location-based search
-    const nearbyAttractions = await attractionService.getNearbyAttractions(
-      data.latitude!,
-      data.longitude!,
-      data.radiusMeters,
-      undefined, // no category filter
-      config.vision.maxAttractions,
-      userId
-    );
-
-    attractions = nearbyAttractions.map(a => ({
-      id: a.id,
-      name: a.name,
-      city: a.location?.city || '',
-      country: a.location?.country || '',
-      category: a.category,
-      description: a.shortDescription,
-      shortDescription: a.shortDescription,
-      famousFor: null,
-      highlights: [],
-    }));
-
-    if (attractions.length === 0) {
-      return sendSuccess(res, {
-        matched: false,
-        confidence: 0,
-        message: 'No attractions found within the specified area. Try expanding your search radius.',
-      });
-    }
-  } else {
-    // Upload mode: global search using two-pass approach
-    const description = await visionService.getImageDescription(data.image);
-    const keywords = visionService.extractKeywords(description);
-
-    if (keywords.length === 0) {
-      // Record scan and return
-      await recordScan(userId, { matched: false, confidence: 0, attractionId: null, explanation: 'Could not identify location in image' });
-      return sendSuccess(res, {
-        matched: false,
-        confidence: 0,
-        message: 'Could not identify a tourist attraction in this image. Please try a clearer photo.',
-      });
-    }
-
-    // Search database by keywords
-    const searchQuery = keywords.slice(0, 5).join(' ');
-    const searchResult = await attractionService.searchAttractions(
-      { query: searchQuery, limit: config.vision.maxAttractions },
-      userId
-    );
-
-    attractions = searchResult.items.map(a => ({
-      id: a.id,
-      name: a.name,
-      city: a.location?.city || '',
-      country: a.location?.country || '',
-      category: a.category,
-      description: a.shortDescription,
-      shortDescription: a.shortDescription,
-      famousFor: null,
-      highlights: [],
-    }));
-
-    if (attractions.length === 0) {
-      await recordScan(userId, { matched: false, confidence: 0, attractionId: null, explanation: 'No matching attractions found' });
-      return sendSuccess(res, {
-        matched: false,
-        confidence: 0,
-        message: 'No matching attractions found in our database.',
-      });
-    }
+  if (!hasLocation) {
+    return sendSuccess(res, {
+      matched: false,
+      confidence: 0,
+      message: 'Location is required for camera scanning. Please enable location services.',
+    });
   }
 
-  // Verify image against attractions using Claude Vision
-  const result = await visionService.verifyAttractionImage(data.image, attractions);
+  // Step 1: Get all nearby attractions from the user's current area
+  console.log('[Verification] Step 1: Getting nearby attractions...');
+  const nearbyAttractions = await attractionService.getNearbyAttractions(
+    data.latitude!,
+    data.longitude!,
+    data.radiusMeters, // User's radius (default 50km)
+    undefined, // no category filter
+    config.vision.maxAttractions, // Get up to maxAttractions (30)
+    userId
+  );
+
+  if (nearbyAttractions.length === 0) {
+    return sendSuccess(res, {
+      matched: false,
+      confidence: 0,
+      message: 'No attractions found in your area. Try expanding your search radius.',
+    });
+  }
+
+  // Convert to AttractionContext format
+  const attractions: visionService.AttractionContext[] = nearbyAttractions.map(a => ({
+    id: a.id,
+    name: a.name,
+    city: a.location?.city || '',
+    country: a.location?.country || '',
+    category: a.category,
+    description: a.shortDescription,
+    shortDescription: a.shortDescription,
+    famousFor: null,
+    highlights: [],
+  }));
+
+  console.log('[Verification] Found', attractions.length, 'nearby attractions');
+
+  // Step 2: Ask Claude to identify the attraction (without any list)
+  console.log('[Verification] Step 2: Identifying attraction from image...');
+  const identification = await visionService.identifyAttraction(data.image);
+
+  // If Claude couldn't identify anything meaningful
+  if (!identification.identified || identification.confidence < 0.3) {
+    await recordScan(userId, {
+      matched: false,
+      confidence: identification.confidence,
+      attractionId: null,
+      explanation: identification.description || 'Could not identify attraction in image'
+    });
+    return sendSuccess(res, {
+      matched: false,
+      confidence: identification.confidence,
+      message: 'Could not identify a tourist attraction in this image. Please try a clearer photo.',
+      explanation: identification.description,
+    });
+  }
+
+  console.log('[Verification] Claude identified:', {
+    name: identification.name,
+    city: identification.city,
+    country: identification.country,
+    confidence: identification.confidence,
+  });
+
+  // Step 3: Match Claude's identification with nearby attractions
+  let result: visionService.VerificationResult;
+
+  // Try to find a direct match by name among nearby attractions
+  const identifiedNameLower = (identification.name || '').toLowerCase();
+  const directMatch = attractions.find(a => {
+    const attractionNameLower = a.name.toLowerCase();
+    // Check if names match closely
+    return attractionNameLower.includes(identifiedNameLower) ||
+           identifiedNameLower.includes(attractionNameLower) ||
+           // Handle common variations (remove spaces for comparison)
+           attractionNameLower.replace(/\s+/g, '').includes(identifiedNameLower.replace(/\s+/g, '')) ||
+           identifiedNameLower.replace(/\s+/g, '').includes(attractionNameLower.replace(/\s+/g, ''));
+  });
+
+  if (directMatch && identification.confidence >= 0.6) {
+    // Direct match found with good confidence
+    console.log('[Verification] Direct match found:', directMatch.name);
+    result = {
+      matched: true,
+      confidence: identification.confidence,
+      attractionId: directMatch.id,
+      explanation: identification.description,
+    };
+  } else {
+    // No direct match or low confidence - use Claude Vision to verify against nearby candidates
+    console.log('[Verification] Step 3b: Verifying against', attractions.length, 'nearby candidates...');
+    result = await visionService.verifyAttractionImage(data.image, attractions);
+  }
 
   // Record the scan
   await recordScan(userId, result);

@@ -22,6 +22,17 @@ export interface VerificationResult {
   explanation: string;
 }
 
+export interface IdentificationResult {
+  identified: boolean;
+  name: string | null;
+  alternativeNames: string[];
+  city: string | null;
+  country: string | null;
+  category: string | null;
+  confidence: number;
+  description: string;
+}
+
 interface ClaudeVerificationResponse {
   matched: boolean;
   attractionId: string | null;
@@ -312,6 +323,133 @@ If this doesn't appear to be a tourist attraction or notable place, say so.`;
   } catch (error: any) {
     console.error('Claude Vision description error:', error);
     return '';
+  }
+}
+
+/**
+ * Identify an attraction from an image using Claude's knowledge
+ * This is Step 1 of the two-step identification approach
+ */
+export async function identifyAttraction(imageBase64: string): Promise<IdentificationResult> {
+  const client = getAnthropicClient();
+
+  // Clean base64 data
+  let mediaType: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp' = 'image/jpeg';
+  let cleanBase64 = imageBase64;
+
+  if (imageBase64.startsWith('data:')) {
+    const match = imageBase64.match(/^data:(image\/\w+);base64,/);
+    if (match) {
+      mediaType = match[1] as typeof mediaType;
+      cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+    }
+  }
+
+  const prompt = `You are an expert at identifying tourist attractions, landmarks, monuments, and points of interest worldwide.
+
+Analyze this image and identify what tourist attraction or landmark is shown. Use your training knowledge to identify:
+- Famous buildings, monuments, towers, bridges
+- Churches, mosques, temples, religious sites
+- Museums, palaces, castles, historical sites
+- Natural landmarks, parks, famous locations
+- Statues, memorials, public squares
+
+RESPONSE FORMAT (JSON only, no markdown code blocks):
+{
+  "identified": boolean,
+  "name": "Official name of the attraction or null",
+  "alternativeNames": ["Other names this place is known by"],
+  "city": "City where it's located or null",
+  "country": "Country where it's located or null",
+  "category": "museum|landmark|religious|park|beach|castle|palace|bridge|tower|monument|statue|square|garden|other",
+  "confidence": 0.0 to 1.0,
+  "description": "Brief description of what you see and why you identified it as this attraction"
+}
+
+IMPORTANT:
+- Use your TRAINING KNOWLEDGE to identify the attraction
+- If you recognize a famous landmark, identify it with HIGH confidence
+- Look for architectural style, distinctive features, signage
+- Consider the location hints (language on signs, architectural style)
+- If you're not sure what it is, set identified to false
+- Be specific with the name - include "of [City]" if that's part of the official name
+
+CONFIDENCE GUIDELINES:
+- 0.85-1.0: You clearly recognize this landmark from your training
+- 0.6-0.84: You're fairly confident but might be uncertain about exact name
+- 0.3-0.59: You have a guess but not sure
+- 0.0-0.29: Cannot identify or not a tourist attraction`;
+
+  try {
+    const response = await client.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1024,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: mediaType,
+                data: cleanBase64,
+              },
+            },
+            {
+              type: 'text',
+              text: prompt,
+            },
+          ],
+        },
+      ],
+    });
+
+    const textContent = response.content.find(c => c.type === 'text');
+    if (!textContent || textContent.type !== 'text') {
+      throw new Error('No text response from Claude');
+    }
+
+    // Parse response
+    let jsonStr = textContent.text.trim();
+    if (jsonStr.startsWith('```')) {
+      jsonStr = jsonStr.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+    }
+
+    const parsed = JSON.parse(jsonStr);
+
+    const result: IdentificationResult = {
+      identified: Boolean(parsed.identified),
+      name: parsed.name || null,
+      alternativeNames: Array.isArray(parsed.alternativeNames) ? parsed.alternativeNames : [],
+      city: parsed.city || null,
+      country: parsed.country || null,
+      category: parsed.category || null,
+      confidence: Math.max(0, Math.min(1, Number(parsed.confidence) || 0)),
+      description: String(parsed.description || ''),
+    };
+
+    console.log('[Vision] Identification result:', {
+      identified: result.identified,
+      name: result.name,
+      city: result.city,
+      country: result.country,
+      confidence: result.confidence,
+    });
+
+    return result;
+  } catch (error: any) {
+    console.error('Claude Vision identification error:', error);
+    return {
+      identified: false,
+      name: null,
+      alternativeNames: [],
+      city: null,
+      country: null,
+      category: null,
+      confidence: 0,
+      description: 'Failed to process image',
+    };
   }
 }
 
