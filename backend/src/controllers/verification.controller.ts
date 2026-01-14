@@ -144,20 +144,44 @@ export const verifyAttraction = asyncHandler(async (req: Request, res: Response)
     explanation: googleResult.description,
   };
 
+  // Generic terms to ignore (too vague for matching)
+  const genericTerms = new Set([
+    'art', 'arts', 'the arts', 'visual arts', 'artist', 'creative arts',
+    'building', 'architecture', 'structure', 'monument', 'landmark',
+    'church', 'mosque', 'temple', 'museum', 'park', 'garden', 'square',
+    'statue', 'tower', 'bridge', 'palace', 'castle', 'cathedral',
+    'travel', 'tourism', 'tourist', 'attraction', 'destination',
+    'city', 'town', 'place', 'location', 'site', 'area',
+    'balloon', 'sky', 'cloud', 'tree', 'water', 'grass',
+  ]);
+
   // Try to find matches from keywords against nearby attraction names
   for (const keyword of searchKeywords) {
     const keywordLower = keyword.toLowerCase();
 
+    // Skip short keywords (< 5 chars) and generic terms
+    if (keyword.length < 5 || genericTerms.has(keywordLower)) {
+      console.log('[Verification] Skipping generic/short keyword:', keyword);
+      continue;
+    }
+
     for (const attraction of nearbyAttractions) {
       const attractionNameLower = attraction.name.toLowerCase();
 
-      // Check for name match
+      // Check for name match - require more substantial overlap
+      const keywordWords = keywordLower.split(/\s+/);
+      const attractionWords = attractionNameLower.split(/\s+/);
+
+      // Check if keyword matches attraction name significantly
       const isMatch =
+        // Full keyword in attraction name
         attractionNameLower.includes(keywordLower) ||
+        // Full attraction name in keyword
         keywordLower.includes(attractionNameLower) ||
-        // Handle variations without spaces
-        attractionNameLower.replace(/\s+/g, '').includes(keywordLower.replace(/\s+/g, '')) ||
-        keywordLower.replace(/\s+/g, '').includes(attractionNameLower.replace(/\s+/g, ''));
+        // At least 2 words match (for multi-word names)
+        (keywordWords.length >= 2 && keywordWords.filter(w => w.length > 3 && attractionNameLower.includes(w)).length >= 2) ||
+        // At least 2 words from attraction name in keyword
+        (attractionWords.length >= 2 && attractionWords.filter(w => w.length > 3 && keywordLower.includes(w)).length >= 2);
 
       if (isMatch) {
         // Determine confidence based on source
