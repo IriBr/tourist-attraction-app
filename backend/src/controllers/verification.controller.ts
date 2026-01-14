@@ -137,13 +137,6 @@ export const verifyAttraction = asyncHandler(async (req: Request, res: Response)
   console.log('[Verification] Found', nearbyAttractions.length, 'nearby attractions');
 
   // Step 3: Match Google Vision results against nearby attractions
-  let result: visionService.VerificationResult = {
-    matched: false,
-    confidence: 0,
-    attractionId: null,
-    explanation: googleResult.description,
-  };
-
   // Generic terms to ignore (too vague for matching)
   const genericTerms = new Set([
     'art', 'arts', 'the arts', 'visual arts', 'artist', 'creative arts',
@@ -155,7 +148,14 @@ export const verifyAttraction = asyncHandler(async (req: Request, res: Response)
     'balloon', 'sky', 'cloud', 'tree', 'water', 'grass',
   ]);
 
-  // Try to find matches from keywords against nearby attraction names
+  // Find ALL potential matches, then pick the closest one
+  interface PotentialMatch {
+    attraction: typeof nearbyAttractions[0];
+    keyword: string;
+    confidence: number;
+  }
+  const potentialMatches: PotentialMatch[] = [];
+
   for (const keyword of searchKeywords) {
     const keywordLower = keyword.toLowerCase();
 
@@ -202,27 +202,52 @@ export const verifyAttraction = asyncHandler(async (req: Request, res: Response)
           confidence = Math.max(confidence, 0.8);
         }
 
-        console.log('[Verification] Match found:', {
-          keyword,
-          attraction: attraction.name,
-          confidence,
-        });
-
-        result = {
-          matched: true,
-          confidence,
-          attractionId: attraction.id,
-          explanation: `Matched "${keyword}" to "${attraction.name}" via Google Vision`,
-        };
-        break;
+        // Check if we already have this attraction in matches
+        if (!potentialMatches.some(m => m.attraction.id === attraction.id)) {
+          potentialMatches.push({ attraction, keyword, confidence });
+        }
       }
     }
-
-    if (result.matched) break;
   }
 
-  // If no match found, provide helpful message
-  if (!result.matched) {
+  let result: visionService.VerificationResult = {
+    matched: false,
+    confidence: 0,
+    attractionId: null,
+    explanation: googleResult.description,
+  };
+
+  if (potentialMatches.length > 0) {
+    // Sort by distance (nearbyAttractions is already sorted by distance, so use that order)
+    // The attraction that appears first in nearbyAttractions is closest
+    potentialMatches.sort((a, b) => {
+      const aIndex = nearbyAttractions.findIndex(n => n.id === a.attraction.id);
+      const bIndex = nearbyAttractions.findIndex(n => n.id === b.attraction.id);
+      return aIndex - bIndex;
+    });
+
+    const bestMatch = potentialMatches[0];
+    console.log('[Verification] Found', potentialMatches.length, 'potential matches');
+    console.log('[Verification] All matches:', potentialMatches.map(m => ({
+      name: m.attraction.name,
+      keyword: m.keyword,
+      distance: m.attraction.distance,
+    })));
+    console.log('[Verification] Selected closest match:', {
+      keyword: bestMatch.keyword,
+      attraction: bestMatch.attraction.name,
+      distance: bestMatch.attraction.distance,
+      confidence: bestMatch.confidence,
+    });
+
+    result = {
+      matched: true,
+      confidence: bestMatch.confidence,
+      attractionId: bestMatch.attraction.id,
+      explanation: `Matched "${bestMatch.keyword}" to "${bestMatch.attraction.name}" (closest match)`,
+    };
+  } else {
+    // No match found
     const identifiedAs = googleResult.landmarks[0]?.name ||
                          googleResult.bestGuessLabels[0] ||
                          googleResult.webEntities[0]?.description ||
