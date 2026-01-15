@@ -82,7 +82,7 @@ Be SPECIFIC with names - include location qualifiers if needed (e.g., "Mosque of
   try {
     const response = await client.chat.completions.create({
       model: 'gpt-5-mini',
-      max_tokens: 1024,
+      max_completion_tokens: 1024,
       messages: [
         {
           role: 'user',
