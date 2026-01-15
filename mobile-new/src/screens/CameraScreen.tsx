@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { PinchGestureHandler, PinchGestureHandlerGestureEvent, State } from 'react-native-gesture-handler';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -93,17 +93,19 @@ export function CameraScreen() {
     setFlash((current) => (current === 'off' ? 'on' : 'off'));
   };
 
-  // Pinch-to-zoom gesture
-  const pinchGesture = Gesture.Pinch()
-    .runOnJS(true)
-    .onStart(() => {
-      zoomStart.current = zoom;
-    })
-    .onUpdate((event) => {
-      // Scale factor: 1 = no change, <1 = zoom out, >1 = zoom in
-      const newZoom = zoomStart.current * event.scale;
+  // Pinch-to-zoom handler
+  const onPinchGestureEvent = (event: PinchGestureHandlerGestureEvent) => {
+    if (event.nativeEvent.state === State.ACTIVE) {
+      const newZoom = zoomStart.current * event.nativeEvent.scale;
       setZoom(Math.min(Math.max(newZoom, 0), 1));
-    });
+    }
+  };
+
+  const onPinchHandlerStateChange = (event: any) => {
+    if (event.nativeEvent.oldState === State.UNDETERMINED && event.nativeEvent.state === State.BEGAN) {
+      zoomStart.current = zoom;
+    }
+  };
 
   // Premium-only feature - show upgrade prompt for free users
   const handleUpgrade = () => {
@@ -425,7 +427,10 @@ export function CameraScreen() {
         )}
 
         {/* Camera Frame Guide with Pinch-to-zoom */}
-        <GestureDetector gesture={pinchGesture}>
+        <PinchGestureHandler
+          onGestureEvent={onPinchGestureEvent}
+          onHandlerStateChange={onPinchHandlerStateChange}
+        >
           <View style={[
             styles.frameContainer,
             isTablet && {
@@ -445,7 +450,7 @@ export function CameraScreen() {
               </View>
             )}
           </View>
-        </GestureDetector>
+        </PinchGestureHandler>
 
         {/* Zoom Indicator - shows current zoom level when zoomed */}
         {zoom > 0.01 && (
