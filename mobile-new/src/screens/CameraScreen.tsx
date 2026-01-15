@@ -37,6 +37,7 @@ export function CameraScreen() {
   const [capturedLocation, setCapturedLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [showResultModal, setShowResultModal] = useState(false);
   const [flash, setFlash] = useState<'off' | 'on'>('off');
+  const [zoom, setZoom] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [verificationResult, setVerificationResult] = useState<VerifyResponse | null>(null);
   const cameraRef = useRef<CameraView>(null);
@@ -83,6 +84,14 @@ export function CameraScreen() {
 
   const toggleFlash = () => {
     setFlash((current) => (current === 'off' ? 'on' : 'off'));
+  };
+
+  const zoomIn = () => {
+    setZoom((current) => Math.min(current + 0.1, 1));
+  };
+
+  const zoomOut = () => {
+    setZoom((current) => Math.max(current - 0.1, 0));
   };
 
   // Premium-only feature - show upgrade prompt for free users
@@ -372,6 +381,7 @@ export function CameraScreen() {
         style={styles.camera}
         facing={facing}
         flash={flash}
+        zoom={zoom}
       >
         {/* Top Controls */}
         <View style={[styles.topControls, { paddingTop: insets.top + 16 }]}>
@@ -413,6 +423,27 @@ export function CameraScreen() {
               <Text style={styles.processingText}>Analyzing image...</Text>
             </View>
           )}
+        </View>
+
+        {/* Zoom Controls */}
+        <View style={styles.zoomControls}>
+          <TouchableOpacity
+            style={styles.zoomButton}
+            onPress={zoomIn}
+            disabled={zoom >= 1}
+          >
+            <Ionicons name="add" size={24} color="#fff" />
+          </TouchableOpacity>
+          <View style={styles.zoomIndicator}>
+            <Text style={styles.zoomText}>{(1 + zoom * 9).toFixed(1)}x</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.zoomButton}
+            onPress={zoomOut}
+            disabled={zoom <= 0}
+          >
+            <Ionicons name="remove" size={24} color="#fff" />
+          </TouchableOpacity>
         </View>
 
         {/* Bottom Controls */}
@@ -579,6 +610,33 @@ const styles = StyleSheet.create({
     color: '#fff',
     marginTop: 12,
     fontSize: 16,
+  },
+  zoomControls: {
+    position: 'absolute',
+    right: 20,
+    top: '50%',
+    transform: [{ translateY: -80 }],
+    alignItems: 'center',
+    gap: 8,
+  },
+  zoomButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  zoomIndicator: {
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  zoomText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
   bottomControls: {
     flexDirection: 'row',
