@@ -10,7 +10,6 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
-import { PinchGestureHandler, PinchGestureHandlerGestureEvent, State } from 'react-native-gesture-handler';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -44,7 +43,6 @@ export function CameraScreen() {
   const [showResultModal, setShowResultModal] = useState(false);
   const [flash, setFlash] = useState<'off' | 'on'>('off');
   const [zoom, setZoom] = useState(0);
-  const zoomStart = useRef(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [verificationResult, setVerificationResult] = useState<VerifyResponse | null>(null);
   const cameraRef = useRef<CameraView>(null);
@@ -91,20 +89,6 @@ export function CameraScreen() {
 
   const toggleFlash = () => {
     setFlash((current) => (current === 'off' ? 'on' : 'off'));
-  };
-
-  // Pinch-to-zoom handler
-  const onPinchGestureEvent = (event: PinchGestureHandlerGestureEvent) => {
-    if (event.nativeEvent.state === State.ACTIVE) {
-      const newZoom = zoomStart.current * event.nativeEvent.scale;
-      setZoom(Math.min(Math.max(newZoom, 0), 1));
-    }
-  };
-
-  const onPinchHandlerStateChange = (event: any) => {
-    if (event.nativeEvent.oldState === State.UNDETERMINED && event.nativeEvent.state === State.BEGAN) {
-      zoomStart.current = zoom;
-    }
   };
 
   // Premium-only feature - show upgrade prompt for free users
@@ -427,37 +411,55 @@ export function CameraScreen() {
         )}
 
         {/* Camera Frame Guide with Pinch-to-zoom */}
-        <PinchGestureHandler
-          onGestureEvent={onPinchGestureEvent}
-          onHandlerStateChange={onPinchHandlerStateChange}
-        >
-          <View style={[
-            styles.frameContainer,
-            isTablet && {
-              maxWidth: 500,
-              alignSelf: 'center',
-              marginHorizontal: 80,
-            },
-          ]}>
-            <View style={styles.frameCorner} />
-            <View style={[styles.frameCorner, styles.frameTopRight]} />
-            <View style={[styles.frameCorner, styles.frameBottomLeft]} />
-            <View style={[styles.frameCorner, styles.frameBottomRight]} />
-            {isProcessing && (
-              <View style={styles.processingOverlay}>
-                <ActivityIndicator size="large" color={colors.secondary} />
-                <Text style={styles.processingText}>Analyzing image...</Text>
-              </View>
-            )}
-          </View>
-        </PinchGestureHandler>
+        {/* Camera Frame Guide */}
+        <View style={[
+          styles.frameContainer,
+          isTablet && {
+            maxWidth: 500,
+            alignSelf: 'center',
+            marginHorizontal: 80,
+          },
+        ]}>
+          <View style={styles.frameCorner} />
+          <View style={[styles.frameCorner, styles.frameTopRight]} />
+          <View style={[styles.frameCorner, styles.frameBottomLeft]} />
+          <View style={[styles.frameCorner, styles.frameBottomRight]} />
+          {isProcessing && (
+            <View style={styles.processingOverlay}>
+              <ActivityIndicator size="large" color={colors.secondary} />
+              <Text style={styles.processingText}>Analyzing image...</Text>
+            </View>
+          )}
+        </View>
 
-        {/* Zoom Indicator - shows current zoom level when zoomed */}
-        {zoom > 0.01 && (
-          <View style={styles.zoomIndicator}>
-            <Text style={styles.zoomText}>{(1 + zoom * 9).toFixed(1)}x</Text>
-          </View>
-        )}
+        {/* Zoom Controls - like native camera */}
+        <View style={styles.zoomButtonsContainer}>
+          <TouchableOpacity
+            style={[styles.zoomButton, zoom === 0 && styles.zoomButtonActive]}
+            onPress={() => setZoom(0)}
+          >
+            <Text style={[styles.zoomButtonText, zoom === 0 && styles.zoomButtonTextActive]}>1x</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.zoomButton, zoom === 0.25 && styles.zoomButtonActive]}
+            onPress={() => setZoom(0.25)}
+          >
+            <Text style={[styles.zoomButtonText, zoom === 0.25 && styles.zoomButtonTextActive]}>2x</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.zoomButton, zoom === 0.5 && styles.zoomButtonActive]}
+            onPress={() => setZoom(0.5)}
+          >
+            <Text style={[styles.zoomButtonText, zoom === 0.5 && styles.zoomButtonTextActive]}>3x</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.zoomButton, zoom === 1 && styles.zoomButtonActive]}
+            onPress={() => setZoom(1)}
+          >
+            <Text style={[styles.zoomButtonText, zoom === 1 && styles.zoomButtonTextActive]}>5x</Text>
+          </TouchableOpacity>
+        </View>
+
 
         {/* Bottom Controls */}
         <View style={[styles.bottomControls, { paddingBottom: insets.bottom + 100 }]}>
@@ -646,19 +648,31 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 16,
   },
-  zoomIndicator: {
-    position: 'absolute',
-    top: 120,
-    alignSelf: 'center',
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 16,
+  zoomButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
   },
-  zoomText: {
+  zoomButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  zoomButtonActive: {
+    backgroundColor: colors.secondary,
+  },
+  zoomButtonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
+  },
+  zoomButtonTextActive: {
+    color: '#fff',
   },
   bottomControls: {
     flexDirection: 'row',
