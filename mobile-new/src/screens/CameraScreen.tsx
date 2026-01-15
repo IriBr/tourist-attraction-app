@@ -95,6 +95,7 @@ export function CameraScreen() {
 
   // Pinch-to-zoom gesture
   const pinchGesture = Gesture.Pinch()
+    .runOnJS(true)
     .onStart(() => {
       zoomStart.current = zoom;
     })
