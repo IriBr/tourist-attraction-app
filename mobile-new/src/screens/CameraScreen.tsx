@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -38,6 +39,7 @@ export function CameraScreen() {
   const [showResultModal, setShowResultModal] = useState(false);
   const [flash, setFlash] = useState<'off' | 'on'>('off');
   const [zoom, setZoom] = useState(0);
+  const zoomStart = useRef(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [verificationResult, setVerificationResult] = useState<VerifyResponse | null>(null);
   const cameraRef = useRef<CameraView>(null);
@@ -86,13 +88,16 @@ export function CameraScreen() {
     setFlash((current) => (current === 'off' ? 'on' : 'off'));
   };
 
-  const zoomIn = () => {
-    setZoom((current) => Math.min(current + 0.1, 1));
-  };
-
-  const zoomOut = () => {
-    setZoom((current) => Math.max(current - 0.1, 0));
-  };
+  // Pinch-to-zoom gesture
+  const pinchGesture = Gesture.Pinch()
+    .onStart(() => {
+      zoomStart.current = zoom;
+    })
+    .onUpdate((event) => {
+      // Scale factor: 1 = no change, <1 = zoom out, >1 = zoom in
+      const newZoom = zoomStart.current * event.scale;
+      setZoom(Math.min(Math.max(newZoom, 0), 1));
+    });
 
   // Premium-only feature - show upgrade prompt for free users
   const handleUpgrade = () => {
@@ -376,13 +381,14 @@ export function CameraScreen() {
 
   return (
     <View style={styles.container}>
-      <CameraView
-        ref={cameraRef}
-        style={styles.camera}
-        facing={facing}
-        flash={flash}
-        zoom={zoom}
-      >
+      <GestureDetector gesture={pinchGesture}>
+        <CameraView
+          ref={cameraRef}
+          style={styles.camera}
+          facing={facing}
+          flash={flash}
+          zoom={zoom}
+        >
         {/* Top Controls */}
         <View style={[styles.topControls, { paddingTop: insets.top + 16 }]}>
           <TouchableOpacity style={styles.controlButton} onPress={toggleFlash}>
@@ -425,26 +431,12 @@ export function CameraScreen() {
           )}
         </View>
 
-        {/* Zoom Controls */}
-        <View style={styles.zoomControls}>
-          <TouchableOpacity
-            style={styles.zoomButton}
-            onPress={zoomIn}
-            disabled={zoom >= 1}
-          >
-            <Ionicons name="add" size={24} color="#fff" />
-          </TouchableOpacity>
+        {/* Zoom Indicator - shows current zoom level when zoomed */}
+        {zoom > 0.01 && (
           <View style={styles.zoomIndicator}>
             <Text style={styles.zoomText}>{(1 + zoom * 9).toFixed(1)}x</Text>
           </View>
-          <TouchableOpacity
-            style={styles.zoomButton}
-            onPress={zoomOut}
-            disabled={zoom <= 0}
-          >
-            <Ionicons name="remove" size={24} color="#fff" />
-          </TouchableOpacity>
-        </View>
+        )}
 
         {/* Bottom Controls */}
         <View style={[styles.bottomControls, { paddingBottom: insets.bottom + 100 }]}>
@@ -470,7 +462,8 @@ export function CameraScreen() {
 
           <View style={[styles.placeholderButton, isTablet && { width: 60, height: 60 }]} />
         </View>
-      </CameraView>
+        </CameraView>
+      </GestureDetector>
 
       {/* Result Modal */}
       <Modal
@@ -611,31 +604,18 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 16,
   },
-  zoomControls: {
-    position: 'absolute',
-    right: 20,
-    top: '50%',
-    transform: [{ translateY: -80 }],
-    alignItems: 'center',
-    gap: 8,
-  },
-  zoomButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   zoomIndicator: {
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
+    position: 'absolute',
+    top: 120,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 16,
   },
   zoomText: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
   },
   bottomControls: {
