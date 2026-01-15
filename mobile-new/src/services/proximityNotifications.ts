@@ -147,7 +147,7 @@ async function sendProximityNotification(attraction: { id: string; name: string;
     content: {
       title: `You're near ${attraction.name}!`,
       body: attraction.shortDescription || 'Open the camera to scan and mark your visit.',
-      data: { attractionId: attraction.id, action: 'openCamera' },
+      data: { attractionId: attraction.id, attractionName: attraction.name, action: 'openCamera' },
       sound: true,
     },
     trigger: null, // Send immediately
@@ -331,11 +331,11 @@ export async function checkCurrentLocationForAttractions(): Promise<void> {
 }
 
 // Set up notification response handler
-export function setupNotificationHandler(onOpenCamera: (attractionId?: string) => void) {
+export function setupNotificationHandler(onOpenCamera: (attractionId?: string, attractionName?: string) => void) {
   const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
     const data = response.notification.request.content.data;
     if (data?.action === 'openCamera') {
-      onOpenCamera(data.attractionId as string);
+      onOpenCamera(data.attractionId as string, data.attractionName as string);
     }
   });
 

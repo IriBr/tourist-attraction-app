@@ -16,21 +16,26 @@ import * as Location from 'expo-location';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useSubscriptionStore } from '../store/subscriptionStore';
 import { verificationApi, VerifyResponse } from '../api';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../navigation/types';
+import type { RootStackParamList, MainTabParamList } from '../navigation/types';
 import { colors } from '../theme';
 import { useResponsive } from '../hooks';
 import { PremiumRequired } from '../components/ui';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+type CameraRouteProp = RouteProp<MainTabParamList, 'Camera'>;
 
 export function CameraScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp>();
+  const route = useRoute<CameraRouteProp>();
   const { isTablet } = useResponsive();
+
+  // Get attraction name from notification (if opened from notification)
+  const targetAttractionName = route.params?.attractionName;
   const [facing, setFacing] = useState<CameraType>('back');
   const [permission, requestPermission] = useCameraPermissions();
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
@@ -410,6 +415,15 @@ export function CameraScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Target Attraction Banner (when opened from notification) */}
+        {targetAttractionName && (
+          <View style={styles.targetBanner}>
+            <Ionicons name="location" size={18} color={colors.secondary} />
+            <Text style={styles.targetText}>Looking for: </Text>
+            <Text style={styles.targetName}>{targetAttractionName}</Text>
+          </View>
+        )}
+
         {/* Camera Frame Guide */}
         <View style={[
           styles.frameContainer,
@@ -554,6 +568,28 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  targetBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    marginHorizontal: 20,
+    marginTop: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+  },
+  targetText: {
+    color: '#fff',
+    fontSize: 14,
+    marginLeft: 8,
+  },
+  targetName: {
+    color: colors.secondary,
+    fontSize: 14,
+    fontWeight: '600',
+    flexShrink: 1,
   },
   frameContainer: {
     flex: 1,

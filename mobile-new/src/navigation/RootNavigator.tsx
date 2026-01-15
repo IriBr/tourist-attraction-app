@@ -29,10 +29,13 @@ let pendingNavigation: (() => void) | null = null;
 
 // Set up notification handlers immediately at module load (before auth)
 // This ensures we catch notification taps even if the app was cold-started from a notification
-const proximityCleanup = setupNotificationHandler((attractionId) => {
+const proximityCleanup = setupNotificationHandler((attractionId, attractionName) => {
   const navigate = () => {
     if (navigationRef.current?.isReady()) {
-      navigationRef.current.navigate('Main', { screen: 'Camera' });
+      navigationRef.current.navigate('Main', {
+        screen: 'Camera',
+        params: attractionName ? { attractionName } : undefined,
+      });
     }
   };
 
