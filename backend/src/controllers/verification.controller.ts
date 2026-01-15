@@ -5,7 +5,7 @@ import { sendSuccess, sendCreated } from '../utils/response.js';
 import { BadRequestError, NotFoundError, ForbiddenError } from '../utils/errors.js';
 import { config } from '../config/index.js';
 import * as visionService from '../services/vision.service.js';
-import * as googleVisionService from '../services/googleVision.service.js';
+import * as openaiVisionService from '../services/openaiVision.service.js';
 import * as attractionService from '../services/attraction.service.js';
 import * as visitService from '../services/visit.service.js';
 import { subscriptionService } from '../services/subscription.service.js';
@@ -87,31 +87,32 @@ export const verifyAttraction = asyncHandler(async (req: Request, res: Response)
     });
   }
 
-  // Step 1: Use Google Vision to identify the landmark from the image
-  console.log('[Verification] Step 1: Identifying landmark with Google Vision...');
-  const googleResult = await googleVisionService.detectLandmark(data.image);
-  const searchKeywords = googleVisionService.getSearchKeywords(googleResult);
+  // Step 1: Use OpenAI GPT-4 Vision to identify the landmark from the image
+  console.log('[Verification] Step 1: Identifying landmark with OpenAI GPT-4 Vision...');
+  const identification = await openaiVisionService.identifyAttraction(data.image);
 
-  // If Google Vision couldn't identify anything
-  if (searchKeywords.length === 0) {
+  // If OpenAI couldn't identify anything meaningful
+  if (!identification.identified || identification.confidence < 0.3) {
     await recordScan(userId, {
       matched: false,
-      confidence: 0,
+      confidence: identification.confidence,
       attractionId: null,
-      explanation: 'Google Vision could not identify any landmark in this image'
+      explanation: identification.description || 'Could not identify attraction in image'
     });
     return sendSuccess(res, {
       matched: false,
-      confidence: 0,
+      confidence: identification.confidence,
       message: 'Could not identify a tourist attraction in this image. Please try a clearer photo.',
-      explanation: googleResult.description,
+      explanation: identification.description,
     });
   }
 
-  console.log('[Verification] Google Vision identified:', {
-    landmarks: googleResult.landmarks.map(l => l.name),
-    bestGuess: googleResult.bestGuessLabels[0] || 'none',
-    keywords: searchKeywords.slice(0, 5),
+  console.log('[Verification] OpenAI identified:', {
+    name: identification.name,
+    alternativeNames: identification.alternativeNames,
+    city: identification.city,
+    country: identification.country,
+    confidence: identification.confidence,
   });
 
   // Step 2: Get nearby attractions from user's location
@@ -130,82 +131,51 @@ export const verifyAttraction = asyncHandler(async (req: Request, res: Response)
       matched: false,
       confidence: 0,
       message: 'No attractions found in your area. Try expanding your search radius.',
-      explanation: googleResult.description,
+      explanation: identification.description,
     });
   }
 
   console.log('[Verification] Found', nearbyAttractions.length, 'nearby attractions');
 
-  // Step 3: Match Google Vision results against nearby attractions
-  // Generic terms to ignore (too vague for matching)
-  const genericTerms = new Set([
-    'art', 'arts', 'the arts', 'visual arts', 'artist', 'creative arts',
-    'building', 'architecture', 'structure', 'monument', 'landmark',
-    'church', 'mosque', 'temple', 'museum', 'park', 'garden', 'square',
-    'statue', 'tower', 'bridge', 'palace', 'castle', 'cathedral',
-    'travel', 'tourism', 'tourist', 'attraction', 'destination',
-    'city', 'town', 'place', 'location', 'site', 'area',
-    'balloon', 'sky', 'cloud', 'tree', 'water', 'grass',
-  ]);
+  // Step 3: Match OpenAI's identification against nearby attractions
+  // Build list of names to search for
+  const searchNames = [
+    identification.name,
+    ...identification.alternativeNames,
+  ].filter((name): name is string => name !== null && name.length > 0);
 
   // Find ALL potential matches, then pick the closest one
   interface PotentialMatch {
     attraction: typeof nearbyAttractions[0];
-    keyword: string;
+    matchedName: string;
     confidence: number;
   }
   const potentialMatches: PotentialMatch[] = [];
 
-  for (const keyword of searchKeywords) {
-    const keywordLower = keyword.toLowerCase();
-
-    // Skip short keywords (< 5 chars) and generic terms
-    if (keyword.length < 5 || genericTerms.has(keywordLower)) {
-      console.log('[Verification] Skipping generic/short keyword:', keyword);
-      continue;
-    }
+  for (const searchName of searchNames) {
+    const searchNameLower = searchName.toLowerCase();
 
     for (const attraction of nearbyAttractions) {
       const attractionNameLower = attraction.name.toLowerCase();
 
-      // Check for name match - require more substantial overlap
-      const keywordWords = keywordLower.split(/\s+/);
-      const attractionWords = attractionNameLower.split(/\s+/);
+      // Check for name match
+      const searchWords = searchNameLower.split(/\s+/).filter(w => w.length > 2);
+      const attractionWords = attractionNameLower.split(/\s+/).filter(w => w.length > 2);
 
-      // Check if keyword matches attraction name significantly
       const isMatch =
-        // Full keyword in attraction name
-        attractionNameLower.includes(keywordLower) ||
-        // Full attraction name in keyword
-        keywordLower.includes(attractionNameLower) ||
-        // At least 2 words match (for multi-word names)
-        (keywordWords.length >= 2 && keywordWords.filter(w => w.length > 3 && attractionNameLower.includes(w)).length >= 2) ||
-        // At least 2 words from attraction name in keyword
-        (attractionWords.length >= 2 && attractionWords.filter(w => w.length > 3 && keywordLower.includes(w)).length >= 2);
+        // Full name match
+        attractionNameLower.includes(searchNameLower) ||
+        searchNameLower.includes(attractionNameLower) ||
+        // At least 2 significant words match
+        (searchWords.length >= 2 && searchWords.filter(w => attractionNameLower.includes(w)).length >= 2) ||
+        (attractionWords.length >= 2 && attractionWords.filter(w => searchNameLower.includes(w)).length >= 2);
 
-      if (isMatch) {
-        // Determine confidence based on source
-        let confidence = 0.7; // Default for web entity match
-
-        // Higher confidence for landmark detection
-        const landmarkMatch = googleResult.landmarks.find(
-          l => l.name.toLowerCase().includes(keywordLower) || keywordLower.includes(l.name.toLowerCase())
-        );
-        if (landmarkMatch) {
-          confidence = Math.max(confidence, landmarkMatch.confidence);
-        }
-
-        // Higher confidence for best guess match
-        if (googleResult.bestGuessLabels.some(label =>
-          label.toLowerCase().includes(keywordLower) || keywordLower.includes(label.toLowerCase())
-        )) {
-          confidence = Math.max(confidence, 0.8);
-        }
-
-        // Check if we already have this attraction in matches
-        if (!potentialMatches.some(m => m.attraction.id === attraction.id)) {
-          potentialMatches.push({ attraction, keyword, confidence });
-        }
+      if (isMatch && !potentialMatches.some(m => m.attraction.id === attraction.id)) {
+        potentialMatches.push({
+          attraction,
+          matchedName: searchName,
+          confidence: identification.confidence,
+        });
       }
     }
   }
@@ -214,12 +184,11 @@ export const verifyAttraction = asyncHandler(async (req: Request, res: Response)
     matched: false,
     confidence: 0,
     attractionId: null,
-    explanation: googleResult.description,
+    explanation: identification.description,
   };
 
   if (potentialMatches.length > 0) {
-    // Sort by distance (nearbyAttractions is already sorted by distance, so use that order)
-    // The attraction that appears first in nearbyAttractions is closest
+    // Sort by distance (nearbyAttractions is already sorted by distance)
     potentialMatches.sort((a, b) => {
       const aIndex = nearbyAttractions.findIndex(n => n.id === a.attraction.id);
       const bIndex = nearbyAttractions.findIndex(n => n.id === b.attraction.id);
@@ -230,11 +199,11 @@ export const verifyAttraction = asyncHandler(async (req: Request, res: Response)
     console.log('[Verification] Found', potentialMatches.length, 'potential matches');
     console.log('[Verification] All matches:', potentialMatches.map(m => ({
       name: m.attraction.name,
-      keyword: m.keyword,
+      matchedName: m.matchedName,
       distance: m.attraction.distance,
     })));
     console.log('[Verification] Selected closest match:', {
-      keyword: bestMatch.keyword,
+      matchedName: bestMatch.matchedName,
       attraction: bestMatch.attraction.name,
       distance: bestMatch.attraction.distance,
       confidence: bestMatch.confidence,
@@ -244,15 +213,11 @@ export const verifyAttraction = asyncHandler(async (req: Request, res: Response)
       matched: true,
       confidence: bestMatch.confidence,
       attractionId: bestMatch.attraction.id,
-      explanation: `Matched "${bestMatch.keyword}" to "${bestMatch.attraction.name}" (closest match)`,
+      explanation: `Matched "${bestMatch.matchedName}" to "${bestMatch.attraction.name}"`,
     };
   } else {
     // No match found
-    const identifiedAs = googleResult.landmarks[0]?.name ||
-                         googleResult.bestGuessLabels[0] ||
-                         googleResult.webEntities[0]?.description ||
-                         'unknown';
-    result.explanation = `Identified as "${identifiedAs}" but no matching attraction found nearby`;
+    result.explanation = `Identified as "${identification.name}" but no matching attraction found nearby`;
   }
 
   // Record the scan

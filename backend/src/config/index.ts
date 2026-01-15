@@ -26,6 +26,7 @@ const envSchema = z.object({
   GOOGLE_PLACES_API_KEY: z.string().optional(),
   GOOGLE_CLOUD_VISION_API_KEY: z.string().optional(),
   ANTHROPIC_API_KEY: z.string().optional(),
+  OPENAI_API_KEY: z.string().optional(),
   RATE_LIMIT_WINDOW_MS: z.string().default('900000'),
   RATE_LIMIT_MAX_REQUESTS: z.string().default('100'),
   STRIPE_SECRET_KEY: z.string().optional(),
@@ -82,6 +83,9 @@ export const config = {
   },
   anthropic: {
     apiKey: parsed.data.ANTHROPIC_API_KEY,
+  },
+  openai: {
+    apiKey: parsed.data.OPENAI_API_KEY,
   },
   vision: {
     maxAttractions: 30, // Increased from 20 to include more candidates
