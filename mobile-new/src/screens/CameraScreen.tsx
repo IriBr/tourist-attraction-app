@@ -387,14 +387,13 @@ export function CameraScreen() {
 
   return (
     <View style={styles.container}>
-      <GestureDetector gesture={pinchGesture}>
-        <CameraView
-          ref={cameraRef}
-          style={styles.camera}
-          facing={facing}
-          flash={flash}
-          zoom={zoom}
-        >
+      <CameraView
+        ref={cameraRef}
+        style={styles.camera}
+        facing={facing}
+        flash={flash}
+        zoom={zoom}
+      >
         {/* Top Controls */}
         <View style={[styles.topControls, { paddingTop: insets.top + 16 }]}>
           <TouchableOpacity style={styles.controlButton} onPress={toggleFlash}>
@@ -425,26 +424,28 @@ export function CameraScreen() {
           </View>
         )}
 
-        {/* Camera Frame Guide */}
-        <View style={[
-          styles.frameContainer,
-          isTablet && {
-            maxWidth: 500,
-            alignSelf: 'center',
-            marginHorizontal: 80,
-          },
-        ]}>
-          <View style={styles.frameCorner} />
-          <View style={[styles.frameCorner, styles.frameTopRight]} />
-          <View style={[styles.frameCorner, styles.frameBottomLeft]} />
-          <View style={[styles.frameCorner, styles.frameBottomRight]} />
-          {isProcessing && (
-            <View style={styles.processingOverlay}>
-              <ActivityIndicator size="large" color={colors.secondary} />
-              <Text style={styles.processingText}>Analyzing image...</Text>
-            </View>
-          )}
-        </View>
+        {/* Camera Frame Guide with Pinch-to-zoom */}
+        <GestureDetector gesture={pinchGesture}>
+          <View style={[
+            styles.frameContainer,
+            isTablet && {
+              maxWidth: 500,
+              alignSelf: 'center',
+              marginHorizontal: 80,
+            },
+          ]}>
+            <View style={styles.frameCorner} />
+            <View style={[styles.frameCorner, styles.frameTopRight]} />
+            <View style={[styles.frameCorner, styles.frameBottomLeft]} />
+            <View style={[styles.frameCorner, styles.frameBottomRight]} />
+            {isProcessing && (
+              <View style={styles.processingOverlay}>
+                <ActivityIndicator size="large" color={colors.secondary} />
+                <Text style={styles.processingText}>Analyzing image...</Text>
+              </View>
+            )}
+          </View>
+        </GestureDetector>
 
         {/* Zoom Indicator - shows current zoom level when zoomed */}
         {zoom > 0.01 && (
@@ -477,8 +478,7 @@ export function CameraScreen() {
 
           <View style={[styles.placeholderButton, isTablet && { width: 60, height: 60 }]} />
         </View>
-        </CameraView>
-      </GestureDetector>
+      </CameraView>
 
       {/* Result Modal */}
       <Modal
