@@ -2248,7 +2248,7 @@ export class AdminService {
           }),
         });
         if (!res.ok) return [];
-        const data = await res.json();
+        const data = await res.json() as { places?: unknown[] };
         return data.places || [];
       } catch { return []; }
     };
