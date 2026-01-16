@@ -54,4 +54,12 @@ router.post('/apple/validate', subscriptionController.validateAppleReceipt);
 // Restore Apple purchases
 router.post('/apple/restore', subscriptionController.restoreApplePurchases);
 
+// ============ GOOGLE PLAY IN-APP PURCHASE ENDPOINTS ============
+
+// Validate Google Play purchase and activate subscription
+router.post('/google/validate', subscriptionController.validateGooglePurchase);
+
+// Restore Google Play purchases
+router.post('/google/restore', subscriptionController.restoreGooglePurchases);
+
 export default router;

@@ -231,7 +231,7 @@ export const subscriptionApi = {
   /**
    * Restore Google Play purchases
    */
-  async restoreGooglePurchases(purchaseToken: string): Promise<{
+  async restoreGooglePurchases(purchaseToken: string, productId: string): Promise<{
     restored: boolean;
     subscription?: {
       tier: string;
@@ -240,6 +240,7 @@ export const subscriptionApi = {
   }> {
     const response = await apiClient.post('/subscription/google/restore', {
       purchaseToken,
+      productId,
     });
     return response.data.data;
   },

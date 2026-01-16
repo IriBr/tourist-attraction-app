@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { subscriptionService } from '../services/subscription.service.js';
 import { stripeService } from '../services/stripe.service.js';
 import { appleIapService } from '../services/apple-iap.service.js';
+import { googleIapService } from '../services/google-iap.service.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { sendSuccess, sendCreated } from '../utils/response.js';
 import { config } from '../config/index.js';
@@ -265,6 +266,48 @@ export const restoreApplePurchases = asyncHandler(async (req: Request, res: Resp
   const result = await appleIapService.restorePurchases(
     req.user!.id,
     data.receipt
+  );
+
+  sendSuccess(res, result);
+});
+
+// ============ GOOGLE PLAY IN-APP PURCHASE ============
+
+const validateGooglePurchaseSchema = z.object({
+  purchaseToken: z.string().min(1),
+  productId: z.string().min(1),
+});
+
+/**
+ * Validate Google Play purchase and activate subscription
+ */
+export const validateGooglePurchase = asyncHandler(async (req: Request, res: Response) => {
+  const data = validateGooglePurchaseSchema.parse(req.body);
+
+  const result = await googleIapService.validatePurchase(
+    req.user!.id,
+    data.purchaseToken,
+    data.productId
+  );
+
+  sendSuccess(res, result);
+});
+
+const restoreGooglePurchasesSchema = z.object({
+  purchaseToken: z.string().min(1),
+  productId: z.string().min(1),
+});
+
+/**
+ * Restore Google Play purchases for user
+ */
+export const restoreGooglePurchases = asyncHandler(async (req: Request, res: Response) => {
+  const data = restoreGooglePurchasesSchema.parse(req.body);
+
+  const result = await googleIapService.restorePurchases(
+    req.user!.id,
+    data.purchaseToken,
+    data.productId
   );
 
   sendSuccess(res, result);

@@ -153,6 +153,7 @@ model User {
   stripeCustomerId      String?            @unique
   stripeSubscriptionId  String?            @unique
   appleOriginalTransactionId String?       @unique
+  googleOrderId              String?       @unique
 
   refreshTokens RefreshToken[]
   reviews       Review[]
