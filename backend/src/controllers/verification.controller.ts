@@ -216,8 +216,74 @@ export const verifyAttraction = asyncHandler(async (req: Request, res: Response)
       explanation: `Matched "${bestMatch.matchedName}" to "${bestMatch.attraction.name}"`,
     };
   } else {
-    // No match found
-    result.explanation = `Identified as "${identification.name}" but no matching attraction found nearby`;
+    // No name match found - try visual comparison fallback
+    console.log('[Verification] No name match found. Trying visual comparison fallback...');
+
+    const { imageComparison } = config.vision;
+
+    if (imageComparison.enabled && identification.visualDescription) {
+      // Get attractions with images for comparison
+      const attractionsWithImages = nearbyAttractions
+        .filter(a => a.images && a.images.length > 0)
+        .slice(0, imageComparison.maxAttractionsToCompare);
+
+      console.log('[Verification] Comparing with', attractionsWithImages.length, 'attractions that have images');
+
+      interface ImageMatch {
+        attraction: typeof nearbyAttractions[0];
+        similarity: number;
+        explanation: string;
+      }
+      const imageMatches: ImageMatch[] = [];
+
+      // Compare user's photo with each attraction's first image
+      for (const attraction of attractionsWithImages) {
+        const attractionImageUrl = attraction.images![0]; // Safe: filtered above
+
+        try {
+          const comparison = await openaiVisionService.compareImages(
+            data.image,
+            identification.visualDescription,
+            attractionImageUrl,
+            attraction.name
+          );
+
+          if (comparison.similarity >= imageComparison.similarityThreshold) {
+            imageMatches.push({
+              attraction,
+              similarity: comparison.similarity,
+              explanation: comparison.explanation,
+            });
+          }
+        } catch (err) {
+          console.error('[Verification] Image comparison error for', attraction.name, err);
+        }
+      }
+
+      if (imageMatches.length > 0) {
+        // Sort by similarity (highest first)
+        imageMatches.sort((a, b) => b.similarity - a.similarity);
+        const bestImageMatch = imageMatches[0];
+
+        console.log('[Verification] Found', imageMatches.length, 'visual matches');
+        console.log('[Verification] Best visual match:', {
+          attraction: bestImageMatch.attraction.name,
+          similarity: bestImageMatch.similarity,
+          explanation: bestImageMatch.explanation,
+        });
+
+        result = {
+          matched: true,
+          confidence: bestImageMatch.similarity,
+          attractionId: bestImageMatch.attraction.id,
+          explanation: `Visual match: ${bestImageMatch.explanation}`,
+        };
+      } else {
+        result.explanation = `Identified as "${identification.name}" but no matching attraction found nearby (visual comparison also failed)`;
+      }
+    } else {
+      result.explanation = `Identified as "${identification.name}" but no matching attraction found nearby`;
+    }
   }
 
   // Record the scan

@@ -64,6 +64,7 @@ interface AttractionSummaryData {
   shortDescription: string;
   category: string;
   thumbnailUrl: string;
+  images?: string[]; // Optional - only included for visual comparison fallback
   latitude: number;
   longitude: number;
   averageRating: number;
@@ -164,6 +165,7 @@ function mapSummaryData(
     shortDescription: attr.shortDescription,
     category: attr.category as AttractionCategory,
     thumbnailUrl: attr.thumbnailUrl,
+    images: attr.images, // For visual comparison fallback
     location: { city: attr.city.name, country: attr.city.country.name },
     averageRating: attr.averageRating,
     totalReviews: attr.totalReviews,
@@ -370,6 +372,7 @@ export async function getNearbyAttractions(
       shortDescription: true,
       category: true,
       thumbnailUrl: true,
+      images: true, // Include images for visual comparison fallback
       latitude: true,
       longitude: true,
       averageRating: true,

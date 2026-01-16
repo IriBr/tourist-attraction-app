@@ -66,6 +66,7 @@ export interface AttractionSummary {
   shortDescription: string;
   category: AttractionCategory;
   thumbnailUrl: string;
+  images?: string[]; // For visual comparison fallback in AI matching
   location: Pick<Location, 'city' | 'country'>;
   averageRating: number;
   totalReviews: number;

@@ -94,6 +94,11 @@ export const config = {
       suggest: 0.45,   // Lowered from 0.60 to catch more potential matches
       showHint: 0.30,
     },
+    imageComparison: {
+      enabled: true,
+      maxAttractionsToCompare: 10, // Limit to avoid too many API calls
+      similarityThreshold: 0.65,   // Minimum similarity to consider a match
+    },
   },
   stripe: {
     secretKey: parsed.data.STRIPE_SECRET_KEY,
