@@ -310,6 +310,21 @@ export class AdminController {
       next(error);
     }
   }
+
+  async seedCity(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { cityName, countryName, continentName, latitude, longitude } = req.body;
+
+      if (!cityName || !countryName || !continentName || latitude === undefined || longitude === undefined) {
+        throw new BadRequestError('cityName, countryName, continentName, latitude, and longitude are required');
+      }
+
+      const result = await adminService.seedCity(cityName, countryName, continentName, latitude, longitude);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const adminController = new AdminController();

@@ -46,6 +46,7 @@ router.post('/seed-usa', adminController.seedUSA.bind(adminController));
 router.post('/seed-europe', adminController.seedEurope.bind(adminController));
 router.post('/cleanup-non-attractions', adminController.cleanupNonAttractions.bind(adminController));
 router.get('/attraction-category-stats', adminController.getAttractionCategoryStats.bind(adminController));
+router.post('/seed-city', adminController.seedCity.bind(adminController));
 
 // ============ SUGGESTION MANAGEMENT ============
 router.get('/suggestions', suggestionController.getAllSuggestions);

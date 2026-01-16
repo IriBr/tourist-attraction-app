@@ -2206,6 +2206,141 @@ export class AdminService {
       total: categories.reduce((sum, c) => sum + c._count._all, 0),
     };
   }
+
+  async seedCity(cityName: string, countryName: string, continentName: string, latitude: number, longitude: number) {
+    const GOOGLE_API_KEY = process.env.GOOGLE_PLACES_API_KEY;
+    if (!GOOGLE_API_KEY) {
+      throw new Error('GOOGLE_PLACES_API_KEY environment variable is required');
+    }
+
+    const EXCLUDED_TYPES = new Set(['bar', 'restaurant', 'night_club', 'cafe', 'bakery', 'food']);
+
+    const typeMap: Record<string, string> = {
+      'museum': 'museum', 'park': 'park', 'national_park': 'nature',
+      'tourist_attraction': 'landmark', 'point_of_interest': 'landmark',
+      'church': 'religious', 'monastery': 'religious', 'place_of_worship': 'religious',
+      'natural_feature': 'nature', 'beach': 'beach', 'zoo': 'nature',
+      'historical_landmark': 'historical', 'monument': 'historical',
+    };
+
+    const mapCategory = (types: string[]): string | null => {
+      for (const t of types) if (EXCLUDED_TYPES.has(t)) return null;
+      for (const t of types) if (typeMap[t]) return typeMap[t];
+      return 'landmark';
+    };
+
+    const getPhotoUrl = (name: string, w = 800) => `https://places.googleapis.com/v1/${name}/media?maxWidthPx=${w}&key=${GOOGLE_API_KEY}`;
+
+    const search = async (query: string): Promise<any[]> => {
+      try {
+        const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': GOOGLE_API_KEY,
+            'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.types,places.rating,places.userRatingCount,places.editorialSummary,places.photos,places.websiteUri,places.internationalPhoneNumber',
+          },
+          body: JSON.stringify({
+            textQuery: query,
+            locationBias: { circle: { center: { latitude, longitude }, radius: 50000 } },
+            maxResultCount: 20,
+            languageCode: 'en',
+          }),
+        });
+        if (!res.ok) return [];
+        const data = await res.json();
+        return data.places || [];
+      } catch { return []; }
+    };
+
+    // Ensure continent
+    let continent = await prisma.continent.findFirst({ where: { name: continentName } });
+    if (!continent) {
+      continent = await prisma.continent.create({ data: { name: continentName, code: continentName.substring(0, 2).toUpperCase() } });
+    }
+
+    // Ensure country
+    let country = await prisma.country.findFirst({ where: { name: countryName } });
+    if (!country) {
+      country = await prisma.country.create({ data: { name: countryName, code: countryName.substring(0, 2).toUpperCase(), continentId: continent.id } });
+    }
+
+    // Ensure city
+    let city = await prisma.city.findFirst({ where: { name: cityName, countryId: country.id } });
+    if (!city) {
+      city = await prisma.city.create({ data: { name: cityName, countryId: country.id, latitude, longitude } });
+    }
+
+    const queries = [
+      `tourist attractions in ${cityName}`,
+      `things to do in ${cityName}`,
+      `landmarks in ${cityName}`,
+      `nature attractions near ${cityName}`,
+      `parks and hiking ${cityName}`,
+      `museums ${cityName}`,
+      `historical sites ${cityName}`,
+    ];
+
+    const seenIds = new Set<string>();
+    let added = 0;
+    const addedNames: string[] = [];
+
+    for (const q of queries) {
+      const places = await search(q);
+      for (const place of places) {
+        if (seenIds.has(place.id)) continue;
+        seenIds.add(place.id);
+
+        const name = place.displayName?.text;
+        if (!name) continue;
+
+        const category = mapCategory(place.types || []);
+        if (!category) continue;
+
+        const rating = place.rating || 0;
+        const reviews = place.userRatingCount || 0;
+        if (rating < 3.0 || reviews < 3) continue;
+
+        const exists = await prisma.attraction.findFirst({ where: { name, cityId: city.id } });
+        if (exists) continue;
+
+        const images: string[] = [];
+        let thumb = '';
+        if (place.photos?.length) {
+          thumb = getPhotoUrl(place.photos[0].name, 400);
+          for (let i = 0; i < Math.min(place.photos.length, 5); i++) {
+            images.push(getPhotoUrl(place.photos[i].name, 800));
+          }
+        }
+
+        await prisma.attraction.create({
+          data: {
+            name,
+            description: place.editorialSummary?.text || `A popular attraction in ${cityName}, ${countryName}.`,
+            shortDescription: place.editorialSummary?.text?.substring(0, 150) || `Visit ${name} in ${cityName}`,
+            category: category as any,
+            cityId: city.id,
+            latitude: place.location?.latitude || latitude,
+            longitude: place.location?.longitude || longitude,
+            address: place.formattedAddress || `${cityName}, ${countryName}`,
+            images,
+            thumbnailUrl: thumb || 'https://via.placeholder.com/400x300?text=No+Image',
+            website: place.websiteUri || null,
+            contactPhone: place.internationalPhoneNumber || null,
+            averageRating: rating,
+            totalReviews: reviews,
+            isFree: false,
+          },
+        });
+        added++;
+        addedNames.push(name);
+      }
+      await new Promise(r => setTimeout(r, 300));
+    }
+
+    const total = await prisma.attraction.count({ where: { cityId: city.id } });
+    return { success: true, cityId: city.id, cityName, added, total, attractions: addedNames };
+  }
 }
 
 export const adminService = new AdminService();
