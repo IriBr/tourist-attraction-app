@@ -2,6 +2,38 @@ import OpenAI from 'openai';
 import { config } from '../config/index.js';
 import { BadRequestError } from '../utils/errors.js';
 
+/**
+ * Fetch an image from URL and convert to base64
+ * This is needed because OpenAI can't reliably fetch Google Places API URLs
+ */
+async function fetchImageAsBase64(imageUrl: string): Promise<string | null> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+  try {
+    const response = await fetch(imageUrl, {
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      console.error(`[OpenAI Vision] Failed to fetch image: ${response.status} ${response.statusText}`);
+      return null;
+    }
+
+    const contentType = response.headers.get('content-type') || 'image/jpeg';
+    const arrayBuffer = await response.arrayBuffer();
+    const base64 = Buffer.from(arrayBuffer).toString('base64');
+
+    return `data:${contentType};base64,${base64}`;
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    console.error(`[OpenAI Vision] Error fetching image from ${imageUrl}:`, error.message);
+    return null;
+  }
+}
+
 // Types
 export interface IdentificationResult {
   identified: boolean;
@@ -225,6 +257,18 @@ SIMILARITY GUIDELINES:
   try {
     const userImageUrl = formatImageForOpenAI(userPhotoBase64);
 
+    // Fetch the attraction image and convert to base64
+    // This avoids OpenAI timeout issues with Google Places API URLs
+    const attractionImageBase64 = await fetchImageAsBase64(attractionImageUrl);
+    if (!attractionImageBase64) {
+      console.log(`[OpenAI Vision] Skipping comparison for ${attractionName} - could not fetch image`);
+      return {
+        matches: false,
+        similarity: 0,
+        explanation: 'Could not fetch attraction image for comparison',
+      };
+    }
+
     const response = await client.chat.completions.create({
       model: 'gpt-5-mini',
       max_completion_tokens: 512,
@@ -242,7 +286,7 @@ SIMILARITY GUIDELINES:
             {
               type: 'image_url',
               image_url: {
-                url: attractionImageUrl,
+                url: attractionImageBase64,
                 detail: 'high',
               },
             },
