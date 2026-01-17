@@ -270,6 +270,9 @@ export const verifyAttraction = asyncHandler(async (req: Request, res: Response)
       const imageMatches: ImageMatch[] = [];
 
       // Compare user's photo with each attraction's first image
+      // Early termination threshold - stop comparing when we find a very good match
+      const earlyTerminationThreshold = 0.80;
+
       for (const attraction of attractionsWithImages) {
         const attractionImageUrl = attraction.images![0]; // Safe: filtered above
 
@@ -293,6 +296,15 @@ export const verifyAttraction = asyncHandler(async (req: Request, res: Response)
               similarity: comparison.similarity,
               explanation: comparison.explanation,
             });
+
+            // Early termination: stop if we found a high-confidence match
+            if (comparison.similarity >= earlyTerminationThreshold) {
+              console.log('[Verification] Early termination - found high-confidence match:', {
+                attraction: attraction.name,
+                similarity: comparison.similarity,
+              });
+              break;
+            }
           }
         } catch (err) {
           console.error('[Verification] Image comparison error for', attraction.name, err);
