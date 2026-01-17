@@ -90,7 +90,7 @@ The visualDescription should focus on VISUAL features that would be consistent a
 
   try {
     const response = await client.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: 'gpt-5-mini',
       max_completion_tokens: 1024,
       messages: [
         {
@@ -225,7 +225,7 @@ SIMILARITY GUIDELINES:
     const userImageUrl = formatImageForOpenAI(userPhotoBase64);
 
     const response = await client.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: 'gpt-5-mini',
       max_completion_tokens: 512,
       messages: [
         {
