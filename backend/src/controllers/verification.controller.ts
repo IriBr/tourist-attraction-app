@@ -91,31 +91,17 @@ export const verifyAttraction = asyncHandler(async (req: Request, res: Response)
   console.log('[Verification] Step 1: Identifying landmark with OpenAI GPT-4 Vision...');
   const identification = await openaiVisionService.identifyAttraction(data.image);
 
-  // If OpenAI couldn't identify anything meaningful
-  if (!identification.identified || identification.confidence < 0.3) {
-    await recordScan(userId, {
-      matched: false,
-      confidence: identification.confidence,
-      attractionId: null,
-      explanation: identification.description || 'Could not identify attraction in image'
-    });
-    return sendSuccess(res, {
-      matched: false,
-      confidence: identification.confidence,
-      message: 'Could not identify a tourist attraction in this image. Please try a clearer photo.',
-      explanation: identification.description,
-    });
-  }
-
-  console.log('[Verification] OpenAI identified:', {
+  console.log('[Verification] OpenAI identification:', {
+    identified: identification.identified,
     name: identification.name,
     alternativeNames: identification.alternativeNames,
     city: identification.city,
     country: identification.country,
     confidence: identification.confidence,
+    hasVisualDescription: !!identification.visualDescription,
   });
 
-  // Step 2: Get nearby attractions from user's location
+  // Step 2: Get nearby attractions from user's location (always do this, even if not identified)
   console.log('[Verification] Step 2: Getting nearby attractions...');
   const nearbyAttractions = await attractionService.getNearbyAttractions(
     data.latitude!,
@@ -143,6 +129,12 @@ export const verifyAttraction = asyncHandler(async (req: Request, res: Response)
     identification.name,
     ...identification.alternativeNames,
   ].filter((name): name is string => name !== null && name.length > 0);
+
+  if (searchNames.length > 0) {
+    console.log('[Verification] Step 3: Trying name matching with:', searchNames);
+  } else {
+    console.log('[Verification] Step 3: No names identified by AI, skipping name matching, will try visual comparison');
+  }
 
   // Find ALL potential matches, then pick the closest one
   interface PotentialMatch {
