@@ -144,7 +144,8 @@ The visualDescription should focus on VISUAL features that would be consistent a
       city: result.city,
       country: result.country,
       confidence: result.confidence,
-      visualDescriptionLength: result.visualDescription.length,
+      description: result.description,
+      visualDescription: result.visualDescription,
     });
 
     return result;
