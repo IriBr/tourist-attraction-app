@@ -196,11 +196,13 @@ export const verifyAttraction = asyncHandler(async (req: Request, res: Response)
     const bestMatch = potentialMatches[0];
     console.log('[Verification] Found', potentialMatches.length, 'potential matches');
     console.log('[Verification] All matches:', potentialMatches.map(m => ({
+      id: m.attraction.id,
       name: m.attraction.name,
       matchedName: m.matchedName,
       distance: m.attraction.distance,
     })));
     console.log('[Verification] Selected closest match:', {
+      id: bestMatch.attraction.id,
       matchedName: bestMatch.matchedName,
       attraction: bestMatch.attraction.name,
       distance: bestMatch.attraction.distance,
@@ -213,6 +215,10 @@ export const verifyAttraction = asyncHandler(async (req: Request, res: Response)
       attractionId: bestMatch.attraction.id,
       explanation: `Matched "${bestMatch.matchedName}" to "${bestMatch.attraction.name}"`,
     };
+    console.log('[Verification] Name match result:', {
+      attractionId: result.attractionId,
+      confidence: result.confidence,
+    });
   } else {
     // No name match found - try visual comparison fallback
     console.log('[Verification] No name match found. Trying visual comparison fallback...');
@@ -275,7 +281,13 @@ export const verifyAttraction = asyncHandler(async (req: Request, res: Response)
         const bestImageMatch = imageMatches[0];
 
         console.log('[Verification] Found', imageMatches.length, 'visual matches');
+        console.log('[Verification] All visual matches:', imageMatches.map(m => ({
+          id: m.attraction.id,
+          name: m.attraction.name,
+          similarity: m.similarity,
+        })));
         console.log('[Verification] Best visual match:', {
+          id: bestImageMatch.attraction.id,
           attraction: bestImageMatch.attraction.name,
           similarity: bestImageMatch.similarity,
           explanation: bestImageMatch.explanation,
@@ -288,6 +300,10 @@ export const verifyAttraction = asyncHandler(async (req: Request, res: Response)
           explanation: `Visual match: ${bestImageMatch.explanation}`,
           isVisualMatch: true, // Visual matches always require user confirmation
         };
+        console.log('[Verification] Visual match result set:', {
+          attractionId: result.attractionId,
+          isVisualMatch: result.isVisualMatch,
+        });
       } else {
         result.explanation = `Identified as "${identification.name}" but no matching attraction found nearby (visual comparison also failed)`;
       }
@@ -303,19 +319,39 @@ export const verifyAttraction = asyncHandler(async (req: Request, res: Response)
 
   // Visual matches always require user confirmation (skip auto-match)
   if (result.isVisualMatch && result.attractionId) {
+    console.log('[Verification] Visual match - fetching attraction by ID:', result.attractionId);
     const attraction = await attractionService.getAttractionById(result.attractionId, userId);
+    console.log('[Verification] Fetched attraction:', {
+      id: attraction.id,
+      name: attraction.name,
+      city: attraction.location?.city || attraction.city?.name,
+    });
+    const suggestion = mapAttractionToResponse(attraction);
+    console.log('[Verification] Returning visual match response:', {
+      requiresConfirmation: true,
+      suggestionId: suggestion.id,
+      suggestionName: suggestion.name,
+    });
     return sendSuccess(res, {
       matched: false,
       confidence: result.confidence,
       requiresConfirmation: true,
-      suggestion: mapAttractionToResponse(attraction),
+      suggestion,
       message: `Is this ${attraction.name}?`,
       explanation: result.explanation,
     });
   }
 
   // High confidence (name match) - auto-create visit
+  console.log('[Verification] Checking auto-match path:', {
+    matched: result.matched,
+    confidence: result.confidence,
+    threshold: confidenceThresholds.autoMatch,
+    isVisualMatch: result.isVisualMatch,
+    attractionId: result.attractionId,
+  });
   if (result.matched && result.confidence >= confidenceThresholds.autoMatch && result.attractionId) {
+    console.log('[Verification] Auto-match triggered - creating visit');
     try {
       const visitResult = await visitService.markVisited(userId, {
         attractionId: result.attractionId,
@@ -353,8 +389,18 @@ export const verifyAttraction = asyncHandler(async (req: Request, res: Response)
   }
 
   // Medium confidence - suggest for confirmation
+  console.log('[Verification] Checking suggest path:', {
+    confidence: result.confidence,
+    suggestThreshold: confidenceThresholds.suggest,
+    attractionId: result.attractionId,
+  });
   if (result.confidence >= confidenceThresholds.suggest && result.attractionId) {
+    console.log('[Verification] Suggest confirmation triggered');
     const attraction = await attractionService.getAttractionById(result.attractionId, userId);
+    console.log('[Verification] Fetched attraction for suggestion:', {
+      id: attraction.id,
+      name: attraction.name,
+    });
     return sendSuccess(res, {
       matched: false,
       confidence: result.confidence,
