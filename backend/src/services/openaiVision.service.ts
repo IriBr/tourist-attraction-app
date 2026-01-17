@@ -90,7 +90,7 @@ The visualDescription should focus on VISUAL features that would be consistent a
 
   try {
     const response = await client.chat.completions.create({
-      model: 'gpt-5-mini',
+      model: 'gpt-4o-mini',
       max_completion_tokens: 1024,
       messages: [
         {
@@ -114,6 +114,7 @@ The visualDescription should focus on VISUAL features that would be consistent a
 
     const content = response.choices[0]?.message?.content;
     if (!content) {
+      console.error('[OpenAI Vision] Empty response from identifyAttraction. Choices:', JSON.stringify(response.choices, null, 2));
       throw new Error('No response from OpenAI');
     }
 
@@ -224,7 +225,7 @@ SIMILARITY GUIDELINES:
     const userImageUrl = formatImageForOpenAI(userPhotoBase64);
 
     const response = await client.chat.completions.create({
-      model: 'gpt-5-mini',
+      model: 'gpt-4o-mini',
       max_completion_tokens: 512,
       messages: [
         {
