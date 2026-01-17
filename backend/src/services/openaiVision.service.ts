@@ -91,7 +91,7 @@ The visualDescription should focus on VISUAL features that would be consistent a
   try {
     const response = await client.chat.completions.create({
       model: 'gpt-5-mini',
-      max_completion_tokens: 1024,
+      max_completion_tokens: 2048,
       messages: [
         {
           role: 'user',
