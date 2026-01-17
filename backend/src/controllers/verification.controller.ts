@@ -178,7 +178,7 @@ export const verifyAttraction = asyncHandler(async (req: Request, res: Response)
     }
   }
 
-  let result: visionService.VerificationResult = {
+  let result: visionService.VerificationResult & { isVisualMatch?: boolean } = {
     matched: false,
     confidence: 0,
     attractionId: null,
@@ -286,6 +286,7 @@ export const verifyAttraction = asyncHandler(async (req: Request, res: Response)
           confidence: bestImageMatch.similarity,
           attractionId: bestImageMatch.attraction.id,
           explanation: `Visual match: ${bestImageMatch.explanation}`,
+          isVisualMatch: true, // Visual matches always require user confirmation
         };
       } else {
         result.explanation = `Identified as "${identification.name}" but no matching attraction found nearby (visual comparison also failed)`;
@@ -300,7 +301,20 @@ export const verifyAttraction = asyncHandler(async (req: Request, res: Response)
 
   const { confidenceThresholds } = config.vision;
 
-  // High confidence - auto-create visit
+  // Visual matches always require user confirmation (skip auto-match)
+  if (result.isVisualMatch && result.attractionId) {
+    const attraction = await attractionService.getAttractionById(result.attractionId, userId);
+    return sendSuccess(res, {
+      matched: false,
+      confidence: result.confidence,
+      requiresConfirmation: true,
+      suggestion: mapAttractionToResponse(attraction),
+      message: `Is this ${attraction.name}?`,
+      explanation: result.explanation,
+    });
+  }
+
+  // High confidence (name match) - auto-create visit
   if (result.matched && result.confidence >= confidenceThresholds.autoMatch && result.attractionId) {
     try {
       const visitResult = await visitService.markVisited(userId, {
