@@ -271,7 +271,7 @@ SIMILARITY GUIDELINES:
 
     const response = await client.chat.completions.create({
       model: 'gpt-5-mini',
-      max_completion_tokens: 512,
+      max_completion_tokens: 2048,
       messages: [
         {
           role: 'user',
