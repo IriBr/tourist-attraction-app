@@ -122,6 +122,12 @@ export const verifyAttraction = asyncHandler(async (req: Request, res: Response)
   }
 
   console.log('[Verification] Found', nearbyAttractions.length, 'nearby attractions');
+  const withImages = nearbyAttractions.filter(a => a.images && a.images.length > 0);
+  const withoutImages = nearbyAttractions.filter(a => !a.images || a.images.length === 0);
+  console.log('[Verification] Attractions with images:', withImages.length, '| without images:', withoutImages.length);
+  if (withoutImages.length > 0) {
+    console.log('[Verification] Attractions WITHOUT images:', withoutImages.slice(0, 10).map(a => a.name));
+  }
 
   // Step 3: Match OpenAI's identification against nearby attractions
   // Build list of names to search for
@@ -219,7 +225,12 @@ export const verifyAttraction = asyncHandler(async (req: Request, res: Response)
         .filter(a => a.images && a.images.length > 0)
         .slice(0, imageComparison.maxAttractionsToCompare);
 
-      console.log('[Verification] Comparing with', attractionsWithImages.length, 'attractions that have images');
+      console.log('[Verification] Comparing with', attractionsWithImages.length, 'attractions that have images:');
+      console.log('[Verification] Attractions being compared:', attractionsWithImages.map(a => ({
+        name: a.name,
+        distance: a.distance,
+        hasImages: a.images?.length || 0,
+      })));
 
       interface ImageMatch {
         attraction: typeof nearbyAttractions[0];
@@ -239,6 +250,12 @@ export const verifyAttraction = asyncHandler(async (req: Request, res: Response)
             attractionImageUrl,
             attraction.name
           );
+
+          console.log('[Verification] Comparison result:', {
+            attraction: attraction.name,
+            similarity: comparison.similarity,
+            matches: comparison.matches,
+          });
 
           if (comparison.similarity >= imageComparison.similarityThreshold) {
             imageMatches.push({

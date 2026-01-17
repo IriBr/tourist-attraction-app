@@ -96,8 +96,8 @@ export const config = {
     },
     imageComparison: {
       enabled: true,
-      maxAttractionsToCompare: 10, // Limit to avoid too many API calls
-      similarityThreshold: 0.65,   // Minimum similarity to consider a match
+      maxAttractionsToCompare: 20, // Increased to cover more nearby attractions
+      similarityThreshold: 0.50,   // Lowered to catch matches from different angles
     },
   },
   stripe: {
