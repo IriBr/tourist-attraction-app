@@ -56,9 +56,12 @@ export const verificationApi = {
    * Verify an attraction from an image
    * - Camera mode: provide latitude/longitude for location-based search
    * - Upload mode: omit location for global search
+   * Note: Extended timeout (3 min) because visual comparison can take time
    */
   async verify(request: VerifyRequest): Promise<VerifyResponse> {
-    const response = await apiClient.post('/verification/verify', request);
+    const response = await apiClient.post('/verification/verify', request, {
+      timeout: 180000, // 3 minutes for visual comparison
+    });
     return response.data.data;
   },
 
