@@ -156,23 +156,47 @@ export const verifyAttraction = asyncHandler(async (req: Request, res: Response)
     for (const attraction of nearbyAttractions) {
       const attractionNameLower = attraction.name.toLowerCase();
 
-      // Check for name match
+      // Check for name match and calculate match quality
       const searchWords = searchNameLower.split(/\s+/).filter(w => w.length > 2);
       const attractionWords = attractionNameLower.split(/\s+/).filter(w => w.length > 2);
 
-      const isMatch =
-        // Full name match
-        attractionNameLower.includes(searchNameLower) ||
-        searchNameLower.includes(attractionNameLower) ||
-        // At least 2 significant words match
-        (searchWords.length >= 2 && searchWords.filter(w => attractionNameLower.includes(w)).length >= 2) ||
-        (attractionWords.length >= 2 && attractionWords.filter(w => searchNameLower.includes(w)).length >= 2);
+      // Calculate name match score (0-1)
+      let nameMatchScore = 0;
 
-      if (isMatch && !potentialMatches.some(m => m.attraction.id === attraction.id)) {
+      // Exact match or one contains the other fully
+      if (attractionNameLower === searchNameLower) {
+        nameMatchScore = 1.0; // Perfect match
+      } else if (attractionNameLower.includes(searchNameLower) || searchNameLower.includes(attractionNameLower)) {
+        nameMatchScore = 0.85; // One contains the other
+      } else {
+        // Check word overlap
+        const searchWordsMatched = searchWords.filter(w => attractionNameLower.includes(w)).length;
+        const attractionWordsMatched = attractionWords.filter(w => searchNameLower.includes(w)).length;
+
+        if (searchWords.length >= 2 && searchWordsMatched >= 2) {
+          nameMatchScore = 0.6 + (searchWordsMatched / searchWords.length) * 0.2;
+        } else if (attractionWords.length >= 2 && attractionWordsMatched >= 2) {
+          nameMatchScore = 0.6 + (attractionWordsMatched / attractionWords.length) * 0.2;
+        }
+      }
+
+      if (nameMatchScore > 0 && !potentialMatches.some(m => m.attraction.id === attraction.id)) {
+        // Combine name match score with OpenAI confidence
+        // Name match quality matters more than OpenAI's general confidence
+        const combinedConfidence = Math.min(1.0, nameMatchScore * 0.7 + identification.confidence * 0.3);
+
         potentialMatches.push({
           attraction,
           matchedName: searchName,
-          confidence: identification.confidence,
+          confidence: combinedConfidence,
+        });
+
+        console.log('[Verification] Name match found:', {
+          searchName,
+          attractionName: attraction.name,
+          nameMatchScore,
+          aiConfidence: identification.confidence,
+          combinedConfidence,
         });
       }
     }
