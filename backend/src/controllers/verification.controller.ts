@@ -324,7 +324,6 @@ export const verifyAttraction = asyncHandler(async (req: Request, res: Response)
     console.log('[Verification] Fetched attraction:', {
       id: attraction.id,
       name: attraction.name,
-      city: attraction.location?.city || attraction.city?.name,
     });
     const suggestion = mapAttractionToResponse(attraction);
     console.log('[Verification] Returning visual match response:', {
